@@ -1,5 +1,5 @@
 OP: programma di controllo per open programmer, 
-programmatore USB per microcontrollori PIC, ATMEL, memorie I2C e MicroWire, dispositivi I2C e SPI.
+programmatore USB per microcontrollori PIC, ATMEL, memorie I2C/SPI/MicroWire, dispositivi I2C e SPI.
 Sito web: http://openprog.altervista.org
 Questi sorgenti sono distribuiti gratuitamente sotto licenza GNU General Public License versione 2 
 
@@ -17,12 +17,15 @@ V 0.6.2	ottobre 2009:	corretto algoritmo 16F628, 16F87/88 e 81X; supporto file b
 V 0.7.0	gennaio 2010:	aggiunte memorie SPI e alcuni micro PIC24F
 V 0.7.1	febbraio 2010:	aggiunti alcuni micro PIC18 e Atmel
 V 0.7.2	marzo 2010:		aggiunte alcune memorie uW, corretti algoritmi 16F7xx e alcuni bachi
+V 0.7.3	marzo 2010:		compilabile anche su windows, corretto baco nel caricamento di un file per EEPROM
 
 Guida: op -h
 Elenco completo di dispositivi supportati: op -support
 Esempio di scrittura: op -d 12F628 -ee -w prova.hex
 Per compilare: make
 Per installare: make install
+
+Può essere compilato per windows con MinGW/MSYS
 
 hid_test: spedisce e riceve un singolo pacchetto dati (64 byte)
 es. hid_test 0 1 2 3 12 15 1a 1c 1f 4

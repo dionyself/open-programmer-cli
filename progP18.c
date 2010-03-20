@@ -18,55 +18,7 @@
  * or see <http://www.gnu.org/licenses/>
  */
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <sys/ioctl.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <asm/types.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <linux/hiddev.h>
-#include <linux/input.h>
-#include <time.h>
-#include <ctype.h>
-#include <getopt.h>
-#include <sys/timeb.h>
-#include <string.h>
-#include "strings.h"
-#include "instructions.h"
-
-typedef unsigned long DWORD;
-typedef unsigned short WORD;
-typedef unsigned char BYTE;
-
-#define write() ioctl(fd, HIDIOCSUSAGES, &ref_multi_u); ioctl(fd,HIDIOCSREPORT, &rep_info_u);
-#define read() ioctl(fd, HIDIOCGUSAGES, &ref_multi_i); ioctl(fd,HIDIOCGREPORT, &rep_info_i);
-#define bufferU ref_multi_u.values
-#define bufferI ref_multi_i.values
-#define EQ(s) !strncmp(s,dev,64)
-#define PrintMessage printf
-#define COL 16
-
-
-extern int size,saveLog;
-extern char** strings;
-extern int fd;
-extern int DIMBUF,saveLog,programID,MinRit,load_osccal,load_BKosccal,usa_osccal,usa_BKosccal;
-extern int load_calibword,max_errori;
-extern int lock,fuse,fuse_h,fuse_x;
-extern FILE* RegFile;
-extern char LogFileName[256];
-extern WORD *dati_hex;
-extern int size,sizeEE;
-extern unsigned char *memCODE,*memEE,memID[8],memCONFIG[14];
-extern struct hiddev_report_info rep_info_i,rep_info_u;
-extern struct hiddev_usage_ref_multi ref_multi_i,ref_multi_u;
-extern void msDelay(double delay);
-extern void WriteLogIO();
-extern void PIC_ID(int id);
-extern void StartHVReg(double V);
-extern DWORD GetTickCount();
+#include "common.h"
 
 void Read18Fx(int dim,int dim2){
 // read 16 bit PIC 18Fxxxx
@@ -543,7 +495,7 @@ void Write18Fx(int dim,int dim2,int wbuf,int eraseW1,int eraseW2,int EEalgo)
 			PrintMessage("\b\b\b%2d%%",i*100/dim); fflush(stdout);
 			j=1;
 			if(saveLog){
-				fprintf(strings[S_Log7],i,i,0,0);	//"i=%d, k=%d 0=%d\n"
+				fprintf(RegFile,strings[S_Log7],i,i,0,0);	//"i=%d, k=%d 0=%d\n"
 				WriteLogIO();
 			}
 		}
@@ -611,7 +563,7 @@ void Write18Fx(int dim,int dim2,int wbuf,int eraseW1,int eraseW2,int EEalgo)
 		bufferU[j++]=CORE_INS;
 		bufferU[j++]=0x84;			//WREN=1
 		bufferU[j++]=0xA6;
-		for(i=0;i<dim2&&errori<=max_errori;i++){
+		for(i=0;i<dim2&&errori<=max_err;i++){
 			if(memEE[i]!=0xFF){
 				bufferU[j++]=CORE_INS;
 				bufferU[j++]=0x0E;
@@ -736,16 +688,16 @@ void Write18Fx(int dim,int dim2,int wbuf,int eraseW1,int eraseW2,int EEalgo)
 			fprintf(RegFile,strings[S_Log8],i,i,k,k,errori);	//"i=%d, k=%d, errori=%d\n"
 			WriteLogIO();
 		}
-		if(errori>=max_errori) break;
+		if(errori>=max_err) break;
 	}
 	PrintMessage("\b\b\b");
 	if(k<dimx){
 		PrintMessage(strings[S_CodeVError2],dimx,k);	//"Errore in verifica area programma, richiesti %d byte, letti %d\r\n"
 	}
 	PrintMessage(strings[S_ComplErr],errori);	//"terminata: %d errori\r\n"
-	if(errori>=max_errori) PrintMessage(strings[S_MaxErr]);	//"Raggiunto il numero massimo di errori, programmazione terminata"
+	if(errori>=max_err) PrintMessage(strings[S_MaxErr]);	//"Raggiunto il numero massimo di errori, programmazione terminata"
 //****************** verify ID ********************
-	if(programID&&errori<max_errori){
+	if(programID&&errori<max_err){
 		PrintMessage(strings[S_IDV]);	//"Verifica ID ... "
 		int erroriID=0;
 		bufferU[j++]=CORE_INS;
@@ -771,7 +723,7 @@ void Write18Fx(int dim,int dim2,int wbuf,int eraseW1,int eraseW2,int EEalgo)
 		for(i=0;i<8;i++) if(memID[i]!=0xFF&&memID[i]!=bufferI[z+i+2]) erroriID++;
 		PrintMessage(strings[S_ComplErr],erroriID);	//"terminata: %d errori\r\n"
 		errori+=erroriID;
-		if(errori>=max_errori) PrintMessage(strings[S_MaxErr]);	//"Raggiunto il numero massimo di errori, programmazione terminata"
+		if(errori>=max_err) PrintMessage(strings[S_MaxErr]);	//"Raggiunto il numero massimo di errori, programmazione terminata"
 		j=1;
 		if(saveLog){
 			fprintf(RegFile,strings[S_Log8],i,i,0,0,errori);	//"i=%d, k2=%d 0=%d\n"
@@ -779,7 +731,7 @@ void Write18Fx(int dim,int dim2,int wbuf,int eraseW1,int eraseW2,int EEalgo)
 		}
 	}
 //****************** write CONFIG ********************
-	if(errori<max_errori){
+	if(errori<max_err){
 		PrintMessage(strings[S_ConfigW]);	//"Programmazione CONFIG ..."
 		bufferU[j++]=CORE_INS;
 		bufferU[j++]=0x8E;
@@ -858,7 +810,7 @@ void Write18Fx(int dim,int dim2,int wbuf,int eraseW1,int eraseW2,int EEalgo)
 		}
 		PrintMessage(strings[S_ComplErr],erroriC);	//"terminata: %d errori\r\n"
 		errori+=erroriC;
-		if(errori>=max_errori) PrintMessage(strings[S_MaxErr]);	//"Raggiunto il numero massimo di errori, programmazione terminata"
+		if(errori>=max_err) PrintMessage(strings[S_MaxErr]);	//"Raggiunto il numero massimo di errori, programmazione terminata"
 		j=1;
 		if(saveLog){
 			fprintf(RegFile,strings[S_Log8],i,i,0,0,errori);	//"i=%d, k=%d, errori=%d\n"

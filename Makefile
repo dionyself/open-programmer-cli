@@ -1,24 +1,19 @@
-#CC=gcc 
-CFLAGS=-w
+CC = gcc
+#CFLAGS = -w -O3 -s
+CFLAGS = -w
+OBJECTS = op.o progP12.o progP16.o progP18.o progP24.o progEEPROM.o progAVR.o fileIO.o
 
-op: op.o progP12.o progP16.o progP18.o progP24.o progEEPROM.o progAVR.o
+all: op
 
-op.o: op.c
+op : $(OBJECTS)
+	$(CC) $(CFLAGS) $(OBJECTS) -o op
 
-progP12.o: progP12.c
-
-progP16.o: progP16.c
-
-progP18.o: progP18.c
-
-progP24.o: progP24.c
-
-progEEPROM.o: progEEPROM.c
-
-progAVR.o: progAVR.c
+%.o : %.c
+	$(CC) $(CFLAGS) -c $<
 
 clean:
-	rm -f op op.o progP12.o progP16.o progP18.o progP24.o progEEPROM.o progAVR.o
+	rm -f op $(OBJECTS)
+
 
 .PHONY: clean
 

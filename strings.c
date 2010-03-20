@@ -433,7 +433,7 @@ strings_it[L_HELP]="op [opzioni]\n\
 	\n-i2c_w <N Ctr Ind Dati>     scrivi N byte sul bus I2C\
 	\n-i2c_w2 <N Ctr Ind(2) Dati> scrivi N byte sul bus I2C (indirizzi 16b)\
 	\n-id                         usa ID\
-	\n-l, log [file]              salva registro\
+	\n-l, log [=file]              salva registro\
 	\n-lock <val>                 scrive il byte lock (solo Atmel)\
 	\n-mode <mode>                SPI mode: 00,01,10,11\
 	\n-osccal                     carica osccal da file invece che dal valore salvato prima della cancellazione\
@@ -682,11 +682,11 @@ strings_en[L_HELP]="op [options]\n\
 	\n-i2c_r <N Ctr Addr Data>    write N bytes to I2C bus\
 	\n-i2c_r <N Ctr Addr(2) Data> write N bytes to I2C bus (16b address)\
 	\n-id                         use ID\
-	\n-l, log [file]              save log\
+	\n-l, log [=file]              save log\
 	\n-lock <val>                 write lock byte (Atmel only)\
 	\n-mode <mode>                SPI mode: 00,01,10,11\
-	\n-osccal                     loads osccal from file instead of from value saved before erase\
-	\n-p, path <percorso>         programmer path [/dev/usb/hiddev0]\
+	\n-osccal                     loads osccal from file instead of using the value saved before erase\
+	\n-p, path <path>             programmer path [/dev/usb/hiddev0]\
 	\n-pid <pid>                  programmer pid [0x100]\
 	\n-r, reserved                read reserved area\
 	\n-rep <n>                    report size [64]\

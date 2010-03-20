@@ -18,56 +18,7 @@
  * or see <http://www.gnu.org/licenses/>
  */
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <sys/ioctl.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <asm/types.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <linux/hiddev.h>
-#include <linux/input.h>
-#include <time.h>
-#include <ctype.h>
-#include <getopt.h>
-#include <sys/timeb.h>
-#include <string.h>
-#include "strings.h"
-#include "instructions.h"
-
-typedef unsigned long DWORD;
-typedef unsigned short WORD;
-typedef unsigned char BYTE;
-
-#define write() ioctl(fd, HIDIOCSUSAGES, &ref_multi_u); ioctl(fd,HIDIOCSREPORT, &rep_info_u);
-#define read() ioctl(fd, HIDIOCGUSAGES, &ref_multi_i); ioctl(fd,HIDIOCGREPORT, &rep_info_i);
-#define bufferU ref_multi_u.values
-#define bufferI ref_multi_i.values
-#define EQ(s) !strncmp(s,dev,64)
-#define PrintMessage printf
-#define COL 16
-
-
-extern int size,saveLog;
-extern char** strings;
-extern int fd;
-extern int DIMBUF,saveLog,programID,MinRit,load_osccal,load_BKosccal,usa_osccal,usa_BKosccal;
-extern int load_calibword,max_errori;
-extern int lock,fuse,fuse_h,fuse_x;
-extern FILE* RegFile;
-extern char LogFileName[256];
-extern WORD *dati_hex;
-extern int size,sizeEE;
-extern unsigned char *memCODE,*memEE,memID[8],memCONFIG[14];
-extern struct hiddev_report_info rep_info_i,rep_info_u;
-extern struct hiddev_usage_ref_multi ref_multi_i,ref_multi_u;
-extern void msDelay(double delay);
-extern void WriteLogIO();
-extern void PIC_ID(int id);
-extern void StartHVReg();
-extern DWORD GetTickCount();
-extern void DisplayEE();
+#include "common.h"
 
 void ReadI2C(int dim,int addr)
 // read I2C memories
@@ -276,7 +227,7 @@ void WriteI2C(int dim,int addr,int page, float wait)
 			fprintf(RegFile,strings[S_Log8],i,i,k,k,errori);	//"i=%d, k=%d, errori=%d\n"
 			WriteLogIO();
 		}
-		if(errori>=max_errori) break;
+		if(errori>=max_err) break;
 	}
 	PrintMessage("\b\b\b");
 	if(k!=dim){
@@ -572,7 +523,7 @@ void Write93Sx(int dim,int na,int page, double wait)
 			fprintf(RegFile,strings[S_Log8],i,i,k,k,errori);	//"i=%d, k=%d, errori=%d\n"
 			WriteLogIO();
 		}
-		if(errori>=max_errori) break;
+		if(errori>=max_err) break;
 	}
 	PrintMessage("\b\b\b");
 	if(k!=dim){
@@ -820,7 +771,7 @@ void Write93Cx(int dim,int na, int options)
 			fprintf(RegFile,strings[S_Log8],i,i,k,k,errori);	//"i=%d, k=%d, errori=%d\n"
 			WriteLogIO();
 		}
-		if(errori>=max_errori) break;
+		if(errori>=max_err) break;
 	}
 	PrintMessage("\b\b\b");
 	if(k!=dim){
@@ -1121,7 +1072,7 @@ void Write25xx(int dim,int page,float wait)
 			fprintf(RegFile,strings[S_Log8],i,i,k,k,errori);	//"i=%d, k=%d, errori=%d\n"
 			WriteLogIO();
 		}
-		if(errori>=max_errori) break;
+		if(errori>=max_err) break;
 	}
 	PrintMessage("\b\b\b");
 	if(k!=dim){

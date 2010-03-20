@@ -1,5 +1,5 @@
 /*
- * progAVR.cp - algorithms to program the Atmel AVR family of microcontrollers
+ * progAVR.c - algorithms to program the Atmel AVR family of microcontrollers
  * Copyright (C) 2009 Alberto Maccioni
  *
  * This program is free software; you can redistribute it and/or modify
@@ -18,60 +18,12 @@
  * or see <http://www.gnu.org/licenses/>
  */
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <sys/ioctl.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <asm/types.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <linux/hiddev.h>
-#include <linux/input.h>
-#include <time.h>
-#include <ctype.h>
-#include <getopt.h>
-#include <sys/timeb.h>
-#include <string.h>
-#include "strings.h"
-#include "instructions.h"
-
-typedef unsigned long DWORD;
-typedef unsigned short WORD;
-typedef unsigned char BYTE;
-
-#define write() ioctl(fd, HIDIOCSUSAGES, &ref_multi_u); ioctl(fd,HIDIOCSREPORT, &rep_info_u);
-#define read() ioctl(fd, HIDIOCGUSAGES, &ref_multi_i); ioctl(fd,HIDIOCGREPORT, &rep_info_i);
-#define bufferU ref_multi_u.values
-#define bufferI ref_multi_i.values
-#define EQ(s) !strncmp(s,dev,64)
-#define PrintMessage printf
-#define COL 16
+#include "common.h"
 #define  LOCK	1
 #define  FUSE	2
 #define  FUSE_H 4
 #define  FUSE_X	8
 #define  CAL	16
-
-
-extern int size,saveLog;
-extern char** strings;
-extern int fd;
-extern int DIMBUF,saveLog,programID,MinRit,load_osccal,load_BKosccal,usa_osccal,usa_BKosccal;
-extern int load_calibword,max_errori;
-extern int lock,fuse,fuse_h,fuse_x;
-extern FILE* RegFile;
-extern char LogFileName[256];
-extern WORD *dati_hex;
-extern int size,sizeEE;
-extern unsigned char *memCODE,*memEE,memID[8],memCONFIG[14];
-extern struct hiddev_report_info rep_info_i,rep_info_u;
-extern struct hiddev_usage_ref_multi ref_multi_i,ref_multi_u;
-extern void msDelay(double delay);
-extern void WriteLogIO();
-extern void PIC_ID(int id);
-extern void StartHVReg();
-extern DWORD GetTickCount();
 
 void AtmelID(BYTE id[])
 {
@@ -713,7 +665,7 @@ void WriteAT(int dim, int dim2)
 					ritenta=0;
 				}
 			}
-			if(max_errori&&errori>max_errori){
+			if(max_err&&errori>max_err){
 				PrintMessage(strings[S_MaxErr],errori);	//"Superato il massimo numero di errori (%d), scrittura interrotta\r\n"
 				PrintMessage(strings[S_IntW]);	//"Scrittura interrotta"
 				i=dim;
@@ -768,7 +720,7 @@ void WriteAT(int dim, int dim2)
 						ritenta=0;
 					}
 				}
-				if(max_errori&&errori+erroriEE>max_errori){
+				if(max_err&&errori+erroriEE>max_err){
 					PrintMessage(strings[S_MaxErr],errori+erroriEE);	//"Superato il massimo numero di errori (%d), scrittura interrotta\r\n"
 					PrintMessage(strings[S_IntW]);	//"Scrittura interrotta"
 					i=dim2;
@@ -1061,7 +1013,7 @@ void WriteATmega(int dim, int dim2, int page)
 			if(saveLog){
 				fprintf(RegFile,strings[S_Log8],i,i,w,w,errori);	//"i=%d, k=%d, errori=%d\n"
 			}
-			if(max_errori&&errori>max_errori){
+			if(max_err&&errori>max_err){
 				PrintMessage(strings[S_MaxErr],errori);	//"Superato il massimo numero di errori (%d), scrittura interrotta\r\n"
 				PrintMessage(strings[S_IntW]);	//"Scrittura interrotta"
 				i=dim;
@@ -1111,7 +1063,7 @@ void WriteATmega(int dim, int dim2, int page)
 						ritenta=0;
 					}
 				}
-				if(max_errori&&errori+erroriEE>max_errori){
+				if(max_err&&errori+erroriEE>max_err){
 					PrintMessage(strings[S_MaxErr],errori+erroriEE);	//"Superato il massimo numero di errori (%d), scrittura interrotta\r\n"
 					PrintMessage(strings[S_IntW]);	//"Scrittura interrotta"
 					i=dim2;

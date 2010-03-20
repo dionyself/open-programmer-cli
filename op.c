@@ -1,6 +1,6 @@
 /*
  * op.c - control program for the open programmer
- * Copyright (C) 2009 Alberto Maccioni
+ * Copyright (C) 2009 2010 Alberto Maccioni
  * for detailed info see:
  * http://openprog.altervista.org/
  *
@@ -21,9 +21,7 @@
  */
 
 
-
-#include <stdlib.h>
-#include <stdio.h>
+#if !defined _WIN32 && !defined __CYGWIN__
 #include <sys/ioctl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -32,16 +30,27 @@
 #include <unistd.h>
 #include <linux/hiddev.h>
 #include <linux/input.h>
+#else
+#include <windows.h>
+#include <setupapi.h>
+#include <ddk/hidusage.h>
+#include <ddk/hidpi.h>
+#endif
+
+#include <sys/timeb.h>
+#include <wchar.h>
+#include <math.h>
+#include <stdlib.h>
+#include <stdio.h>
 #include <time.h>
 #include <ctype.h>
 #include <getopt.h>
-#include <sys/timeb.h>
 #include <string.h>
 #include "strings.h"
 #include "instructions.h"
 
 #define COL 16
-#define VERSION "0.7.2"
+#define VERSION "0.7.3beta"
 #define G (12.0/34*1024/5)		//=72,2823529412
 #define  LOCK	1
 #define  FUSE	2
@@ -49,12 +58,29 @@
 #define  FUSE_X	8
 #define  CAL	16
 
+#if !defined _WIN32 && !defined __CYGWIN__
+    #define write() ioctl(fd, HIDIOCSUSAGES, &ref_multi_u); ioctl(fd,HIDIOCSREPORT, &rep_info_u);
+    #define read() ioctl(fd, HIDIOCGUSAGES, &ref_multi_i); ioctl(fd,HIDIOCGREPORT, &rep_info_i);
+    #define bufferU ref_multi_u.values
+    #define bufferI ref_multi_i.values
+
+#else
+	#define write()	Result=WriteFile(WriteHandle,bufferU,DIMBUF,&BytesWritten,NULL);
+	#define read()	Result = ReadFile(ReadHandle,bufferI,DIMBUF,&NumberOfBytesRead,(LPOVERLAPPED) &HIDOverlapped);\
+					Result = WaitForSingleObject(hEventObject,10);\
+					ResetEvent(hEventObject);\
+					if(Result!=WAIT_OBJECT_0){\
+						printf(strings[S_comTimeout]);	/*"Timeout comunicazione\r\n"*/\
+					}
+#endif
 
 typedef unsigned long DWORD;
 typedef unsigned short WORD;
 typedef unsigned char BYTE;
 
+#if !defined _WIN32 && !defined __CYGWIN__
 DWORD GetTickCount();
+#endif
 void msDelay(double delay);
 void WriteLogIO();
 void PIC_ID(int id);
@@ -90,11 +116,12 @@ void TestHw();
 int StartHVReg(double V);
 void ProgID();
 void DisplayEE();
+int FindDevice();
 
 char** strings;
 int fd = -1;
-int DIMBUF=64,saveLog=0,programID=0,MinRit=2,load_osccal=0,load_BKosccal=0,usa_osccal=1,usa_BKosccal=0;
-int load_calibword=0,max_errori=200;
+int saveLog=0,programID=0,MinDly=1,load_osccal=0,load_BKosccal=0,usa_osccal=1,usa_BKosccal=0;
+int load_calibword=0,max_err=200;
 int lock=0x100,fuse=0x100,fuse_h=0x100,fuse_x=0x100;
 int FWVersion=0;
 FILE* RegFile=0;
@@ -104,15 +131,27 @@ char loadfileEE[256]="",savefileEE[256]="";
 WORD *dati_hex;
 int size=0,sizeEE=0,sizeCONFIG=0;
 unsigned char *memCODE,*memEE,memID[8],memCONFIG[34];
+int vid=0x04D8,pid=0x0100,info=0;
+#if !defined _WIN32 && !defined __CYGWIN__
 struct hiddev_report_info rep_info_i,rep_info_u;
 struct hiddev_usage_ref_multi ref_multi_i,ref_multi_u;
+int DIMBUF=64;
+char path[256]="/dev/usb/hiddev0";
+#else
+unsigned char bufferU[128],bufferI[128]; 
+DWORD NumberOfBytesRead,BytesWritten;
+ULONG Result;
+HANDLE WriteHandle,ReadHandle;
+OVERLAPPED HIDOverlapped;
+HANDLE hEventObject;
+int DIMBUF=65;
+#endif
 
 
 int main (int argc, char **argv) {
 
-	int info=0,v=0,ee=0,r=0,ver=0,c=0,lista=0,i2c=0,spi_mode=0,i,j,testhw=0;
-	int vid=0x04D8,pid=0x0100;
-	char dev[64]="null",path[256]="/dev/usb/hiddev0";
+	int v=0,ee=0,r=0,ver=0,c=0,lista=0,i2c=0,spi_mode=0,i,j,testhw=0;
+	char dev[64]="null";
 	unsigned char tmpbuf[128];
 	opterr = 0;
 	int option_index = 0;
@@ -152,8 +191,10 @@ int main (int argc, char **argv) {
 		{"lock",          required_argument,       0, 'L'},
 		{"mode",          required_argument,       0, 'm'},
 		{"osccal",        no_argument,    &load_osccal, 1},
+#if !defined _WIN32 && !defined __CYGWIN__
 		{"p",             required_argument,       0, 'p'},
 		{"path",          required_argument,       0, 'p'},
+#endif
 		{"pid",           required_argument,       0, 'P'},
 		{"rep" ,          required_argument,       0, 'r'},
 		{"reserved",      no_argument,              &r, 1},
@@ -182,18 +223,18 @@ int main (int argc, char **argv) {
 		exit(0);*/
 		switch (c)
 		{
-			case 'h':	//guida
+			case 'h':	//help
 				printf(strings[L_HELP]);
 				return 1 ;
 				break;
-			case 'd':	//dispositivo
+			case 'd':	//device
 				strncpy(dev,optarg,sizeof(dev)-1);
 				break;
-			case 'D':	//ritardo minimo
-				MinRit = atoi(optarg);
+			case 'D':	//minimum delay
+				MinDly = atoi(optarg);
 				break;
-			case 'e':	//max errori in scrittura
-				max_errori = atoi(optarg);
+			case 'e':	//max write errors
+				max_err = atoi(optarg);
 				break;
 			case 'f':	//Atmel FUSE low
 				i=sscanf(optarg, "%x", &fuse);
@@ -203,7 +244,7 @@ int main (int argc, char **argv) {
 				i=sscanf(optarg, "%x", &fuse_h);
 				if(i!=1||fuse_h<0||fuse_h>0xFF) fuse_h=0x100;
 				break;
-			case 'l':	//saveLog
+			case 'l':	//save Log
 				saveLog=1;
 				if(optarg) strncpy(LogFileName,optarg,sizeof(LogFileName));
 				break;
@@ -214,19 +255,21 @@ int main (int argc, char **argv) {
 			case 'm':	//SPI mode
 				spi_mode = atoi(optarg);
 				break;
-			case 'r':	//dim report
+			case 'r':	//USB HID report size
 				DIMBUF = atoi(optarg);
 				break;
-			case 'p':	//percorso hiddev
+#if !defined _WIN32 && !defined __CYGWIN__
+			case 'p':	//hiddev path
 				strncpy(path,optarg,sizeof(path)-1);
 				break;
+#endif
 			case 'P':	//pid
 				sscanf(optarg, "%x", &pid);
 				break;
-			case 's':	//salva su file
+			case 's':	//save
 				strncpy(savefile,optarg,sizeof(savefile)-1);
 				break;
-			case 'S':	//salva EE su file
+			case 'S':	//save EE
 				strncpy(savefileEE,optarg,sizeof(savefileEE)-1);
 				break;
 			case 'V':	//vid
@@ -236,10 +279,10 @@ int main (int argc, char **argv) {
 				i=sscanf(optarg, "%x", &fuse_x);
 				if(i!=1||fuse_x<0||fuse_x>0xFF) fuse_x=0x100;
 				break;
-			case 'w':	//nome file
+			case 'w':	//write file
 				strncpy(loadfile,optarg,sizeof(loadfile)-1);
 				break;
-			case 'W':	//nome file
+			case 'W':	//write EE file
 				strncpy(loadfileEE,optarg,sizeof(loadfileEE)-1);
 				break;
 			case '?':
@@ -261,17 +304,6 @@ Foundation; either version 2 of the License, or (at your option) any later versi
 			\n",VERSION);
 		return 0;
 	}
-	if(info){
-		struct hiddev_devinfo device_info;
-		ioctl(fd, HIDIOCGDEVINFO, &device_info);
-		printf(strings[L_INFO1],device_info.vendor, device_info.product, device_info.version);
-		printf(strings[L_INFO2],device_info.busnum, device_info.devnum, device_info.ifnum);
-		char name[256];
-		strcpy(name,strings[L_UNKNOWN]);//"Unknown"
-		if(ioctl(fd, HIDIOCGNAME(sizeof(name)), name) < 0) perror("evdev ioctl");
-		printf(strings[L_NAME], path, name);//"The device on %s says its name is %s\n"
-		return 0;
-	}
 	if (lista){
 		printf("%s\
 \n10F200, 10F202, 10F204, 10F206, 10F220, 10F222,\n\
@@ -290,7 +322,7 @@ Foundation; either version 2 of the License, or (at your option) any later versi
 18F2620, 18F2680, 18F2682, 18F2685, 18F4220, 18F4221, 18F4320, 18F4321, 18F4331, \
 18F4410, 18F4420, 18F4423, 18F4431, 18F4439, 18F4450, 18F4455, 18F4458, 18F4480, \
 18F4510, 18F4515, 18F4520, 18F4523, 18F4525, 18F4539, 18F4550, 18F4553, 18F4580, \
-18F4585, 18F4610, 18F4620, 18F4680, 18F4682, 18F4685, 18F8722\n\
+18F4585, 18F4610, 18F4620, 18F4680, 18F4682, 18F4685, 18F8722,\n\
 24F04KA200, 24F04KA201, 24F08KA101, 24F08KA102, 24F16KA101, 24F16KA102, 24FJ16GA002, \
 24FJ16GA004, 24FJ32GA002, 24FJ32GA004, 24FJ48GA002, 24FJ48GA004, 24FJ64GA002, \
 24FJ64GA004, 24FJ64GA006, 24FJ64GA008, 24FJ64GA010, 24FJ96GA006, 24FJ96GA008, \
@@ -306,35 +338,22 @@ ATmega16, ATmega16A, ATmega32, ATmega32A, ATmega64, ATmega64A\n\
 		,strings[L_DEV_RW],strings[L_DEV_RO]);
 		return 0;
 	}
-	if ((fd = open(path, O_RDONLY )) < 0) {
-		perror("hiddev open");
-		exit(1);
+	if(FindDevice()<0) exit(1);
+#if !defined _WIN32 && !defined __CYGWIN__
+	if(info){
+		struct hiddev_devinfo device_info;
+		ioctl(fd, HIDIOCGDEVINFO, &device_info);
+		printf(strings[L_INFO1],device_info.vendor, device_info.product, device_info.version);
+		printf(strings[L_INFO2],device_info.busnum, device_info.devnum, device_info.ifnum);
+		char name[256];
+		strcpy(name,strings[L_UNKNOWN]);//"Unknown"
+		if(ioctl(fd, HIDIOCGNAME(sizeof(name)), name) < 0) perror("evdev ioctl");
+		printf(strings[L_NAME], path, name);//"The device on %s says its name is %s\n"
+		return 0;
 	}
-	struct hiddev_devinfo device_info;
-	ioctl(fd, HIDIOCGDEVINFO, &device_info);
-	if(device_info.vendor!=vid||device_info.product!=pid){
-		printf(strings[S_noprog]);
-		return 1;
-	}
-	else printf(strings[S_prog]);
+#endif
 
-	rep_info_u.report_type=HID_REPORT_TYPE_OUTPUT;
-	rep_info_i.report_type=HID_REPORT_TYPE_INPUT;
-	rep_info_u.report_id=rep_info_i.report_id=HID_REPORT_ID_FIRST;
-	rep_info_u.num_fields=rep_info_i.num_fields=1;
-	ref_multi_u.uref.report_type=HID_REPORT_TYPE_OUTPUT;
-	ref_multi_i.uref.report_type=HID_REPORT_TYPE_INPUT;
-	ref_multi_u.uref.report_id=ref_multi_i.uref.report_id=HID_REPORT_ID_FIRST;
-	ref_multi_u.uref.field_index=ref_multi_i.uref.field_index=0;
-	ref_multi_u.uref.usage_index=ref_multi_i.uref.usage_index=0;
-	ref_multi_u.num_values=ref_multi_i.num_values=DIMBUF;
 	DWORD t0,t;
-
-#define write() ioctl(fd, HIDIOCSUSAGES, &ref_multi_u); ioctl(fd,HIDIOCSREPORT, &rep_info_u);
-#define read() ioctl(fd, HIDIOCGUSAGES, &ref_multi_i); ioctl(fd,HIDIOCGREPORT, &rep_info_i);
-#define bufferU ref_multi_u.values
-#define bufferI ref_multi_i.values
-
 	t=t0=GetTickCount();
 	ProgID();
 	if(!strncmp(dev,"10",2)||!strncmp(dev,"12",2)||!strncmp(dev,"16",2)||testhw) StartHVReg(13);
@@ -1784,786 +1803,6 @@ void ProgID()
 	else printf(" (?)\r\n\r\n");
 }
 
-void Save(char* dev,char* savefile){
-	FILE* f=fopen(savefile,"w");
-	if(!f) return;
-//**************** 10-16F *******************************************
-	if(!strncmp(dev,"10",2)||!strncmp(dev,"12",2)||!strncmp(dev,"16",2)){
-		char str[512],str1[512]="";
-		int i;
-		fprintf(f,":020000040000FA\n");			//extended address=0
-		int sum=0,count=0,s;
-		for(i=0;i<size&&dati_hex[i]>=0xfff;i++); //toglie fff in cima
-		for(;i<size;i++){
-			sum+=(dati_hex[i]>>8)+dati_hex[i]&0xff;
-			sprintf(str,"%02X%02X",dati_hex[i]&0xff,dati_hex[i]>>8);
-			strcat(str1,str);
-			count++;
-			if(count==8||i==size-1){
-				for(s=i;s>i-count&&dati_hex[s]>=0xfff;s--){	//toglie fff in coda
-					sum-=(dati_hex[s]>>8)+dati_hex[s]&0xff;
-					str1[strlen(str1)-4]=0;
-				}
-				count-=i-s;
-				sum+=count*2+(((s-count+1)*2)&0xff)+(((s-count+1)*2)>>8);
-				if(count) fprintf(f,":%02X%04X00%s%02X\n",count*2,(s-count+1)*2,str1,(-sum)&0xff);
-				str1[0]=0;
-				count=sum=0;
-			}
-		}
-		fprintf(f,":00000001FF\n");
-	}
-//**************** 18F *******************************************
-	else if(!strncmp(dev,"18F",3)){
-		char str[512],str1[512]="";
-		int i,ext=0,base;
-		fprintf(f,":020000040000FA\n");			//extended address=0
-		int sum=0,count=0,s;
-		for(i=0;i<size&&memCODE[i]==0xff;i++); //remove leading 0xFF
-		for(;i<size;i++){
-			sum+=memCODE[i];
-			sprintf(str,"%02X",memCODE[i]);
-			strcat(str1,str);
-			count++;
-			if(count==16||i==size-1){
-				base=i+1-count;
-				for(s=i;s>=base&&memCODE[s]==0xff;s--){	//remove trailing 0xFF
-					sum-=memCODE[s];
-					str1[strlen(str1)-2]=0;
-				}
-				count-=i-s;
-				sum+=count+(base&0xff)+(base>>8)&0xff;
-				if(base>>16>ext){
-					ext=base>>16;
-					fprintf(f,":02000004%04X%02X\n",ext,(-6-ext)&0xff);
-				}
-				if(count){
-					fprintf(f,":%02X%04X00%s%02X\n",count,(s-count+1),str1,(-sum)&0xff);
-				}
-				str1[0]=0;
-				count=sum=0;
-			}
-		}
-		for(i=0,count=sum=0;i<8;i++){
-			sum+=memID[i];
-			sprintf(str,"%02X",memID[i]&0xff);
-			strcat(str1,str);
-			count++;
-			if(count==7){
-				fprintf(f,":020000040020DA\n");
-				for(s=i;s>i-count&&memID[s]>=0xff;s--){	//remove trailing 0xFF
-					sum-=memID[s]&0xff;
-					str1[strlen(str1)-2]=0;
-				}
-				count-=i-s;
-				sum+=count+(s-count+1)&0xff+((s-count+1)>>8);
-				if(count){
-					fprintf(f,":%02X%04X00%s%02X\n",count,(s-count+1),str1,(-sum)&0xff);
-				}
-				str1[0]=0;
-				count=sum=0;
-			}
-		}
-		for(i=0,count=sum=0;i<14;i++){
-			sum+=memCONFIG[i];
-			sprintf(str,"%02X",memCONFIG[i]&0xff);
-			strcat(str1,str);
-			count++;
-			if(count==13){
-				fprintf(f,":020000040030CA\n");
-				for(s=i;s>i-count&&memCONFIG[s]>=0xff;s--){	//remove trailing 0xFF
-					sum-=memCONFIG[s]&0xff;
-					str1[strlen(str1)-2]=0;
-				}
-				count-=i-s;
-				sum+=count+(s-count+1)&0xff+((s-count+1)>>8);
-				if(count){
-					fprintf(f,":%02X%04X00%s%02X\n",count,(s-count+1),str1,(-sum)&0xff);
-				}
-				str1[0]=0;
-				count=sum=0;
-			}
-		}
-		if(sizeEE){
-			fprintf(f,":0200000400F00A\n");
-			for(i=0,count=sum=0;i<sizeEE;i++){
-				sum+=memEE[i];
-				sprintf(str,"%02X",memEE[i]&0xff);
-				strcat(str1,str);
-				count++;
-				if(count==16||i==sizeEE-1){
-					for(s=i;s>i-count&&memEE[s]>=0xff;s--){	//remove trailing 0xFF
-						sum-=memEE[s]&0xff;
-						str1[strlen(str1)-2]=0;
-					}
-					count-=i-s;
-					sum+=count+(s-count+1)&0xff+((s-count+1)>>8);
-					if(count){
-						fprintf(f,":%02X%04X00%s%02X\n",count,(s-count+1),str1,(-sum)&0xff);
-					}
-					str1[0]=0;
-					count=sum=0;
-				}
-			}
-		}
-		fprintf(f,":00000001FF\n");
-	}
-//**************** 24F *******************************************
-	else if(!strncmp(dev,"24F",3)){
-		char str[512],str1[512]="";
-		int i,ext=0,base;
-		int valid;
-		fprintf(f,":020000040000FA\n");			//extended address=0
-		int sum=0,count=0,s,word;
-		word=memCODE[0]+(memCODE[1]<<8)+(memCODE[2]<<16)+(memCODE[3]<<24);
-		for(i=0;i<size&&word==0xffffffff;i+=4) //remove leading 0xFFFFFFFF
-			word=memCODE[i]+(memCODE[i+1]<<8)+(memCODE[i+2]<<16)+(memCODE[i+3]<<24);
-		for(;i<size;i++){
-			sum+=memCODE[i];
-			sprintf(str,"%02X",memCODE[i]);
-			strcat(str1,str);
-			count++;
-			if(count==16||i==size-1){
-				base=i+1-count;
-				for(s=base,valid=0;s<=i&&!valid;s+=4){	//remove empty lines
-					if(memCODE[s]<0xFF||memCODE[s+1]<0xFF||+memCODE[s+2]<0xFF) valid=1;
-				}
-				s=i;
-				sum+=count+(base&0xff)+(base>>8)&0xff;
-				if(base>>16>ext){
-					ext=base>>16;
-					fprintf(f,":02000004%04X%02X\n",ext,(-6-ext)&0xff);
-				}
-				if(count&&valid){
-					fprintf(f,":%02X%04X00%s%02X\n",count,(s-count+1),str1,(-sum)&0xff);
-				}
-				str1[0]=0;
-				count=sum=0;
-			}
-		}
-		if(sizeCONFIG){
-			fprintf(f,":0200000401F009\n");
-			for(i=0,count=sum=0;i<sizeCONFIG&&i<34;i++){
-				sum+=memCONFIG[i];
-				sprintf(str,"%02X",memCONFIG[i]);
-				strcat(str1,str);
-				count++;
-				if(count==4||i==sizeCONFIG-1){
-					s=i;
-					sum+=count+(s-count+1)&0xff+((s-count+1)>>8);
-					if(count){
-						fprintf(f,":%02X%04X00%s%02X\n",count,(s-count+1),str1,(-sum)&0xff);
-					}
-					str1[0]=0;
-					count=sum=0;
-				}
-			}
-		}
-		if(sizeEE){
-			fprintf(f,":0200000400FFFB\n");
-			for(i=0,count=sum=0;i<sizeEE;i++){
-				sum+=memEE[i];
-				sprintf(str,"%02X",memEE[i]&0xff);
-				strcat(str1,str);
-				count++;
-				if(count==16||i==sizeEE-1){
-					s=i;
-					sum+=0xfc+count+((s-count+1)&0xff)+((s-count+1)>>8);
-					if(count&&valid){
-						fprintf(f,":%02X%04X00%s%02X\n",count,(s-count+1)+0xFC00,str1,(-sum)&0xff);
-					}
-					str1[0]=0;
-					count=sum=0;
-				}
-			}
-		}
-		fprintf(f,":00000001FF\n");
-	}
-//**************** ATMEL *******************************************
-	else if(!strncmp(dev,"AT",2)){
-		char str[512],str1[512]="";
-		int i,ext=0,base;
-		fprintf(f,":020000040000FA\n");			//extended address=0
-		int sum=0,count=0,s;
-		for(i=0;i<size&&memCODE[i]==0xff;i++); //remove leading 0xFF
-		for(;i<size;i++){
-			sum+=memCODE[i];
-			sprintf(str,"%02X",memCODE[i]);
-			strcat(str1,str);
-			count++;
-			if(count==16||i==size-1){
-				base=i+1-count;
-				for(s=i;s>=base&&memCODE[s]==0xff;s--){	//remove trailing 0xFF
-					sum-=memCODE[s];
-					str1[strlen(str1)-2]=0;
-				}
-				count-=i-s;
-				sum+=count+(base&0xff)+(base>>8)&0xff;
-				if(base>>16>ext){
-					ext=base>>16;
-					fprintf(f,":02000004%04X%02X\n",ext,(-6-ext)&0xff);
-				}
-				if(count){
-					fprintf(f,":%02X%04X00%s%02X\n",count,(s-count+1),str1,(-sum)&0xff);
-				}
-				str1[0]=0;
-				count=sum=0;
-			}
-		}
-		fprintf(f,":00000001FF\n");
-	}
-//**************** 24xxx / 93xxx / 25xxx *******************************************
-	else if(!strncmp(dev,"24",2)||!strncmp(dev,"93",2)||!strncmp(dev,"25",2)){
-		if(strstr(savefile,".bin")||strstr(loadfile,".BIN")){
-			fwrite(memEE,1,sizeEE,f);
-		}
-		else{			//HEX
-			char str[512],str1[512]="";
-			int i,ext=0,base;
-			fprintf(f,":020000040000FA\n");			//extended address=0
-			int sum=0,count=0;
-			for(i=0;i<sizeEE;i++){
-				sum+=memEE[i];
-				sprintf(str,"%02X",memEE[i]);
-				strcat(str1,str);
-				count++;
-				if(count==16||i==sizeEE-1){
-					base=i+1-count;
-					sum+=count+(base&0xff)+(base>>8)&0xff;
-					if(base>>16>ext){
-						ext=base>>16;
-						fprintf(f,":02000004%04X%02X\n",ext,(-6-ext)&0xff);
-					}
-					if(count){
-						fprintf(f,":%02X%04X00%s%02X\n",count,(i-count+1),str1,(-sum)&0xff);
-					}
-					str1[0]=0;
-					count=sum=0;
-				}
-			}
-			fprintf(f,":00000001FF\n");
-		}
-	}
-}
-
-void SaveEE(char* dev,char* savefile){
-	FILE* f=fopen(savefile,"w");
-	if(!f) return;
-//**************** ATMEL *******************************************
-	if(!strncmp(dev,"AT",2)){
-		char str[512],str1[512]="";
-		int i,ext=0,base;
-		fprintf(f,":020000040000FA\n");			//extended address=0
-		int sum=0,count=0,s;
-		for(i=0,count=sum=0;i<sizeEE;i++){
-			sum+=memEE[i];
-			sprintf(str,"%02X",memEE[i]&0xff);
-			strcat(str1,str);
-			count++;
-			if(count==16||i==sizeEE-1){
-				for(s=i;s>i-count&&memEE[s]>=0xff;s--){	//remove trailing 0xFF
-					sum-=memEE[s]&0xff;
-					str1[strlen(str1)-2]=0;
-				}
-				count-=i-s;
-				sum+=count+(s-count+1)&0xff+((s-count+1)>>8);
-				if(count){
-					fprintf(f,":%02X%04X00%s%02X\n",count,(s-count+1),str1,(-sum)&0xff);
-				}
-				str1[0]=0;
-				count=sum=0;
-			}
-		}
-		fprintf(f,":00000001FF\n");
-	}
-}
-
-int Load(char*dev,char*loadfile){
-	FILE* f=fopen(loadfile,"r");
-	int i,j;
-	if(!f) return -1;
-//**************** 10-16F *******************************************
-	if(!strncmp(dev,"10",2)||!strncmp(dev,"12",2)||!strncmp(dev,"16",2)){
-		char line[256];
-		unsigned char buffer[0x5000];
-		memset(buffer,0xFF,sizeof(buffer));
-		int input_address=0;
-		int end_address=0;
-		for(;fgets(line,256,f);){
-			if(strlen(line)>9){
-				int hex_count = htoi(line+1, 2);
-				if (strlen(line) - 11 < hex_count * 2) {
-					PrintMessage(strings[S_IhexShort],line);	//"Intel hex8 line too short:\r\n%s\r\n"
-				}
-				else{
-					input_address=htoi(line+3,4);
-					int sum = 0;
-					for (i=1;i<=hex_count*2+9;i+=2)
-						sum += htoi(line+i,2);
-					if ((sum & 0xff)!=0) {
-						PrintMessage(strings[S_IhexChecksum],line);	//"Intel hex8 checksum error in line:\r\n%s\r\n"
-					}
-					else{
-						if (htoi(line+7,2)==0){
-							end_address=input_address+hex_count;
-							if(end_address>=0x5000) return;	//troppo lungo
-							for (i=0;i<hex_count;i++){
-								buffer[input_address+i]=htoi(line+9+i*2,2);
-							}
-						}
-					}
-				}
-			}
-		}
-		size=end_address/2;
-		dati_hex=malloc(sizeof(WORD)*size);
-		for(i=0;i<size;i++){		//Swap bytes
-			dati_hex[i]=(buffer[i*2+1]<<8)+buffer[i*2];
-		}
-		for(i=0x2100;i<size;i++)dati_hex[i]&=0xFF;
-		char s[256],t[256],v[256];
-		PrintMessage("%s :\n",loadfile);
-		PrintMessage("\n");
-		PrintMessage(strings[S_CodeMem]);	//"\r\nMemoria programma:\r\n"
-		PrintMessage("\n");
-		s[0]=0;
-		for(i=0;i<size&&i<0x2100;i+=COL){
-			int valid=0;
-			for(j=i;j<i+COL&&j<size&&i<0x2100;j++){
-				sprintf(t,"%04X ",dati_hex[j]);
-				strcat(s,t);
-				if(dati_hex[j]<0x3fff) valid=1;
-			}
-			if(valid){
-				PrintMessage("%04X: %s\n",i,s);
-			}
-			s[0]=0;
-		}
-		PrintMessage("\n\n");
-		if(size>=0x2100) PrintMessage(strings[S_EEMem]);	//"\r\nmemoria EEPROM:\r\n"
-		v[0]=0;
-		for(i=0x2100;i<0x2800&&i<size;i+=COL){
-			int valid=0;
-			for(j=i;j<i+COL&&i<0x2800&&i<size;j++){
-				sprintf(t,"%02X ",dati_hex[j]);
-				strcat(s,t);
-				sprintf(t,"%c",isprint(dati_hex[j])?dati_hex[j]:'.');
-				strcat(v,t);
-				if(dati_hex[j]<0xff) valid=1;
-			}
-			if(valid){
-				PrintMessage("%04X: %s %s\r\n",i,s,v);
-			}
-			s[0]=0;
-			v[0]=0;
-		}
-		PrintMessage("\n");
-	}
-//**************** 18F *******************************************
-	else if(!strncmp(dev,"18F",3)){
-		char line[256];
-		unsigned char buffer[0x30000],bufferEE[0x1000];
-		int input_address=0,ext_addr=0;
-		int i;
-		memset(buffer,0xFF,sizeof(buffer));
-		memset(bufferEE,0xFF,sizeof(bufferEE));
-		memset(memID,0xFF,sizeof(memID));
-		memset(memCONFIG,0xFF,sizeof(memCONFIG));
-		for(;fgets(line,256,f);){
-			if(strlen(line)>9){
-				int hex_count = htoi(line+1, 2);
-				if (strlen(line) - 11 < hex_count * 2) {
-					PrintMessage(strings[S_IhexShort],line);	//"Intel hex8 line too short:\r\n%s\r\n"
-				}
-				else{
-					input_address=htoi(line+3,4);
-					int sum = 0;
-					for (i=1;i<=hex_count*2+9;i+=2)
-						sum += htoi(line+i,2);
-					if ((sum & 0xff)!=0) {
-						PrintMessage(strings[S_IhexChecksum],line);	//"Intel hex8 checksum error in line:\r\n%s\r\n"
-					}
-					else{
-						switch(htoi(line+7,2)){
-							case 0:		//Data record
-								if(ext_addr<0x20){		//Code
-									size=input_address+hex_count;
-									for (i=0;i<hex_count;i++){
-										buffer[(ext_addr<<16)+input_address+i]=htoi(line+9+i*2,2);
-									}
-								}
-								else if(ext_addr==0x20&&input_address<8){	//ID
-									for (i=0;i<hex_count;i++){
-										memID[input_address+i]=htoi(line+9+i*2,2);
-									}
-								}
-								else if(ext_addr==0x30&&input_address<14){	//CONFIG
-									for (i=0;i<hex_count;i++){
-										memCONFIG[input_address+i]=htoi(line+9+i*2,2);
-									}
-								}
-								else if(ext_addr==0xF0&&input_address<0x1000){	//EEPROM
-									for (i=0;i<hex_count;i++){
-										bufferEE[input_address+i]=htoi(line+9+i*2,2);
-									}
-									sizeEE=input_address+hex_count;
-								}
-								break;
-							case 4:		//extended linear address record
-								if(strlen(line)>14)	ext_addr=htoi(line+9,4);
-								break;
-							default:
-								break;
-						}
-					}
-				}
-			}
-		}
-		memCODE=malloc(size);
-		memcpy(memCODE,buffer,size);
-		memEE=malloc(sizeEE);
-		memcpy(memEE,bufferEE,sizeEE);
-		char s[256]="",t[256],v[256]="";
-		PrintMessage("%s :\n",loadfile);
-		PrintMessage(strings[S_CodeMem]);	//"\r\nmemoria CODICE:\r\n"
-		for(i=0;i<size;i+=COL*2){
-			int valid=0;
-			for(j=i;j<i+COL*2&&j<size;j++){
-				sprintf(t,"%02X ",memCODE[j]);
-				strcat(s,t);
-				if(memCODE[j]<0xff) valid=1;
-			}
-			if(valid){
-				PrintMessage("%04X: %s\n",i,s);
-			}
-			s[0]=0;
-		}
-		PrintMessage("\n");
-		PrintMessage(strings[S_EEMem]);	//"\r\nmemoria EEPROM:\r\n"
-		for(i=0;i<sizeEE;i+=COL){
-			int valid=0;
-			for(j=i;j<i+COL&&j<size;j++){
-				sprintf(t,"%02X ",memEE[j]);
-				strcat(s,t);
-				sprintf(t,"%c",isprint(memEE[j])?memEE[j]:'.');
-				strcat(v,t);
-				if(memEE[j]<0xff) valid=1;
-			}
-			if(valid){
-				PrintMessage("%04X: %s %s\n",i,s,v);
-			}
-			s[0]=0;
-			v[0]=0;
-		}
-		PrintMessage("\n");
-		PrintMessage(strings[S_IDMem]);	//"memoria ID:\r\n"
-		for(i=0;i<8;i+=2) PrintMessage("ID%d: 0x%02X   ID%d: 0x%02X\n",i,memID[i],i+1,memID[i+1]);
-		PrintMessage(strings[S_ConfigMem]);	//"memoria CONFIG:\r\n"
-		for( i=0;i<7;i++){
-			PrintMessage("CONFIG%dH: 0x%02X\t",i+1,memCONFIG[i*2+1]);
-			PrintMessage("CONFIG%dL: 0x%02X\n",i+1,memCONFIG[i*2]);
-		}
-		PrintMessage("\n");
-	}
-//**************** 24F *******************************************
-	else if(!strncmp(dev,"24F",3)){
-		char line[256];
-		unsigned char *buffer,bufferEE[0x2000];
-		int input_address=0,ext_addr=0;
-		int end_address=0,aa,i;
-		buffer=malloc(0x100000);
-		memset(buffer,0xFF,0x100000);
-		memset(bufferEE,0xFF,sizeof(bufferEE));
-		memset(memCONFIG,0xFF,sizeof(memCONFIG));
-		for(;fgets(line,256,f);){
-			if(strlen(line)>9){
-				int hex_count = htoi(line+1, 2);
-				if (strlen(line) - 11 < hex_count * 2) {
-					PrintMessage(strings[S_IhexShort],line);	//"Intel hex8 line too short:\r\n%s\r\n"
-				}
-				else{
-					input_address=htoi(line+3,4);
-					int sum = 0;
-					for (i=1;i<=hex_count*2+9;i+=2)
-						sum += htoi(line+i,2);
-					if ((sum & 0xff)!=0) {
-						PrintMessage(strings[S_IhexChecksum],line);	//"Intel hex8 checksum error in line:\r\n%s\r\n"
-					}
-					else{
-						switch(htoi(line+7,2)){
-							case 0:		//Data record
-								if(ext_addr<0x20){		//Code
-									int end1=(ext_addr<<16)+input_address+hex_count;
-									int end0=size;
-									if(end0<end1){			//grow array and fill with 0xFF
-										size=end1;
-										//for(i=end0;i<(ext_addr<<16)+input_address;i++) buffer[i]=0xff;
-									}
-									end_address=(ext_addr<<16)+input_address+hex_count;
-									for (i=0;i<hex_count;i++){
-										buffer[(ext_addr<<16)+input_address+i]=htoi(line+9+i*2,2);
-									}
-								}
-								else if(ext_addr==0x1F0&&input_address<0x22){	//CONFIG
-									aa=sizeCONFIG;
-									sizeCONFIG=input_address+hex_count;
-									for(i=aa;i<input_address+hex_count;i++) memCONFIG[i]=0xff;	//fill with 0xFF
-									for (i=0;i<hex_count;i++){
-										memCONFIG[input_address+i]=htoi(line+9+i*2,2);
-									}
-								}
-								else if(ext_addr==0xFF&&input_address>=0xFC00){	//EEPROM
-									for (i=0;i<hex_count;i++){
-										bufferEE[input_address-0xFC00+i]=htoi(line+9+i*2,2);
-									}
-									sizeEE=input_address-0xFC00+hex_count;
-								}
-								break;
-							case 4:		//extended linear address record
-								if(strlen(line)>14)	ext_addr=htoi(line+9,4);
-								break;
-							default:
-								break;
-						}
-					}
-				}
-			}
-		}
-		memCODE=malloc(size);
-		memcpy(memCODE,buffer,size);
-		memEE=malloc(sizeEE);
-		memcpy(memEE,bufferEE,sizeEE);
-		free(buffer);
-		char s[256]="",t[256],v[256]="";
-		PrintMessage("%s :\n",loadfile);
-		if(sizeCONFIG){
-			sizeCONFIG=0x22;
-			//for(int i=aa;i<0x22;i++) memCONFIG[i]=0xff;
-			PrintMessage(strings[S_ConfigMem]);				//"\r\nMemoria CONFIG:\r\n"
-			PrintMessage("0xF80000: FBS = 0x%02X\r\n",memCONFIG[0]);
-			PrintMessage("0xF80004: FGS = 0x%02X\r\n",memCONFIG[8]);
-			PrintMessage("0xF80006: FOSCSEL = 0x%02X\r\n",memCONFIG[12]);
-			PrintMessage("0xF80008: FOSC = 0x%02X\r\n",memCONFIG[16]);
-			PrintMessage("0xF8000A: FWDT = 0x%02X\r\n",memCONFIG[20]);
-			PrintMessage("0xF8000C: FPOR = 0x%02X\r\n",memCONFIG[24]);
-			PrintMessage("0xF8000E: FICD = 0x%02X\r\n",memCONFIG[28]);
-			PrintMessage("0xF80010: FDS = 0x%02X\r\n",memCONFIG[32]);
-		}
-		PrintMessage(strings[S_CodeMem]);	//"\r\nmemoria CODICE:\r\n"
-		for(i=0;i<size;i+=COL*2){
-			int valid=0,d;
-			for(j=i;j<i+COL*2&&j<size;j+=4){
-				d=(memCODE[j+3]<<24)+(memCODE[j+2]<<16)+(memCODE[j+1]<<8)+memCODE[j];
-				sprintf(t,"%08X ",d);
-				strcat(s,t);
-				if(d!=0xffffffff) valid=1;
-			}
-			if(valid){
-				PrintMessage("%06X: %s\n",i/2,s);
-			}
-			s[0]=0;
-		}
-		PrintMessage("\n");
-		if(sizeEE){
-			PrintMessage(strings[S_EEMem]);	//"\r\nmemoria EEPROM:\r\n"
-			for(i=0;i<sizeEE;i+=COL*2){
-				int valid=0;
-				for(j=i;j<i+COL*2&&j<size;j+=4){	//skip high word
-					sprintf(t,"%02X %02X ",memEE[j],memEE[j+1]);
-					strcat(s,t);
-					sprintf(t,"%c",isprint(memEE[j])?memEE[j]:'.');
-					strcat(v,t);
-					if(memEE[j]<0xff) valid=1;
-					sprintf(t,"%c",isprint(memEE[j+1])?memEE[j+1]:'.');
-					strcat(v,t);
-					if(memEE[j+1]<0xff) valid=1;
-				}
-				if(valid){
-					PrintMessage("%04X: %s %s\n",i/2,s,v);
-				}
-				s[0]=0;
-				v[0]=0;
-			}
-		}
-		PrintMessage("\n");
-	}
-//**************** ATMEL *******************************************
-	else if(!strncmp(dev,"AT",2)){
-		char line[256];
-		unsigned char buffer[0x30000],bufferEE[0x1000];
-		int input_address=0,ext_addr=0;
-		int i;
-		memset(buffer,0xFF,sizeof(buffer));
-		memset(bufferEE,0xFF,sizeof(bufferEE));
-		for(;fgets(line,256,f);){
-			if(strlen(line)>9){
-				int hex_count = htoi(line+1, 2);
-				if (strlen(line) - 11 < hex_count * 2) {
-					PrintMessage(strings[S_IhexShort],line);	//"Intel hex8 line too short:\r\n%s\r\n"
-				}
-				else{
-					input_address=htoi(line+3,4);
-					int sum = 0;
-					for (i=1;i<=hex_count*2+9;i+=2)
-						sum += htoi(line+i,2);
-					if ((sum & 0xff)!=0) {
-						PrintMessage(strings[S_IhexChecksum],line);	//"Intel hex8 checksum error in line:\r\n%s\r\n"
-					}
-					else{
-						switch(htoi(line+7,2)){
-							case 0:		//Data record
-								if(ext_addr<0x20){		//Code
-									size=input_address+hex_count;
-									for (i=0;i<hex_count;i++){
-										buffer[(ext_addr<<16)+input_address+i]=htoi(line+9+i*2,2);
-									}
-								}
-								break;
-							case 4:		//extended linear address record
-								if(strlen(line)>14)	ext_addr=htoi(line+9,4);
-								break;
-							default:
-								break;
-						}
-					}
-				}
-			}
-		}
-		memCODE=malloc(size);
-		memcpy(memCODE,buffer,size);
-		char s[256]="",t[256],v[256]="";
-		PrintMessage("%s :\n",loadfile);
-		PrintMessage(strings[S_CodeMem]);	//"\r\nmemoria CODICE:\r\n"
-		for(i=0;i<size;i+=COL*2){
-			int valid=0;
-			for(j=i;j<i+COL*2&&j<size;j++){
-				sprintf(t,"%02X ",memCODE[j]);
-				strcat(s,t);
-				if(memCODE[j]<0xff) valid=1;
-			}
-			if(valid){
-				PrintMessage("%04X: %s\n",i,s);
-			}
-			s[0]=0;
-		}
-		PrintMessage("\n");
-	}
-//**************** 24xxx / 93xxx / 25xxx **************************************
-	else if(!strncmp(dev,"24",2)||!strncmp(dev,"93",2)||!strncmp(dev,"25",2)){
-
-		if(strstr(loadfile,".bin")||strstr(loadfile,".BIN")){
-			fseek(f, 0L, SEEK_END);
-			sizeEE=ftell(f);
-			fseek(f, 0L, SEEK_SET);
-			if(sizeEE>0x100000) sizeEE=0x100000;
-			memEE=malloc(sizeEE);
-			sizeEE=fread(memEE,1,sizeEE,f);
-		}
-		else{			//Hex file
-			char line[256];
-			unsigned char buffer[0x30000];
-			int input_address=0,ext_addr=0;
-			int i;
-			memset(buffer,0xFF,sizeof(buffer));
-			for(;fgets(line,256,f);){
-				if(strlen(line)>9){
-					int hex_count = htoi(line+1, 2);
-					if (strlen(line) - 11 < hex_count * 2) {
-						PrintMessage(strings[S_IhexShort],line);	//"Intel hex8 line too short:\r\n%s\r\n"
-					}
-					else{
-						input_address=htoi(line+3,4);
-						int sum = 0;
-						int end0,end1;
-						for (i=1;i<=hex_count*2+9;i+=2)
-							sum += htoi(line+i,2);
-						if ((sum & 0xff)!=0) {
-							PrintMessage(strings[S_IhexChecksum],line);	//"Intel hex8 checksum error in line:\r\n%s\r\n"
-						}
-						else{
-							switch(htoi(line+7,2)){
-								case 0:		//Data record
-									end1=(ext_addr<<16)+input_address+hex_count;
-									end0=sizeEE;
-									if(end0<end1){			//grow array and fill with 0xFF
-										sizeEE=end1;
-										for(i=end0;i<(ext_addr<<16)+input_address;i++) memEE[i]=0xff;
-									}
-									//end_address=(ext_addr<<16)+input_address+hex_count;
-									for (i=0;i<hex_count;i++){
-										buffer[(ext_addr<<16)+input_address+i]=htoi(line+9+i*2,2);
-									}
-									break;
-								case 4:		//extended linear address record
-									if(strlen(line)>14)	ext_addr=htoi(line+9,4);
-									break;
-								default:
-									break;
-							}
-						}
-					}
-				}
-			}
-			memEE=malloc(sizeEE);
-			memcpy(memEE,buffer,sizeEE);
-		}
-		DisplayEE();	//visualize
-		PrintMessage("\n");
-	}
-	return 0;
-}
-
-void LoadEE(char*dev,char*loadfile){
-	FILE* f=fopen(loadfile,"r");
-	int i,j;
-	if(!f) return;
-//**************** ATMEL *******************************************
-	if(!strncmp(dev,"AT",2)){
-		char line[256];
-		unsigned char bufferEE[0x1000];
-		int input_address=0,ext_addr=0;
-		int i;
-		memset(bufferEE,0xFF,sizeof(bufferEE));
-		for(;fgets(line,256,f);){
-			if(strlen(line)>9){
-				int hex_count = htoi(line+1, 2);
-				if (strlen(line) - 11 < hex_count * 2) {
-					PrintMessage(strings[S_IhexShort],line);	//"Intel hex8 line too short:\r\n%s\r\n"
-				}
-				else{
-					input_address=htoi(line+3,4);
-					int sum = 0;
-					for (i=1;i<=hex_count*2+9;i+=2)
-						sum += htoi(line+i,2);
-					if ((sum & 0xff)!=0) {
-						PrintMessage(strings[S_IhexChecksum],line);	//"Intel hex8 checksum error in line:\r\n%s\r\n"
-					}
-					else{
-						switch(htoi(line+7,2)){
-							case 0:		//Data record
-								if(ext_addr==0&&input_address<0x1000){	//EEPROM
-									for (i=0;i<hex_count;i++){
-										bufferEE[input_address+i]=htoi(line+9+i*2,2);
-									}
-									sizeEE=input_address+hex_count;
-								}
-								break;
-							case 4:		//extended linear address record
-								if(strlen(line)>14)	ext_addr=htoi(line+9,4);
-								break;
-							default:
-								break;
-						}
-					}
-				}
-			}
-		}
-		memEE=malloc(sizeEE);
-		memcpy(memEE,bufferEE,sizeEE);
-		DisplayEE();	//visualize
-		PrintMessage("\n");
-	}
-}
 
 void DisplayEE(){
 	char s[256],t[256],v[256];
@@ -2674,8 +1913,298 @@ void TestHw() {
 
 void msDelay(double delay)
 {
+#if !defined _WIN32 && !defined __CYGWIN__
 	long x=(int)delay*1000.0;
-//	if(x<delay) x++;
-	usleep(x>MinRit?x:MinRit);
+	usleep(x>MinDly?x:MinDly);
+#else
+	Sleep((long)ceil(delay)>MinDly?(long)ceil(delay):MinDly);
+#endif
 }
 
+int FindDevice(){
+#if !defined _WIN32 && !defined __CYGWIN__
+	if ((fd = open(path, O_RDONLY )) < 0) {
+		perror("hiddev open");
+		exit(1);
+	}
+	struct hiddev_devinfo device_info;
+	ioctl(fd, HIDIOCGDEVINFO, &device_info);
+	if(device_info.vendor!=vid||device_info.product!=pid){
+		printf(strings[S_noprog]);
+		return -1;
+	}
+	else printf(strings[S_prog]);
+
+	rep_info_u.report_type=HID_REPORT_TYPE_OUTPUT;
+	rep_info_i.report_type=HID_REPORT_TYPE_INPUT;
+	rep_info_u.report_id=rep_info_i.report_id=HID_REPORT_ID_FIRST;
+	rep_info_u.num_fields=rep_info_i.num_fields=1;
+	ref_multi_u.uref.report_type=HID_REPORT_TYPE_OUTPUT;
+	ref_multi_i.uref.report_type=HID_REPORT_TYPE_INPUT;
+	ref_multi_u.uref.report_id=ref_multi_i.uref.report_id=HID_REPORT_ID_FIRST;
+	ref_multi_u.uref.field_index=ref_multi_i.uref.field_index=0;
+	ref_multi_u.uref.usage_index=ref_multi_i.uref.usage_index=0;
+	ref_multi_u.num_values=ref_multi_i.num_values=DIMBUF;
+
+#else
+	char string[256];
+	PSP_DEVICE_INTERFACE_DETAIL_DATA detailData;
+	HANDLE DeviceHandle;
+	HANDLE hDevInfo;
+	GUID HidGuid;
+	int MyDeviceDetected; 
+	char MyDevicePathName[1024];
+	ULONG Length;
+	ULONG Required;
+	typedef struct _HIDD_ATTRIBUTES {
+	    ULONG   Size;
+	    USHORT  VendorID;
+	    USHORT  ProductID;
+	    USHORT  VersionNumber;
+	} HIDD_ATTRIBUTES, *PHIDD_ATTRIBUTES;
+
+	typedef void (__stdcall*GETHIDGUID) (OUT LPGUID HidGuid);
+	typedef BOOLEAN (__stdcall*GETATTRIBUTES)(IN HANDLE HidDeviceObject,OUT PHIDD_ATTRIBUTES Attributes);
+	typedef BOOLEAN (__stdcall*SETNUMINPUTBUFFERS)(IN  HANDLE HidDeviceObject,OUT ULONG  NumberBuffers);
+	typedef BOOLEAN (__stdcall*GETNUMINPUTBUFFERS)(IN  HANDLE HidDeviceObject,OUT PULONG  NumberBuffers);
+	typedef BOOLEAN (__stdcall*GETFEATURE) (IN  HANDLE HidDeviceObject, OUT PVOID ReportBuffer, IN ULONG ReportBufferLength);
+	typedef BOOLEAN (__stdcall*SETFEATURE) (IN  HANDLE HidDeviceObject, IN PVOID ReportBuffer, IN ULONG ReportBufferLength);
+	typedef BOOLEAN (__stdcall*GETREPORT) (IN  HANDLE HidDeviceObject, OUT PVOID ReportBuffer, IN ULONG ReportBufferLength);
+	typedef BOOLEAN (__stdcall*SETREPORT) (IN  HANDLE HidDeviceObject, IN PVOID ReportBuffer, IN ULONG ReportBufferLength);
+	typedef BOOLEAN (__stdcall*GETMANUFACTURERSTRING) (IN  HANDLE HidDeviceObject, OUT PVOID ReportBuffer, IN ULONG ReportBufferLength);
+	typedef BOOLEAN (__stdcall*GETPRODUCTSTRING) (IN  HANDLE HidDeviceObject, OUT PVOID ReportBuffer, IN ULONG ReportBufferLength);
+	typedef BOOLEAN (__stdcall*GETINDEXEDSTRING) (IN  HANDLE HidDeviceObject, IN ULONG  StringIndex, OUT PVOID ReportBuffer, IN ULONG ReportBufferLength);
+	HIDD_ATTRIBUTES Attributes;
+	SP_DEVICE_INTERFACE_DATA devInfoData;
+	int LastDevice = FALSE;
+	int MemberIndex = 0;
+	LONG Result;
+	char UsageDescription[256];
+
+	Length=0;
+	detailData=NULL;
+	DeviceHandle=NULL;
+
+	HMODULE hHID=0;
+	GETHIDGUID HidD_GetHidGuid=0;
+	GETATTRIBUTES HidD_GetAttributes=0;
+	SETNUMINPUTBUFFERS HidD_SetNumInputBuffers=0;
+	GETNUMINPUTBUFFERS HidD_GetNumInputBuffers=0;
+	GETFEATURE HidD_GetFeature=0;
+	SETFEATURE HidD_SetFeature=0;
+	GETREPORT HidD_GetInputReport=0;
+	SETREPORT HidD_SetOutputReport=0;
+	GETMANUFACTURERSTRING HidD_GetManufacturerString=0;
+	GETPRODUCTSTRING HidD_GetProductString=0;
+	hHID = LoadLibrary("hid.dll");
+	if(!hHID){ 
+		printf("Can't find hid.dll");
+		return 0;
+	}
+	HidD_GetHidGuid=(GETHIDGUID)GetProcAddress(hHID,"HidD_GetHidGuid");
+	HidD_GetAttributes=(GETATTRIBUTES)GetProcAddress(hHID,"HidD_GetAttributes");
+	HidD_SetNumInputBuffers=(SETNUMINPUTBUFFERS)GetProcAddress(hHID,"HidD_SetNumInputBuffers");
+	HidD_GetNumInputBuffers=(GETNUMINPUTBUFFERS)GetProcAddress(hHID,"HidD_GetNumInputBuffers");
+	HidD_GetFeature=(GETFEATURE)GetProcAddress(hHID,"HidD_GetFeature");
+	HidD_SetFeature=(SETFEATURE)GetProcAddress(hHID,"HidD_SetFeature");
+	HidD_GetInputReport=(GETREPORT)GetProcAddress(hHID,"HidD_GetInputReport");
+	HidD_SetOutputReport=(SETREPORT)GetProcAddress(hHID,"HidD_SetOutputReport");
+	HidD_GetManufacturerString=(GETMANUFACTURERSTRING)GetProcAddress(hHID,"HidD_GetManufacturerString");
+	HidD_GetProductString=(GETPRODUCTSTRING)GetProcAddress(hHID,"HidD_GetProductString");
+	if(HidD_GetHidGuid==NULL\
+		||HidD_GetAttributes==NULL\
+		||HidD_GetFeature==NULL\
+		||HidD_SetFeature==NULL\
+		||HidD_GetInputReport==NULL\
+		||HidD_SetOutputReport==NULL\
+		||HidD_GetManufacturerString==NULL\
+		||HidD_GetProductString==NULL\
+		||HidD_SetNumInputBuffers==NULL\
+		||HidD_GetNumInputBuffers==NULL) return -1;
+
+
+	HMODULE hSAPI=0;
+	hSAPI = LoadLibrary("setupapi.dll");
+	if(!hSAPI){ 
+		printf("Can't find setupapi.dll");
+		return 0;
+	}
+	typedef HDEVINFO (WINAPI* SETUPDIGETCLASSDEVS) (CONST GUID*,PCSTR,HWND,DWORD);
+	typedef BOOL (WINAPI* SETUPDIENUMDEVICEINTERFACES) (HDEVINFO,PSP_DEVINFO_DATA,CONST GUID*,DWORD,PSP_DEVICE_INTERFACE_DATA);
+	typedef BOOL (WINAPI* SETUPDIGETDEVICEINTERFACEDETAIL) (HDEVINFO,PSP_DEVICE_INTERFACE_DATA,PSP_DEVICE_INTERFACE_DETAIL_DATA_A,DWORD,PDWORD,PSP_DEVINFO_DATA);
+	typedef BOOL (WINAPI* SETUPDIDESTROYDEVICEINFOLIST) (HDEVINFO);	
+	SETUPDIGETCLASSDEVS SetupDiGetClassDevsA=0;
+	SETUPDIENUMDEVICEINTERFACES SetupDiEnumDeviceInterfaces=0;
+	SETUPDIGETDEVICEINTERFACEDETAIL SetupDiGetDeviceInterfaceDetailA=0;
+	SETUPDIDESTROYDEVICEINFOLIST SetupDiDestroyDeviceInfoList=0;
+	SetupDiGetClassDevsA=(SETUPDIGETCLASSDEVS) GetProcAddress(hSAPI,"SetupDiGetClassDevsA");
+	SetupDiEnumDeviceInterfaces=(SETUPDIENUMDEVICEINTERFACES) GetProcAddress(hSAPI,"SetupDiEnumDeviceInterfaces");
+	SetupDiGetDeviceInterfaceDetailA=(SETUPDIGETDEVICEINTERFACEDETAIL) GetProcAddress(hSAPI,"SetupDiGetDeviceInterfaceDetailA");
+	SetupDiDestroyDeviceInfoList=(SETUPDIDESTROYDEVICEINFOLIST) GetProcAddress(hSAPI,"SetupDiDestroyDeviceInfoList");
+	if(SetupDiGetClassDevsA==NULL\
+		||SetupDiEnumDeviceInterfaces==NULL\
+		||SetupDiDestroyDeviceInfoList==NULL\
+		||SetupDiGetDeviceInterfaceDetailA==NULL) return -1;
+	
+	
+	/*
+	The following code is adapted from Usbhidio_vc6 application example by Jan Axelson
+	for more information see see http://www.lvr.com/hidpage.htm
+	*/
+
+	/*
+	API function: HidD_GetHidGuid
+	Get the GUID for all system HIDs.
+	Returns: the GUID in HidGuid.
+	*/
+	HidD_GetHidGuid(&HidGuid);
+
+	/*
+	API function: SetupDiGetClassDevs
+	Returns: a handle to a device information set for all installed devices.
+	Requires: the GUID returned by GetHidGuid.
+	*/
+	hDevInfo=SetupDiGetClassDevs(&HidGuid,NULL,NULL,DIGCF_PRESENT|DIGCF_INTERFACEDEVICE);
+	devInfoData.cbSize = sizeof(devInfoData);
+
+	//Step through the available devices looking for the one we want.
+	//Quit on detecting the desired device or checking all available devices without success.
+	MemberIndex = 0;
+	LastDevice = FALSE;
+	do
+	{
+		/*
+		API function: SetupDiEnumDeviceInterfaces
+		On return, MyDeviceInterfaceData contains the handle to a
+		SP_DEVICE_INTERFACE_DATA structure for a detected device.
+		Requires:
+		The DeviceInfoSet returned in SetupDiGetClassDevs.
+		The HidGuid returned in GetHidGuid.
+		An index to specify a device.
+		*/
+		Result=SetupDiEnumDeviceInterfaces (hDevInfo, 0, &HidGuid, MemberIndex, &devInfoData);
+		if (Result != 0)
+		{
+			//A device has been detected, so get more information about it.
+			/*
+			API function: SetupDiGetDeviceInterfaceDetail
+			Returns: an SP_DEVICE_INTERFACE_DETAIL_DATA structure
+			containing information about a device.
+			To retrieve the information, call this function twice.
+			The first time returns the size of the structure in Length.
+			The second time returns a pointer to the data in DeviceInfoSet.
+			Requires:
+			A DeviceInfoSet returned by SetupDiGetClassDevs
+			The SP_DEVICE_INTERFACE_DATA structure returned by SetupDiEnumDeviceInterfaces.
+
+			The final parameter is an optional pointer to an SP_DEV_INFO_DATA structure.
+			This application doesn't retrieve or use the structure.
+			If retrieving the structure, set
+			MyDeviceInfoData.cbSize = length of MyDeviceInfoData.
+			and pass the structure's address.
+			*/
+			//Get the Length value.
+			//The call will return with a "buffer too small" error which can be ignored.
+			Result = SetupDiGetDeviceInterfaceDetail(hDevInfo, &devInfoData, NULL, 0, &Length, NULL);
+
+			//Allocate memory for the hDevInfo structure, using the returned Length.
+			detailData = (PSP_DEVICE_INTERFACE_DETAIL_DATA)malloc(Length);
+
+			//Set cbSize in the detailData structure.
+			detailData -> cbSize = sizeof(SP_DEVICE_INTERFACE_DETAIL_DATA);
+
+			//Call the function again, this time passing it the returned buffer size.
+			Result = SetupDiGetDeviceInterfaceDetail(hDevInfo, &devInfoData, detailData, Length,&Required, NULL);
+
+			// Open a handle to the device.
+			// To enable retrieving information about a system mouse or keyboard,
+			// don't request Read or Write access for this handle.
+			/*
+			API function: CreateFile
+			Returns: a handle that enables reading and writing to the device.
+			Requires:
+			The DevicePath in the detailData structure
+			returned by SetupDiGetDeviceInterfaceDetail.
+			*/
+			DeviceHandle=CreateFile(detailData->DevicePath,
+				0, FILE_SHARE_READ|FILE_SHARE_WRITE,
+				(LPSECURITY_ATTRIBUTES)NULL,OPEN_EXISTING, 0, NULL);
+
+			/*
+			API function: HidD_GetAttributes
+			Requests information from the device.
+			Requires: the handle returned by CreateFile.
+			Returns: a HIDD_ATTRIBUTES structure containing
+			the Vendor ID, Product ID, and Product Version Number.
+			Use this information to decide if the detected device is
+			the one we're looking for.
+			*/
+
+			//Set the Size to the number of bytes in the structure.
+			Attributes.Size = sizeof(Attributes);
+			Result = HidD_GetAttributes(DeviceHandle,&Attributes);
+
+			//Is it the desired device?
+			MyDeviceDetected = FALSE;
+			char a[256];
+			if (Attributes.VendorID == vid)
+			{
+				if (Attributes.ProductID == pid)
+				{
+					//Both the Vendor ID and Product ID match.
+					MyDeviceDetected = TRUE;
+					strcpy(MyDevicePathName,detailData->DevicePath);
+
+					// Get a handle for writing Output reports.
+					WriteHandle=CreateFile(detailData->DevicePath,
+						GENERIC_WRITE, FILE_SHARE_READ|FILE_SHARE_WRITE,
+						(LPSECURITY_ATTRIBUTES)NULL,OPEN_EXISTING,0,NULL);
+
+					//Get a handle to the device for the overlapped ReadFiles.
+					ReadHandle=CreateFile(detailData->DevicePath,
+						GENERIC_READ,FILE_SHARE_READ|FILE_SHARE_WRITE,(LPSECURITY_ATTRIBUTES)NULL,
+						OPEN_EXISTING,FILE_FLAG_OVERLAPPED,NULL);
+
+					if (hEventObject) CloseHandle(hEventObject);
+					hEventObject = CreateEvent(NULL,TRUE,TRUE,"");
+
+					//Set the members of the overlapped structure.
+					HIDOverlapped.hEvent = hEventObject;
+					HIDOverlapped.Offset = 0;
+					HIDOverlapped.OffsetHigh = 0;
+					Result=HidD_SetNumInputBuffers(DeviceHandle,64);
+				}
+				else
+					//The Product ID doesn't match.
+					CloseHandle(DeviceHandle);
+			}
+			else
+				//The Vendor ID doesn't match.
+				CloseHandle(DeviceHandle);
+		//Free the memory used by the detailData structure (no longer needed).
+		free(detailData);
+		}
+		else
+			//SetupDiEnumDeviceInterfaces returned 0, so there are no more devices to check.
+			LastDevice=TRUE;
+		//If we haven't found the device yet, and haven't tried every available device,
+		//try the next one.
+		MemberIndex = MemberIndex + 1;
+	} //do
+	while ((LastDevice == FALSE) && (MyDeviceDetected == FALSE));
+	//Free the memory reserved for hDevInfo by SetupDiClassDevs.
+	SetupDiDestroyDeviceInfoList(hDevInfo);
+
+	if (MyDeviceDetected == FALSE){
+		printf(strings[S_noprog]);	//"Can't find device\n"
+		return -1;
+	}
+
+	if(info){
+		printf("Device detected: vid=0x%04X pid=0x%04X\nPath: %s\n",vid,pid,MyDevicePathName);
+		if(HidD_GetManufacturerString(DeviceHandle,string,sizeof(string))==TRUE) wprintf(L"Manufacturer string: %s\n",string);
+		if(HidD_GetProductString(DeviceHandle,string,sizeof(string))==TRUE) wprintf(L"Product string: %s\n",string);
+	}
+#endif
+	return 0;
+}

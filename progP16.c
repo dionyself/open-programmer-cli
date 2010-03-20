@@ -18,56 +18,7 @@
  * or see <http://www.gnu.org/licenses/>
  */
 
-
-#include <stdlib.h>
-#include <stdio.h>
-#include <sys/ioctl.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <asm/types.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <linux/hiddev.h>
-#include <linux/input.h>
-#include <time.h>
-#include <ctype.h>
-#include <getopt.h>
-#include <sys/timeb.h>
-#include <string.h>
-#include "strings.h"
-#include "instructions.h"
-
-typedef unsigned long DWORD;
-typedef unsigned short WORD;
-typedef unsigned char BYTE;
-
-#define write() ioctl(fd, HIDIOCSUSAGES, &ref_multi_u); ioctl(fd,HIDIOCSREPORT, &rep_info_u);
-#define read() ioctl(fd, HIDIOCGUSAGES, &ref_multi_i); ioctl(fd,HIDIOCGREPORT, &rep_info_i);
-#define bufferU ref_multi_u.values
-#define bufferI ref_multi_i.values
-#define EQ(s) !strncmp(s,dev,64)
-#define PrintMessage printf
-#define COL 16
-
-
-extern int size,saveLog;
-extern char** strings;
-extern int fd;
-extern int DIMBUF,saveLog,programID,MinRit,load_osccal,load_BKosccal,usa_osccal,usa_BKosccal;
-extern int load_calibword,max_errori;
-extern int lock,fuse,fuse_h,fuse_x;
-extern FILE* RegFile;
-extern char LogFileName[256];
-extern WORD *dati_hex;
-extern int size,sizeEE;
-extern unsigned char *memCODE,*memEE,memID[8],memCONFIG[14];
-extern struct hiddev_report_info rep_info_i,rep_info_u;
-extern struct hiddev_usage_ref_multi ref_multi_i,ref_multi_u;
-extern void msDelay(double delay);
-extern void WriteLogIO();
-extern void PIC_ID(int id);
-extern void StartHVReg();
-extern DWORD GetTickCount();
+#include "common.h"
 
 void Read16Fxxx(int dim,int dim2,int dim3,int vdd){
 // read 14 bit PIC
@@ -541,7 +492,7 @@ void Write12F6xx(int dim,int dim2)
 						PrintMessage("\n");
 						PrintMessage(strings[S_CodeWError2],k,dati_hex[k],(bufferI[z+4]<<8)+bufferI[z+5]);	//"Errore in scrittura all'indirizzo %3X: scritto %04X, letto %04X\r\n"
 						errori++;
-						if(max_errori&&errori>max_errori){
+						if(max_err&&errori>max_err){
 							PrintMessage(strings[S_MaxErr],errori);	//"Superato il massimo numero di errori (%d), scrittura interrotta\r\n"
 							PrintMessage(strings[S_IntW]);	//"Scrittura interrotta"
 							i=dim;
@@ -605,7 +556,7 @@ void Write12F6xx(int dim,int dim2)
 							PrintMessage("\n");
 							PrintMessage(strings[S_CodeWError3],k,dati_hex[k],bufferI[z+4]);	//"Errore in scrittura all'indirizzo %4X: scritto %02X, letto %02X\r\n"
 							errori++;
-							if(max_errori&&errori>max_errori){
+							if(max_err&&errori>max_err){
 								PrintMessage(strings[S_MaxErr],errori);	//"Superato il massimo numero di errori (%d), scrittura interrotta\r\n"
 								PrintMessage(strings[S_IntW]);	//"Scrittura interrotta"
 								i=0x2200;
@@ -990,7 +941,7 @@ void Write16F8x (int dim,int dim2)
 						PrintMessage("\n");
 						PrintMessage(strings[S_CodeWError2],k,dati_hex[k],(bufferI[z+4]<<8)+bufferI[z+5]);	//"Errore in scrittura all'indirizzo %3X: scritto %04X, letto %04X\r\n"
 						errori++;
-						if(max_errori&&errori>max_errori){
+						if(max_err&&errori>max_err){
 							PrintMessage(strings[S_MaxErr],errori);	//"Superato il massimo numero di errori (%d), scrittura interrotta\r\n"
 							PrintMessage(strings[S_IntW]);	//"Scrittura interrotta"
 							i=dim;
@@ -1101,7 +1052,7 @@ void Write16F8x (int dim,int dim2)
 							PrintMessage("\n");
 							PrintMessage(strings[S_CodeWError3],k,dati_hex[k],bufferI[z+4]);	//"Errore in scrittura all'indirizzo %4X: scritto %02X, letto %02X\r\n"
 							errori++;
-							if(max_errori&&errori>max_errori){
+							if(max_err&&errori>max_err){
 								PrintMessage(strings[S_MaxErr],errori);	//"Superato il massimo numero di errori (%d), scrittura interrotta\r\n"
 								PrintMessage(strings[S_IntW]);	//"Scrittura interrotta"
 								i=0x2200;
@@ -1333,7 +1284,7 @@ void Write16F62x (int dim,int dim2)
 						PrintMessage("\n");
 						PrintMessage(strings[S_CodeWError2],k,dati_hex[k],(bufferI[z+4]<<8)+bufferI[z+5]);	//"Errore in scrittura all'indirizzo %3X: scritto %04X, letto %04X\r\n"
 						errori++;
-						if(max_errori&&errori>max_errori){
+						if(max_err&&errori>max_err){
 							PrintMessage(strings[S_MaxErr],errori);	//"Superato il massimo numero di errori (%d), scrittura interrotta\r\n"
 							PrintMessage(strings[S_IntW]);	//"Scrittura interrotta"
 							i=dim;
@@ -1445,7 +1396,7 @@ void Write16F62x (int dim,int dim2)
 							PrintMessage("\n");
 							PrintMessage(strings[S_CodeWError3],k,dati_hex[k],bufferI[z+4]);	//"Errore in scrittura all'indirizzo %4X: scritto %02X, letto %02X\r\n"
 							errori++;
-							if(max_errori&&errori>max_errori){
+							if(max_err&&errori>max_err){
 								PrintMessage(strings[S_MaxErr],errori);	//"Superato il massimo numero di errori (%d), scrittura interrotta\r\n"
 								PrintMessage(strings[S_IntW]);	//"Scrittura interrotta"
 								i=0x2200;
@@ -1657,7 +1608,7 @@ void Write12F62x(int dim,int dim2)
 						PrintMessage("\n");
 						PrintMessage(strings[S_CodeWError2],k,dati_hex[k],(bufferI[z+4]<<8)+bufferI[z+5]);	//"Errore in scrittura all'indirizzo %3X: scritto %04X, letto %04X\r\n"
 						errori++;
-						if(max_errori&&errori>max_errori){
+						if(max_err&&errori>max_err){
 							PrintMessage(strings[S_MaxErr],errori);	//"Superato il massimo numero di errori (%d), scrittura interrotta\r\n"
 							PrintMessage(strings[S_IntW]);	//"Scrittura interrotta"
 							i=dim;
@@ -1772,7 +1723,7 @@ void Write12F62x(int dim,int dim2)
 							PrintMessage("\n");
 							PrintMessage(strings[S_CodeWError3],k,dati_hex[k],bufferI[z+4]);	//"Errore in scrittura all'indirizzo %4X: scritto %02X, letto %02X\r\n"
 							errori++;
-							if(max_errori&&errori>max_errori){
+							if(max_err&&errori>max_err){
 								PrintMessage(strings[S_MaxErr],errori);	//"Superato il massimo numero di errori (%d), scrittura interrotta\r\n"
 								PrintMessage(strings[S_IntW]);	//"Scrittura interrotta"
 								i=0x2200;
@@ -2020,7 +1971,7 @@ void Write16F87x (int dim,int dim2)
 						PrintMessage("\n");
 						PrintMessage(strings[S_CodeWError2],k,dati_hex[k],(bufferI[z+4]<<8)+bufferI[z+5]);	//"Errore in scrittura all'indirizzo %3X: scritto %04X, letto %04X\r\n"
 						errori++;
-						if(max_errori&&errori>max_errori){
+						if(max_err&&errori>max_err){
 							PrintMessage(strings[S_MaxErr],errori);	//"Superato il massimo numero di errori (%d), scrittura interrotta\r\n"
 							PrintMessage(strings[S_IntW]);	//"Scrittura interrotta"
 							i=dim;
@@ -2139,7 +2090,7 @@ void Write16F87x (int dim,int dim2)
 							PrintMessage("\n");
 							PrintMessage(strings[S_CodeWError3],k,dati_hex[k],bufferI[z+4]);	//"Errore in scrittura all'indirizzo %4X: scritto %02X, letto %02X\r\n"
 							err_e++;
-							if(max_errori&&errori>max_errori){
+							if(max_err&&errori>max_err){
 								PrintMessage(strings[S_MaxErr],errori);	//"Superato il massimo numero di errori (%d), scrittura interrotta\r\n"
 								PrintMessage(strings[S_IntW]);	//"Scrittura interrotta"
 								i=0x2200;
@@ -2350,7 +2301,7 @@ void Write16F87xA (int dim,int dim2,int seq)
 						PrintMessage("\n");
 						PrintMessage(strings[S_CodeWError2],k,dati_hex[k],(bufferI[z+5]<<8)+bufferI[z+6]);	//"Errore in scrittura all'indirizzo %3X: scritto %04X, letto %04X\r\n"
 						errori++;
-						if(max_errori&&errori>max_errori){
+						if(max_err&&errori>max_err){
 							PrintMessage(strings[S_MaxErr],errori);	//"Superato il massimo numero di errori (%d), scrittura interrotta\r\n"
 							PrintMessage(strings[S_IntW]);	//"Scrittura interrotta"
 							i=dim;
@@ -2496,7 +2447,7 @@ void Write16F87xA (int dim,int dim2,int seq)
 							PrintMessage("\n");
 							PrintMessage(strings[S_CodeWError3],k,dati_hex[k],bufferI[z+4]);	//"Errore in scrittura all'indirizzo %4X: scritto %02X, letto %02X\r\n"
 							err_e++;
-							if(max_errori&&errori>max_errori){
+							if(max_err&&errori>max_err){
 								PrintMessage(strings[S_MaxErr],errori);	//"Superato il massimo numero di errori (%d), scrittura interrotta\r\n"
 								PrintMessage(strings[S_IntW]);	//"Scrittura interrotta"
 								i=0x2200;
@@ -2712,7 +2663,7 @@ void Write16F81x (int dim,int dim2)
 						PrintMessage("\n");
 						PrintMessage(strings[S_CodeWError2],k,dati_hex[k],(bufferI[z+5]<<8)+bufferI[z+6]);	//"Errore in scrittura all'indirizzo %3X: scritto %04X, letto %04X\r\n"
 						errori++;
-						if(max_errori&&errori>max_errori){
+						if(max_err&&errori>max_err){
 							PrintMessage(strings[S_MaxErr],errori);	//"Superato il massimo numero di errori (%d), scrittura interrotta\r\n"
 							PrintMessage(strings[S_IntW]);	//"Scrittura interrotta"
 							i=dim;
@@ -2792,7 +2743,7 @@ void Write16F81x (int dim,int dim2)
 							PrintMessage("\n");
 							PrintMessage(strings[S_CodeWError3],k,dati_hex[k],bufferI[z+5]);	//"Errore in scrittura all'indirizzo %4X: scritto %02X, letto %02X\r\n"
 							err_e++;
-							if(max_errori&&errori>max_errori){
+							if(max_err&&errori>max_err){
 								PrintMessage(strings[S_MaxErr],errori);	//"Superato il massimo numero di errori (%d), scrittura interrotta\r\n"
 								PrintMessage(strings[S_IntW]);	//"Scrittura interrotta"
 								i=0x2200;
@@ -3078,7 +3029,7 @@ void Write12F61x(int dim)
 						PrintMessage("\n");
 						PrintMessage(strings[S_CodeWError2],k,dati_hex[k],(bufferI[z+4]<<8)+bufferI[z+5]);	//"Errore in scrittura all'indirizzo %3X: scritto %04X, letto %04X\r\n"
 						errori++;
-						if(max_errori&&errori>max_errori){
+						if(max_err&&errori>max_err){
 							PrintMessage(strings[S_MaxErr],errori);	//"Superato il massimo numero di errori (%d), scrittura interrotta\r\n"
 							PrintMessage(strings[S_IntW]);	//"Scrittura interrotta"
 							i=dim;
@@ -3372,7 +3323,7 @@ void Write16F88x(int dim,int dim2)
 						PrintMessage("\n");
 						PrintMessage(strings[S_CodeWError2],k,dati_hex[k],(bufferI[z+4]<<8)+bufferI[z+5]);	//"Errore in scrittura all'indirizzo %3X: scritto %04X, letto %04X\r\n"
 						errori++;
-						if(max_errori&&errori>max_errori){
+						if(max_err&&errori>max_err){
 							PrintMessage(strings[S_MaxErr],errori);	//"Superato il massimo numero di errori (%d), scrittura interrotta\r\n"
 							PrintMessage(strings[S_IntW]);	//"Scrittura interrotta"
 							i=dim;
@@ -3517,7 +3468,7 @@ void Write16F88x(int dim,int dim2)
 							PrintMessage("\n");
 							PrintMessage(strings[S_CodeWError3],k,dati_hex[k],bufferI[z+4]);	//"Errore in scrittura all'indirizzo %4X: scritto %02X, letto %02X\r\n"
 							errori++;
-							if(max_errori&&errori>max_errori){
+							if(max_err&&errori>max_err){
 								PrintMessage(strings[S_MaxErr],errori);	//"Superato il massimo numero di errori (%d), scrittura interrotta\r\n"
 								PrintMessage(strings[S_IntW]);	//"Scrittura interrotta"
 								i=0x2200;
@@ -3701,7 +3652,7 @@ void Write16F7x(int dim,int vdd)
 						PrintMessage("\n");
 						PrintMessage(strings[S_CodeWError2],k,dati_hex[k],(bufferI[z+5]<<8)+bufferI[z+6]);	//"Errore in scrittura all'indirizzo %3X: scritto %04X, letto %04X\r\n"
 						errori++;
-						if(max_errori&&errori>max_errori){
+						if(max_err&&errori>max_err){
 							PrintMessage(strings[S_MaxErr],errori);	//"Superato il massimo numero di errori (%d), scrittura interrotta\r\n"
 							PrintMessage(strings[S_IntW]);	//"Scrittura interrotta"
 							i=dim;
@@ -3984,7 +3935,7 @@ void Write16F71x(int dim,int vdd)
 						PrintMessage("\n");
 						PrintMessage(strings[S_CodeWError2],k,dati_hex[k],(bufferI[z+6]<<8)+bufferI[z+7]);	//"Errore in scrittura all'indirizzo %3X: scritto %04X, letto %04X\r\n"
 						errori++;
-						if(max_errori&&errori>max_errori){
+						if(max_err&&errori>max_err){
 							PrintMessage(strings[S_MaxErr],errori);	//"Superato il massimo numero di errori (%d), scrittura interrotta\r\n"
 							PrintMessage(strings[S_IntW]);	//"Scrittura interrotta"
 							i=dim;
