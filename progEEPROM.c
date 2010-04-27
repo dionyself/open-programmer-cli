@@ -30,12 +30,7 @@ void ReadI2C(int dim,int addr)
 		return;
 	}
 	if(saveLog){
-		RegFile=fopen(LogFileName,"w");
-		time_t rawtime;
-		struct tm * timeinfo;
-		time ( &rawtime );
-		timeinfo = localtime ( &rawtime );
-		fprintf(RegFile,"%s\n", asctime (timeinfo) );
+		OpenLogFile();
 		fprintf(RegFile,"ReadI2C(%d,%d)    (0x%X,0x%X)\n",dim,addr,dim,addr);
 	}
 	sizeEE=dim;
@@ -119,12 +114,7 @@ void WriteI2C(int dim,int addr,int page, float wait)
 		return;
 	}
 	if(saveLog){
-		RegFile=fopen(LogFileName,"w");
-		time_t rawtime;
-		struct tm * timeinfo;
-		time ( &rawtime );
-		timeinfo = localtime ( &rawtime );
-		fprintf(RegFile,"%s\n", asctime (timeinfo) );
+		OpenLogFile();
 		fprintf(RegFile,"WriteI2C(%d,%d,%d,%f)    (0x%X,0x%X)\n",dim,addr,page,wait,dim,addr);
 	}
 	if(dim>sizeEE){
@@ -266,12 +256,7 @@ void Read93x(int dim,int na,int options)
 	}
 	if(na>13) na=13;
 	if(saveLog){
-		RegFile=fopen(LogFileName,"w");
-		time_t rawtime;
-		struct tm * timeinfo;
-		time ( &rawtime );
-		timeinfo = localtime ( &rawtime );
-		fprintf(RegFile,"%s\n", asctime (timeinfo) );
+		OpenLogFile();
 		fprintf(RegFile,"Read93x(%d,%d,%d)    (0x%X,0x%X)\n",dim,na,options,dim,na);
 	}
 	sizeEE=dim;
@@ -367,12 +352,7 @@ void Write93Sx(int dim,int na,int page, double wait)
 	}
 	if(na>13) na=13;
 	if(saveLog){
-		RegFile=fopen(LogFileName,"w");
-		time_t rawtime;
-		struct tm * timeinfo;
-		time ( &rawtime );
-		timeinfo = localtime ( &rawtime );
-		fprintf(RegFile,"%s\n", asctime (timeinfo) );
+		OpenLogFile();
 		fprintf(RegFile,"Write93Sx(%d,%d,%d,%f)    (0x%X,0x%X)\n",dim,na,page,wait,dim,na);
 	}
 	if(dim>sizeEE){
@@ -561,12 +541,7 @@ void Write93Cx(int dim,int na, int options)
 	}
 	if(na>13) na=13;
 	if(saveLog){
-		RegFile=fopen(LogFileName,"w");
-		time_t rawtime;
-		struct tm * timeinfo;
-		time ( &rawtime );
-		timeinfo = localtime ( &rawtime );
-		fprintf(RegFile,"%s\n", asctime (timeinfo) );
+		OpenLogFile();
 		fprintf(RegFile,"Write93Cx(%d,%d,%d)    (0x%X,0x%X)\n",dim,na,options,dim,na);
 	}
 	if(dim>sizeEE){
@@ -810,12 +785,7 @@ void Read25xx(int dim)
 		return;
 	}
 	if(saveLog){
-		RegFile=fopen(LogFileName,"w");
-		time_t rawtime;
-		struct tm * timeinfo;
-		time ( &rawtime );
-		timeinfo = localtime ( &rawtime );
-		fprintf(RegFile,"%s\n", asctime (timeinfo) );
+		OpenLogFile();
 		fprintf(RegFile,"Read25xx(%d)    (0x%X)\n",dim,dim);
 	}
 	sizeEE=dim;
@@ -916,12 +886,7 @@ void Write25xx(int dim,int page,float wait)
 		return;
 	}
 	if(saveLog){
-		RegFile=fopen(LogFileName,"w");
-		time_t rawtime;
-		struct tm * timeinfo;
-		time ( &rawtime );
-		timeinfo = localtime ( &rawtime );
-		fprintf(RegFile,"%s\n", asctime (timeinfo) );
+		OpenLogFile();
 		fprintf(RegFile,"Write25xx(%d,%d,%f)    (0x%X)\n",dim,page,wait,dim);
 	}
 	if(dim>sizeEE){

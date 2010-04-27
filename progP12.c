@@ -34,12 +34,7 @@ void Read12F5xx(int dim,int dim2)
 	size=0x1000;
 	dati_hex=malloc(sizeof(WORD)*size);
 	if(saveLog){
-		RegFile=fopen(LogFileName,"w");
-		time_t rawtime;
-		struct tm * timeinfo;
-		time ( &rawtime );
-		timeinfo = localtime ( &rawtime );
-		fprintf(RegFile,"%s\n", asctime (timeinfo) );
+		OpenLogFile();
 		fprintf(RegFile,"Read12F5xx(%d,%d)\n",dim,dim2);
 	}
 	unsigned int start=GetTickCount();
@@ -203,7 +198,7 @@ void Write12F5xx(int dim,int OscAddr)
 // erase: BULK_ERASE_PROG (1001) +10ms
 // write: BEGIN_PROG (1000) + Tprogram 2ms + END_PROG2 (1110);
 	int k=0,z=0,i,j,w;
-	int errori=0;
+	int err=0;
 	WORD osccal=0xffff,BKosccal=0xffff;
 	if(OscAddr>dim) OscAddr=dim-1;
 	if(OscAddr==-1) usa_BKosccal=usa_osccal=0;
@@ -212,12 +207,7 @@ void Write12F5xx(int dim,int OscAddr)
 		return;
 	}
 	if(saveLog){
-		RegFile=fopen(LogFileName,"w");
-		time_t rawtime;
-		struct tm * timeinfo;
-		time ( &rawtime );
-		timeinfo = localtime ( &rawtime );
-		fprintf(RegFile,"%s\n", asctime (timeinfo) );
+		OpenLogFile();
 		fprintf(RegFile,"Write12F5xx(%d,%d)\n",dim,OscAddr);
 	}
 	for(i=0;i<size;i++) dati_hex[i]&=0xFFF;
@@ -295,7 +285,7 @@ void Write12F5xx(int dim,int OscAddr)
 	bufferU[j++]=0x5;
 	if(dim>OscAddr+1){				//12F519 (Flash+EEPROM)
 		bufferU[j++]=BULK_ERASE_PROG;	// Bulk erase
-		bufferU[j++]=WAIT_T3;			// ritardo T3=10ms
+		bufferU[j++]=WAIT_T3;			// delay T3=10ms
 		for(i=-1;i<dim-0xff;i+=0xff){	// 0x43F
 			bufferU[j++]=INC_ADDR_N;
 			bufferU[j++]=0xff;
@@ -303,11 +293,11 @@ void Write12F5xx(int dim,int OscAddr)
 		bufferU[j++]=INC_ADDR_N;
 		bufferU[j++]=dim-i-1;
 		bufferU[j++]=BULK_ERASE_PROG;	// Bulk erase EEPROM
-		bufferU[j++]=WAIT_T3;			// ritardo T3=10ms
+		bufferU[j++]=WAIT_T3;			// delay T3=10ms
 		if(programID){
 			bufferU[j++]=INC_ADDR;
 			bufferU[j++]=BULK_ERASE_PROG;	// Bulk erase
-			bufferU[j++]=WAIT_T3;			// ritardo T3=10ms
+			bufferU[j++]=WAIT_T3;			// delay T3=10ms
 		}
 	}
 	else{							//12Fxxx
@@ -319,11 +309,11 @@ void Write12F5xx(int dim,int OscAddr)
 			bufferU[j++]=INC_ADDR_N;
 			bufferU[j++]=dim-i;
 			bufferU[j++]=BULK_ERASE_PROG;	// Bulk erase
-			bufferU[j++]=WAIT_T3;			// ritardo T3=10ms
+			bufferU[j++]=WAIT_T3;			// delay T3=10ms
 		}
 		else{
 			bufferU[j++]=BULK_ERASE_PROG;	// Bulk erase
-			bufferU[j++]=WAIT_T3;			// ritardo T3=10ms
+			bufferU[j++]=WAIT_T3;			// delay T3=10ms
 		}
 	}
 	bufferU[j++]=EN_VPP_VCC;		// uscita program mode
@@ -354,6 +344,7 @@ void Write12F5xx(int dim,int OscAddr)
 	PrintMessage("   ");
 	int dim1=dim;
 	if(programID) dim1=dim+5;
+	if(dati_hex[dim+4]>=0xFFF) dati_hex[dim+4]=BKosccal;  //reload BKosccal if not present
 	if(usa_BKosccal) dati_hex[OscAddr]=BKosccal;
 	else if(usa_osccal) dati_hex[OscAddr]=osccal;
 	for(i=k=w=0,j=1;i<dim1;i++){
@@ -383,9 +374,9 @@ void Write12F5xx(int dim,int OscAddr)
 					if (dati_hex[k]!=(bufferI[z+6]<<8)+bufferI[z+7]){
 						PrintMessage("\n");
 						PrintMessage(strings[S_CodeWError],k,dati_hex[k],(bufferI[z+6]<<8)+bufferI[z+7]);	//"Errore in scrittura all'indirizzo %3X: scritto %03X, letto %03X\r\n"
-						errori++;
-						if(max_err&&errori>max_err){
-							PrintMessage(strings[S_MaxErr],errori);	//"Superato il massimo numero di errori (%d), scrittura interrotta\r\n"
+						err++;
+						if(max_err&&err>max_err){
+							PrintMessage(strings[S_MaxErr],err);	//"Superato il massimo numero di errori (%d), scrittura interrotta\r\n"
 							PrintMessage(strings[S_IntW]);	//"Scrittura interrotta"
 							i=dim1;
 							z=DIMBUF;
@@ -397,14 +388,14 @@ void Write12F5xx(int dim,int OscAddr)
 			}
 			j=1;
 			if(saveLog){
-				fprintf(RegFile,strings[S_Log8],i,i,k,k,errori);	//"i=%d, k=%d, errori=%d\n"
+				fprintf(RegFile,strings[S_Log8],i,i,k,k,err);	//"i=%d, k=%d, errori=%d\n"
 				WriteLogIO();
 			}
 		}
 	}
 	PrintMessage("\b\b\b");
-	errori+=i-k;
-	PrintMessage(strings[S_ComplErr],errori);	//"completata, %d errori\r\n"
+	err+=i-k;
+	PrintMessage(strings[S_ComplErr],err);	//"completata, %d errori\r\n"
 //****************** write CONFIG ********************
 	PrintMessage(strings[S_ConfigW]);	//"Scrittura CONFIG ... "
 	int err_c=0;
@@ -447,22 +438,22 @@ void Write12F5xx(int dim,int OscAddr)
 	read();
 	unsigned int stop=GetTickCount();
 	for(z=10;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
-	if (z<(DIMBUF-2)&&dati_hex[0xfff]!=(bufferI[z+1]<<8)+bufferI[z+2]){
+	if (z<(DIMBUF-2)&&(!dati_hex[0xfff]&((bufferI[z+1]<<8)+bufferI[z+2]))){	//error only on 0 bits
 		PrintMessage("\n");
 		PrintMessage(strings[S_ConfigWErr],dati_hex[0xfff],(bufferI[z+1]<<8)+bufferI[z+2]);	//"Errore in scrittura config:\r\ndato scritto %03X, letto %03X\r\n"
 		err_c++;
 	}
-	errori+=err_c;
+	err+=err_c;
 	if (z>DIMBUF-2){
 		PrintMessage("\n");
 		PrintMessage(strings[S_ConfigWErr2]);	//"Errore in scrittura CONFIG"
 	}
 	PrintMessage(strings[S_ComplErr],err_c);	//"completata, %d errori\r\n"
 	if(saveLog){
-		fprintf(RegFile,strings[S_Log8],i,i,k,k,errori);	//"i=%d, k=%d, errori=%d\n"
+		fprintf(RegFile,strings[S_Log8],i,i,k,k,err);	//"i=%d, k=%d, errori=%d\n"
 		WriteLogIO();
 	}
 	if(saveLog&&RegFile) fclose(RegFile);
-	PrintMessage(strings[S_EndErr],(stop-start)/1000.0,errori,errori!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nFine (%.2f s) %d %s\r\n\r\n"
+	PrintMessage(strings[S_EndErr],(stop-start)/1000.0,err,err!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nFine (%.2f s) %d %s\r\n\r\n"
 }
 

@@ -34,12 +34,7 @@ void Read18Fx(int dim,int dim2){
 		return;
 	}
 	if(saveLog){
-		RegFile=fopen(LogFileName,"w");
-		time_t rawtime;
-		struct tm * timeinfo;
-		time ( &rawtime );
-		timeinfo = localtime ( &rawtime );
-		fprintf(RegFile,"%s\n", asctime (timeinfo) );
+		OpenLogFile();
 		fprintf(RegFile,"Read18F(%d,%d)    (0x%X,0x%X)\n",dim,dim2,dim,dim2);
 	}
 	size=dim;
@@ -48,7 +43,6 @@ void Read18Fx(int dim,int dim2){
 	memEE=malloc(dim2);			//EEPROM
 	for(j=0;j<8;j++) memID[j]=0xFF;
 	for(j=0;j<14;j++) memCONFIG[j]=0xFF;
-	PrintMessage(strings[S_StartRead]);	//"Inizio lettura...\r\n"
 	unsigned int start=GetTickCount();
 	bufferU[0]=0;
 	j=1;
@@ -265,7 +259,7 @@ void Read18Fx(int dim,int dim2){
 		PrintMessage(strings[S_ConfigWordL],i+1,memCONFIG[i*2]);	//"CONFIG%dL: 0x%02X\r\n"
 	}
 	PrintMessage(strings[S_CodeMem]);	//"\r\nMemoria programma:\r\n"
-	char s[256],t[256],v[256];
+	char s[256],t[256];
 	s[0]=0;
 	int valid=0,empty=1;
 	for(i=0;i<dim;i+=COL*2){
@@ -299,7 +293,7 @@ void Write18Fx(int dim,int dim2,int wbuf,int eraseW1,int eraseW2,int EEalgo)
 // vdd before vpp
 {
 	int k=0,z=0,i,j;
-	int errori=0;
+	int err=0;
 	if(dim>0x1FFFFF||dim<0){
 		PrintMessage(strings[S_CodeLim]);	//"Dimensione programma oltre i limiti\r\n"
 		return;
@@ -313,12 +307,7 @@ void Write18Fx(int dim,int dim2,int wbuf,int eraseW1,int eraseW2,int EEalgo)
 		return;
 	}
 	if(saveLog){
-		RegFile=fopen(LogFileName,"w");
-		time_t rawtime;
-		struct tm * timeinfo;
-		time ( &rawtime );
-		timeinfo = localtime ( &rawtime );
-		fprintf(RegFile,"%s\n", asctime (timeinfo) );
+		OpenLogFile();
 		fprintf(RegFile,"Write18F(%d,%d,%d)    (0x%X,0x%X,0x%X)\n",dim,dim2,wbuf,dim,dim2,wbuf);
 	}
 	if(dim>size) dim=size;
@@ -553,7 +542,7 @@ void Write18Fx(int dim,int dim2,int wbuf,int eraseW1,int eraseW2,int EEalgo)
 	if(dim2){
 		PrintMessage(strings[S_EEAreaW]);	//"Scrittura EEPROM ... "
 		PrintMessage("   ");
-		int erroriEE=0;
+		int errEE=0;
 		bufferU[j++]=CORE_INS;
 		bufferU[j++]=0x9E;			//EEPGD=0
 		bufferU[j++]=0xA6;
@@ -563,7 +552,7 @@ void Write18Fx(int dim,int dim2,int wbuf,int eraseW1,int eraseW2,int EEalgo)
 		bufferU[j++]=CORE_INS;
 		bufferU[j++]=0x84;			//WREN=1
 		bufferU[j++]=0xA6;
-		for(i=0;i<dim2&&errori<=max_err;i++){
+		for(i=0;i<dim2&&err<=max_err;i++){
 			if(memEE[i]!=0xFF){
 				bufferU[j++]=CORE_INS;
 				bufferU[j++]=0x0E;
@@ -630,16 +619,16 @@ void Write18Fx(int dim,int dim2,int wbuf,int eraseW1,int eraseW2,int EEalgo)
 				PrintMessage("\b\b\b%2d%%",i*100/dim2); fflush(stdout);
 				j=1;
 				for(z=DIMBUF-1;z&&bufferI[z]!=SHIFT_TABLAT;z--);
-				if(z&&memEE[i]!=bufferI[z+1]) erroriEE++;
+				if(z&&memEE[i]!=bufferI[z+1]) errEE++;
 				if(saveLog){
-					fprintf(RegFile,strings[S_Log8],i,i,k,k,erroriEE);	//"i=%d, k=%d, errori=%d\n"
+					fprintf(RegFile,strings[S_Log8],i,i,k,k,errEE);	//"i=%d, k=%d, errori=%d\n"
 					WriteLogIO();
 				}
 			}
 		}
 		PrintMessage("\b\b\b");
-		PrintMessage(strings[S_ComplErr],erroriEE);	//"terminata: %d errori \r\n"
-		errori+=erroriEE;
+		PrintMessage(strings[S_ComplErr],errEE);	//"terminata: %d errori \r\n"
+		err+=errEE;
 	}
 //****************** verify code ********************
 	PrintMessage(strings[S_CodeV]);	//"Verifica codice ... "
@@ -677,7 +666,7 @@ void Write18Fx(int dim,int dim2,int wbuf,int eraseW1,int eraseW2,int EEalgo)
 			for(z=0;z<bufferI[2]&&z<DIMBUF;z++){
 				if(memCODE[i+z]!=bufferI[z+3]){
 					PrintMessage(strings[S_CodeVError],i+z,i+z,memCODE[i+z],bufferI[z+3]);	//"Errore in verifica, indirizzo %04X (%d), scritto %02X, letto %02X\r\n"
-					errori++;
+					err++;
 				}
 				k++;
 			}
@@ -685,21 +674,21 @@ void Write18Fx(int dim,int dim2,int wbuf,int eraseW1,int eraseW2,int EEalgo)
 		PrintMessage("\b\b\b%2d%%",i*100/dim); fflush(stdout);
 		j=1;
 		if(saveLog){
-			fprintf(RegFile,strings[S_Log8],i,i,k,k,errori);	//"i=%d, k=%d, errori=%d\n"
+			fprintf(RegFile,strings[S_Log8],i,i,k,k,err);	//"i=%d, k=%d, errori=%d\n"
 			WriteLogIO();
 		}
-		if(errori>=max_err) break;
+		if(err>=max_err) break;
 	}
 	PrintMessage("\b\b\b");
 	if(k<dimx){
 		PrintMessage(strings[S_CodeVError2],dimx,k);	//"Errore in verifica area programma, richiesti %d byte, letti %d\r\n"
 	}
-	PrintMessage(strings[S_ComplErr],errori);	//"terminata: %d errori\r\n"
-	if(errori>=max_err) PrintMessage(strings[S_MaxErr]);	//"Raggiunto il numero massimo di errori, programmazione terminata"
+	PrintMessage(strings[S_ComplErr],err);	//"terminata: %d errori\r\n"
+	if(err>=max_err) PrintMessage(strings[S_MaxErr]);	//"Raggiunto il numero massimo di errori, programmazione terminata"
 //****************** verify ID ********************
-	if(programID&&errori<max_err){
+	if(programID&&err<max_err){
 		PrintMessage(strings[S_IDV]);	//"Verifica ID ... "
-		int erroriID=0;
+		int errID=0;
 		bufferU[j++]=CORE_INS;
 		bufferU[j++]=0x0E;			//TBLPTRU	ID 0x200000
 		bufferU[j++]=0x20;			//TBLPTRU	ID 0x200000
@@ -720,18 +709,18 @@ void Write18Fx(int dim,int dim2,int wbuf,int eraseW1,int eraseW2,int EEalgo)
 		msDelay(2);
 		read();
 		for(z=0;bufferI[z]!=TBLR_INC_N&&z<DIMBUF;z++);
-		for(i=0;i<8;i++) if(memID[i]!=0xFF&&memID[i]!=bufferI[z+i+2]) erroriID++;
-		PrintMessage(strings[S_ComplErr],erroriID);	//"terminata: %d errori\r\n"
-		errori+=erroriID;
-		if(errori>=max_err) PrintMessage(strings[S_MaxErr]);	//"Raggiunto il numero massimo di errori, programmazione terminata"
+		for(i=0;i<8;i++) if(memID[i]!=0xFF&&memID[i]!=bufferI[z+i+2]) errID++;
+		PrintMessage(strings[S_ComplErr],errID);	//"terminata: %d errori\r\n"
+		err+=errID;
+		if(err>=max_err) PrintMessage(strings[S_MaxErr]);	//"Raggiunto il numero massimo di errori, programmazione terminata"
 		j=1;
 		if(saveLog){
-			fprintf(RegFile,strings[S_Log8],i,i,0,0,errori);	//"i=%d, k2=%d 0=%d\n"
+			fprintf(RegFile,strings[S_Log8],i,i,0,0,err);	//"i=%d, k2=%d 0=%d\n"
 			WriteLogIO();
 		}
 	}
 //****************** write CONFIG ********************
-	if(errori<max_err){
+	if(err<max_err){
 		PrintMessage(strings[S_ConfigW]);	//"Programmazione CONFIG ..."
 		bufferU[j++]=CORE_INS;
 		bufferU[j++]=0x8E;
@@ -768,7 +757,7 @@ void Write18Fx(int dim,int dim2,int wbuf,int eraseW1,int eraseW2,int EEalgo)
 			bufferU[j++]=CORE_INS;
 			bufferU[j++]=0x2A;			//INCF
 			bufferU[j++]=0xF6;			//TBLPTRL
-			if(j>DIMBUF-17||i==13){
+			if(j>DIMBUF-17||i==14){
 				bufferU[j++]=FLUSH;
 				for(;j<DIMBUF;j++) bufferU[j]=0x0;
 				write();
@@ -784,7 +773,7 @@ void Write18Fx(int dim,int dim2,int wbuf,int eraseW1,int eraseW2,int EEalgo)
 		PrintMessage(strings[S_Compl]);	//"terminata\r\n"
 //****************** verify CONFIG ********************
 		PrintMessage(strings[S_ConfigV]);	//"Verifica CONFIG ... "
-		int erroriC=0;
+		int errC=0;
 		bufferU[j++]=CORE_INS;
 		bufferU[j++]=0x0E;			//TBLPTRU	CONFIG 0x300000
 		bufferU[j++]=0x30;			//TBLPTRU	CONFIG 0x300000
@@ -806,14 +795,14 @@ void Write18Fx(int dim,int dim2,int wbuf,int eraseW1,int eraseW2,int EEalgo)
 		read();
 		for(z=1;bufferI[z]!=TBLR_INC_N&&z<DIMBUF-16;z++);
 		if(z<DIMBUF-16){
-			for(i=0;i<14;i++) if(memCONFIG[i]!=0xFF&&memCONFIG[i]!=bufferI[z+i+2]) erroriC++;
+			for(i=0;i<14;i++) if(!memCONFIG[i]&bufferI[z+i+2]) errC++;	//error if written 0 and read 1 (!W&R)
 		}
-		PrintMessage(strings[S_ComplErr],erroriC);	//"terminata: %d errori\r\n"
-		errori+=erroriC;
-		if(errori>=max_err) PrintMessage(strings[S_MaxErr]);	//"Raggiunto il numero massimo di errori, programmazione terminata"
+		PrintMessage(strings[S_ComplErr],errC);	//"terminata: %d errori\r\n"
+		err+=errC;
+		if(err>=max_err) PrintMessage(strings[S_MaxErr]);	//"Raggiunto il numero massimo di errori, programmazione terminata"
 		j=1;
 		if(saveLog){
-			fprintf(RegFile,strings[S_Log8],i,i,0,0,errori);	//"i=%d, k=%d, errori=%d\n"
+			fprintf(RegFile,strings[S_Log8],i,i,0,0,err);	//"i=%d, k=%d, errori=%d\n"
 			WriteLogIO();
 		}
 	}
@@ -830,7 +819,7 @@ void Write18Fx(int dim,int dim2,int wbuf,int eraseW1,int eraseW2,int EEalgo)
 	msDelay(1);
 	read();
 	unsigned int stop=GetTickCount();
-	PrintMessage(strings[S_EndErr],(stop-start)/1000.0,errori,errori!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nFine (%.2f s) %d %s\r\n\r\n"
+	PrintMessage(strings[S_EndErr],(stop-start)/1000.0,err,err!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nFine (%.2f s) %d %s\r\n\r\n"
 	if(saveLog&&RegFile) fclose(RegFile);
 }
 

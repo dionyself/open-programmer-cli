@@ -124,12 +124,7 @@ void ReadAT(int dim, int dim2, int options)
 		return;
 	}
 	if(saveLog){
-		RegFile=fopen(LogFileName,"w");
-		time_t rawtime;
-		struct tm * timeinfo;
-		time ( &rawtime );
-		timeinfo = localtime ( &rawtime );
-		fprintf(RegFile,"%s\n", asctime (timeinfo) );
+		OpenLogFile();
 		fprintf(RegFile,"ReadAT(0x%X,0x%X)\n",dim,dim2);
 	}
 	size=dim;
@@ -474,12 +469,7 @@ void WriteAT(int dim, int dim2)
 		return;
 	}
 	if(saveLog){
-		RegFile=fopen(LogFileName,"w");
-		time_t rawtime;
-		struct tm * timeinfo;
-		time ( &rawtime );
-		timeinfo = localtime ( &rawtime );
-		fprintf(RegFile,"%s\n", asctime (timeinfo) );
+		OpenLogFile();
 		fprintf(RegFile,"WriteAT(0x%X,0x%X)\n",dim,dim2);
 	}
 	if(dim>size) dim=size;
@@ -786,12 +776,7 @@ void WriteATmega(int dim, int dim2, int page)
 		return;
 	}
 	if(saveLog){
-		RegFile=fopen(LogFileName,"w");
-		time_t rawtime;
-		struct tm * timeinfo;
-		time ( &rawtime );
-		timeinfo = localtime ( &rawtime );
-		fprintf(RegFile,"%s\n", asctime (timeinfo) );
+		OpenLogFile();
 		fprintf(RegFile,"WriteAT(0x%X,0x%X,0x%X)\n",dim,dim2,page);
 	}
 	if(dim>size) dim=size;

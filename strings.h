@@ -6,6 +6,8 @@ enum S {				//
 	S_nodev_r,			//
 	S_nodev_w,			//
 	S_nodev,			//
+	S_DevMismatch,		//
+	S_noV33reg,			//
 	S_progver,			//
 	S_progid,			//
 	S_FWver2old,		//
@@ -78,6 +80,7 @@ enum S {				//
 	S_Calib2Err,		//
 	S_CodeVError,		//
 	S_CodeVError2,		//
+	S_CodeVError3,		//
 	S_ErrSing,			//
 	S_ErrPlur,			//
 	S_MaxErr,			//
@@ -140,12 +143,14 @@ enum S {				//
 	S_DevID2,			//
 	S_ConfigWord,		//
 	S_ConfigWord2,		//
+	S_ConfigWordX,		//
 	S_Config2Cal1,		//
 	S_ConfigWordH,		//
 	S_ConfigWordL,		//
 	S_CalibWord1,		//
 	S_Calib1_2, 		//
 	S_CalibWord2,		//
+	S_CalibWordX,		//
 	S_Protected,		//
 	S_CodeLim,			//
 	S_EELim,			//

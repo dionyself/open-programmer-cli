@@ -43,13 +43,12 @@ void Read24Fx(int dim,int dim2,int options,int appIDaddr,int executiveArea,int E
 		PrintMessage(strings[S_FWver2old],"0.7.0");	//"This firmware is too old. Version %s is required\r\n"
 		return;
 	}
+	if(!CheckV33Regulator()){ 
+		PrintMessage(strings[S_noV33reg]);	//Can't find 3.3V expnsion board
+		return;
+	}
 	if(saveLog){
-		RegFile=fopen(LogFileName,"w");
-		time_t rawtime;
-		struct tm * timeinfo;
-		time ( &rawtime );
-		timeinfo = localtime ( &rawtime );
-		fprintf(RegFile,"%s\n", asctime (timeinfo) );
+		OpenLogFile();
 		fprintf(RegFile,"Read24Fx(%d,%d,%d,%d,%d,%d)    (0x%X,0x%X,0x%X,0x%X,0x%X,0x%X)\n",dim,dim2,options,appIDaddr,executiveArea,EEbaseAddr,dim,dim2,options,appIDaddr,executiveArea,EEbaseAddr);
 	}
 	dim*=2;
@@ -559,7 +558,7 @@ void Read24Fx(int dim,int dim2,int options,int appIDaddr,int executiveArea,int E
 			bufferU[j++]=0x0B;
 			bufferU[j++]=0xB6;
 			bufferU[j++]=REGOUT;
-			if(j>DIMBUF-5||i==dim2*2-4){
+			if(j>DIMBUF-6||i==dim2*2-4){
 				bufferU[j++]=FLUSH;
 				for(;j<DIMBUF;j++) bufferU[j]=0x0;
 				write();
@@ -583,6 +582,7 @@ void Read24Fx(int dim,int dim2,int options,int appIDaddr,int executiveArea,int E
 		}
 		PrintMessage("\b\b\b");
 		if(k2!=dim2*2){
+
 			PrintMessage("\n");
 			PrintMessage(strings[S_ReadEEErr],dim2*2,k2);	//"Errore in lettura area EEPROM, richiesti %d byte, letti %d\r\n"
 		}
@@ -822,13 +822,12 @@ void Write24Fx(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 		PrintMessage(strings[S_FWver2old],"0.7.0");	//"This firmware is too old. Version %s is required\r\n"
 		return;
 	}
+	if(!CheckV33Regulator()){ 
+		PrintMessage(strings[S_noV33reg]);	//Can't find 3.3V expnsion board
+		return;
+	}
 	if(saveLog){
-		RegFile=fopen(LogFileName,"w");
-		time_t rawtime;
-		struct tm * timeinfo;
-		time ( &rawtime );
-		timeinfo = localtime ( &rawtime );
-		fprintf(RegFile,"%s\n", asctime (timeinfo) );
+		OpenLogFile();
 		fprintf(RegFile,"Write24Fx(%d,%d,%d,%d,%d,%.1f,%d,%d,%d)    (0x%X,0x%X,0x%X,0x%X,0x%X,%.3f,0x%X,0x%X,0x%X)\n"
 			,dim,dim2,options,appIDaddr,rowSize,wait,EEbaseAddr,EraseWord,CodeWriteWord,dim,dim2,options,appIDaddr,rowSize,wait,EEbaseAddr,EraseWord,CodeWriteWord);
 	}
@@ -941,7 +940,6 @@ void Write24Fx(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 	bufferU[j++]=0x02;
 	bufferU[j++]=0x00;
 	bufferU[j++]=ICSP_NOP;
-	bufferU[j++]=ICSP_NOP;
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
 	write();
@@ -1018,36 +1016,18 @@ void Write24Fx(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 	bufferU[j++]=0x08;
 	bufferU[j++]=0x90;
 	bufferU[j++]=REGOUT;
-
 	bufferU[j++]=SIX;				//GOTO 0x200
 	bufferU[j++]=0x04;
 	bufferU[j++]=0x02;
 	bufferU[j++]=0x00;
 	bufferU[j++]=ICSP_NOP;
-	bufferU[j++]=ICSP_NOP;
-	bufferU[j++]=SIX_N;
-	bufferU[j++]=4;
-	bufferU[j++]=0x20;				//MOV XXXX,W0
-	bufferU[j++]=0x00;
-	bufferU[j++]=0x00;
-	bufferU[j++]=0x88;				//MOV W0,TABLPAG
-	bufferU[j++]=0x01;
-	bufferU[j++]=0x90;
-	bufferU[j++]=0x20;				//MOV 0,W6
-	bufferU[j++]=0x00;
-	bufferU[j++]=0x06;
-	bufferU[j++]=0x20;				//MOV #VISI,W7
-	bufferU[j++]=0x78;
-	bufferU[j++]=0x47;
-	bufferU[j++]=ICSP_NOP;
-
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
 	write();
 	msDelay(2);
 	read();
-	if(saveLog)WriteLogIO();
 	j=1;
+	if(saveLog)WriteLogIO();
 	for(z=1;bufferI[z]!=REGOUT&&z<DIMBUF;z++);
 	if(z<DIMBUF-2) w0=(bufferI[z+1]<<8)+bufferI[z+2];
 	PrintMessage("ApplicationID @ 0x80%04X:  0x%04X\r\n",appIDaddr,w0);
@@ -1253,7 +1233,6 @@ void Write24Fx(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 			bufferU[j++]=0xA8;
 			bufferU[j++]=0xE7;
 			bufferU[j++]=0x61;
-			//bufferU[j++]=WAIT_T3;
 			k=0;
 		}
 		bufferU[j++]=FLUSH;

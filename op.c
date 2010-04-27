@@ -50,7 +50,7 @@
 #include "instructions.h"
 
 #define COL 16
-#define VERSION "0.7.3beta"
+#define VERSION "0.7.3"
 #define G (12.0/34*1024/5)		//=72,2823529412
 #define  LOCK	1
 #define  FUSE	2
@@ -119,7 +119,6 @@ void DisplayEE();
 int FindDevice();
 
 char** strings;
-int fd = -1;
 int saveLog=0,programID=0,MinDly=1,load_osccal=0,load_BKosccal=0,usa_osccal=1,usa_BKosccal=0;
 int load_calibword=0,max_err=200;
 int lock=0x100,fuse=0x100,fuse_h=0x100,fuse_x=0x100;
@@ -133,12 +132,13 @@ int size=0,sizeEE=0,sizeCONFIG=0;
 unsigned char *memCODE,*memEE,memID[8],memCONFIG[34];
 int vid=0x04D8,pid=0x0100,info=0;
 #if !defined _WIN32 && !defined __CYGWIN__
+int fd = -1;
 struct hiddev_report_info rep_info_i,rep_info_u;
 struct hiddev_usage_ref_multi ref_multi_i,ref_multi_u;
 int DIMBUF=64;
 char path[256]="/dev/usb/hiddev0";
 #else
-unsigned char bufferU[128],bufferI[128]; 
+unsigned char bufferU[128],bufferI[128];
 DWORD NumberOfBytesRead,BytesWritten;
 ULONG Result;
 HANDLE WriteHandle,ReadHandle;
@@ -255,9 +255,6 @@ int main (int argc, char **argv) {
 			case 'm':	//SPI mode
 				spi_mode = atoi(optarg);
 				break;
-			case 'r':	//USB HID report size
-				DIMBUF = atoi(optarg);
-				break;
 #if !defined _WIN32 && !defined __CYGWIN__
 			case 'p':	//hiddev path
 				strncpy(path,optarg,sizeof(path)-1);
@@ -265,6 +262,9 @@ int main (int argc, char **argv) {
 #endif
 			case 'P':	//pid
 				sscanf(optarg, "%x", &pid);
+				break;
+			case 'r':	//USB HID report size
+				DIMBUF = atoi(optarg);
 				break;
 			case 's':	//save
 				strncpy(savefile,optarg,sizeof(savefile)-1);
@@ -296,7 +296,7 @@ int main (int argc, char **argv) {
 	for(j=0,i = optind; i < argc&&i<128; i++,j++) sscanf(argv[i], "%x", &tmpbuf[j]);
 	for(;j<128;j++) tmpbuf[j]=0;
 	if (ver){
-		printf("OP v%s\nCopyright (C) Alberto Maccioni 2009\
+		printf("OP v%s\nCopyright (C) Alberto Maccioni 2009 2010\
 \n	For detailed info see http://openprog.altervista.org/\
 \nThis program is free software; you can redistribute it and/or modify it under \
 the terms of the GNU General Public License as published by the Free Software \
@@ -315,6 +315,8 @@ Foundation; either version 2 of the License, or (at your option) any later versi
 16C84A, 16F87, 16F870, 16F871, 16F872, 16F873, 16F873A, 16F874, 16F874A, 16F876, \
 16F876A, 16F877, 16F877A, 16F88, 16F882, 16F883, 16F884, 16F886, 16F887, 16F913, \
 16F914, 16F916, 16F917, 16F946,\n\
+16F1822, 16F1823, 16F1824, 16F1825, 16F1826, 16F1827, 16F1828, 16F1829, 16F1933, \
+16F1934, 16F1936, 16F1937, 16F1938, 16F1939, 16F1946, 16F1947,\n\
 18F242, 18F248, 18F252, 18F258, 18F442, 18F448, 18F452, 18F458, 18F1220, 18F1230, \
 18F1320, 18F1330, 18F2220, 18F2221, 18F2320, 18F2321, 18F2331, 18F2410, 18F2420, \
 18F2423, 18F2431, 18F2439, 18F2450, 18F2455, 18F2458, 18F2480, 18F2510, 18F2515, \
@@ -356,7 +358,8 @@ ATmega16, ATmega16A, ATmega32, ATmega32A, ATmega64, ATmega64A\n\
 	DWORD t0,t;
 	t=t0=GetTickCount();
 	ProgID();
-	if(!strncmp(dev,"10",2)||!strncmp(dev,"12",2)||!strncmp(dev,"16",2)||testhw) StartHVReg(13);
+	if(!strncmp(dev,"16F1",4)) StartHVReg(8.5);
+	else if(!strncmp(dev,"10",2)||!strncmp(dev,"12",2)||!strncmp(dev,"16",2)||testhw) StartHVReg(13);
 	else if(!strncmp(dev,"18",2)) StartHVReg(12);
 	else StartHVReg(-1);
 	if(testhw){			//test hardware
@@ -472,7 +475,7 @@ ATmega16, ATmega16A, ATmega32, ATmega32A, ATmega64, ATmega64A\n\
 		return 0 ;
 	}
 
-//this is needed to use the same code to both win and linux
+//this is needed to use the same code on both win and linux
 #define EQ(s) !strncmp(s,dev,64)
 #define PrintMessage printf
 
@@ -547,6 +550,9 @@ ATmega16, ATmega16A, ATmega32, ATmega32A, ATmega64, ATmega64A\n\
 		else if(EQ("16F819")){
 			Write16F81x(0x800,ee?0x100:0);					//2K, 256, vdd no delay
 		}
+		else if(EQ("16F1822")||EQ("16F1823")||EQ("16F1826")){
+			Write16F1xxx(0x800,ee?0x100:0,0);				//2K, 256
+		}
 		else if(EQ("16F73")||EQ("16F74")){
 			Write16F7x(0x1000,0);							//4K
 		}
@@ -568,6 +574,9 @@ ATmega16, ATmega16A, ATmega32, ATmega32A, ATmega64, ATmega64A\n\
 		else if(EQ("16F87")||EQ("16F88")){
 			Write16F81x(0x1000,ee?0x100:0);					//4K, 256, vdd no delay
 		}
+		else if(EQ("16F1933")||EQ("16F1934")||EQ("16F1824")||EQ("16F1827")||EQ("16F1828")){
+			Write16F1xxx(0x1000,ee?0x100:0,0);				//4K, 256
+		}
 		else if(EQ("16F76")||EQ("16F77")){
 			Write16F7x(0x2000,0);							//8K
 		}
@@ -585,6 +594,12 @@ ATmega16, ATmega16A, ATmega32, ATmega32A, ATmega64, ATmega64A\n\
 		}
 		else if(EQ("16F886")||EQ("16F887")){
 			Write16F88x(0x2000,ee?0x100:0);					//8K, 256
+		}
+		else if(EQ("16F1936")||EQ("16F1937")||EQ("16F1946")||EQ("16F1825")||EQ("16F1829")){
+			Write16F1xxx(0x2000,ee?0x100:0,0);				//8K, 256
+		}
+		else if(EQ("16F1938")||EQ("16F1939")||EQ("16F1947")){
+			Write16F1xxx(0x4000,ee?0x100:0,0);				//16K, 256
 		}
 //-------------PIC18---------------------------------------------------------
 		else if(EQ("18F1230")){
@@ -911,6 +926,9 @@ ATmega16, ATmega16A, ATmega32, ATmega32A, ATmega64, ATmega64A\n\
 		else if(EQ("16F677")||EQ("16F687")){
 			Read16Fxxx(0x800,ee?0x100:0,r?0x80:9,0);		//2K, 256, vpp, cal1
 		}
+		else if(EQ("16F1822")||EQ("16F1823")||EQ("16F1826")){
+			Read16F1xxx(0x800,ee?0x100:0,r?0x200:11,0);		//2K, 256, vpp
+		}
 		else if(EQ("16F73")||EQ("16F74")){
 			Read16Fxxx(0x1000,0,r?0x20:8,1);				//4K, vdd
 		}
@@ -941,6 +959,9 @@ ATmega16, ATmega16A, ATmega32, ATmega32A, ATmega64, ATmega64A\n\
 		else if(EQ("16F913")||EQ("16F914")){
 			Read16Fxxx(0x1000,ee?0x100:0,r?0x40:10,0);		//4K, 256, vpp, cal1 + cal2
 		}
+		else if(EQ("16F1933")||EQ("16F1934")||EQ("16F1824")||EQ("16F1827")||EQ("16F1828")){
+			Read16F1xxx(0x1000,ee?0x100:0,r?0x200:11,0);	//4K, 256, vpp
+		}
 		else if(EQ("16F76")||EQ("16F77")){
 			Read16Fxxx(0x2000,0,r?0x20:8,1);				//8K, vdd
 		}
@@ -958,6 +979,12 @@ ATmega16, ATmega16A, ATmega32, ATmega32A, ATmega64, ATmega64A\n\
 		}
 		else if(EQ("16F916")||EQ("16F917")||EQ("16F946")){
 			Read16Fxxx(0x2000,ee?0x100:0,r?0x40:10,0);		//8K, 256, vpp, cal1 + cal2
+		}
+		else if(EQ("16F1936")||EQ("16F1937")||EQ("16F1946")||EQ("16F1825")||EQ("16F1829")){
+			Read16F1xxx(0x2000,ee?0x100:0,r?0x200:11,0);	//8K, 256, vpp
+		}
+		else if(EQ("16F1938")||EQ("16F1939")||EQ("16F1947")){
+			Read16F1xxx(0x4000,ee?0x100:0,r?0x200:11,0);	//16K, 256, vpp
 		}
 //-------------PIC18---------------------------------------------------------
 		else if(EQ("18F1230")){
@@ -1172,7 +1199,9 @@ ATmega16, ATmega16A, ATmega32, ATmega32A, ATmega64, ATmega64A\n\
 		if(!strncmp(dev,"AT",2)&&savefileEE[0]) SaveEE(dev,savefileEE);
 	}
 
+#if !defined _WIN32 && !defined __CYGWIN__
 	close(fd);
+#endif
 	return 0 ;
 }
 
@@ -1181,22 +1210,6 @@ DWORD GetTickCount(){
 	struct timeb now;
 	ftime(&now);
 	return now.time*1000+now.millitm;
-}
-
-void WriteLogIO(){
-	int i;
-	fprintf(RegFile,"bufferU=[");
-	for(i=0;i<DIMBUF;i++){
-		if(i%32==0) fprintf(RegFile,"\n");
-		fprintf(RegFile,"%02X ",bufferU[i]);
-	}
-	fprintf(RegFile,"]\n");
-	fprintf(RegFile,"bufferI=[");
-	for(i=0;i<DIMBUF;i++){
-		if(i%32==0) fprintf(RegFile,"\n");
-		fprintf(RegFile,"%02X ",bufferI[i]);
-	}
-	fprintf(RegFile,"]\n\n");
 }
 
 void PIC_ID(int id)
@@ -1709,10 +1722,120 @@ void PIC_ID(int id)
 			case 0x22A>>1:		//10 0010 101x xxxx
 				print("16HV610 rev%d\r\n",id&0x1F);
 				break;
+			case 0x232>>1:		//10 0011 001x xxxx
+				print("16F1933 rev%d\r\n",id&0x1F);
+				break;
+			case 0x234>>1:		//10 0011 010x xxxx
+				print("16F1934 rev%d\r\n",id&0x1F);
+				break;
+			case 0x236>>1:		//10 0011 011x xxxx
+				print("16F1936 rev%d\r\n",id&0x1F);
+				break;
+			case 0x238>>1:		//10 0011 100x xxxx
+				print("16F1937 rev%d\r\n",id&0x1F);
+				break;
+			case 0x23A>>1:		//10 0011 101x xxxx
+				print("16F1938 rev%d\r\n",id&0x1F);
+				break;
+			case 0x23C>>1:		//10 0011 110x xxxx
+				print("16F1939 rev%d\r\n",id&0x1F);
+				break;
+			case 0x242>>1:		//10 0100 001x xxxx
+				print("16LF1933 rev%d\r\n",id&0x1F);
+				break;
+			case 0x244>>1:		//10 0100 010x xxxx
+				print("16LF1934 rev%d\r\n",id&0x1F);
+				break;
+			case 0x246>>1:		//10 0100 011x xxxx
+				print("16LF1936 rev%d\r\n",id&0x1F);
+				break;
+			case 0x248>>1:		//10 0100 100x xxxx
+				print("16LF1937 rev%d\r\n",id&0x1F);
+				break;
+			case 0x24A>>1:		//10 0100 101x xxxx
+				print("16LF1938 rev%d\r\n",id&0x1F);
+				break;
+			case 0x24C>>1:		//10 0100 110x xxxx
+				print("16LF1939 rev%d\r\n",id&0x1F);
+				break;
+			case 0x250>>1:		//10 0101 000x xxxx
+				print("16F1946 rev%d\r\n",id&0x1F);
+				break;
+			case 0x252>>1:		//10 0101 001x xxxx
+				print("16F1947 rev%d\r\n",id&0x1F);
+				break;
+			case 0x258>>1:		//10 0101 100x xxxx
+				print("16LF1946 rev%d\r\n",id&0x1F);
+				break;
+			case 0x25A>>1:		//10 0101 101x xxxx
+				print("16LF1947 rev%d\r\n",id&0x1F);
+				break;
+			case 0x270>>1:		//10 0111 000x xxxx
+				print("16F1822 rev%d\r\n",id&0x1F);
+				break;
+			case 0x272>>1:		//10 0111 001x xxxx
+				print("16F1823 rev%d\r\n",id&0x1F);
+				break;
+			case 0x274>>1:		//10 0111 010x xxxx
+				print("16F1824 rev%d\r\n",id&0x1F);
+				break;
+			case 0x276>>1:		//10 0111 011x xxxx
+				print("16F1825 rev%d\r\n",id&0x1F);
+				break;
+			case 0x278>>1:		//10 0111 100x xxxx
+				print("16F1826 rev%d\r\n",id&0x1F);
+				break;
+			case 0x27A>>1:		//10 0111 101x xxxx
+				print("16F1827 rev%d\r\n",id&0x1F);
+				break;
+			case 0x280>>1:		//10 1000 000x xxxx
+				print("16LF1822 rev%d\r\n",id&0x1F);
+				break;
+			case 0x282>>1:		//10 1000 001x xxxx
+				print("16LF1823 rev%d\r\n",id&0x1F);
+				break;
+			case 0x284>>1:		//10 1000 010x xxxx
+				print("16LF1824 rev%d\r\n",id&0x1F);
+				break;
+			case 0x286>>1:		//10 1000 011x xxxx
+				print("16LF1825 rev%d\r\n",id&0x1F);
+				break;
+			case 0x288>>1:		//10 1000 100x xxxx
+				print("16LF1826 rev%d\r\n",id&0x1F);
+				break;
+			case 0x28A>>1:		//10 1000 101x xxxx
+				print("16LF1827 rev%d\r\n",id&0x1F);
+				break;
 			default:
 				print("%s",strings[S_nodev]); //"Dispositivo sconosciuto\r\n");
 		}
 	}
+}
+
+void DisplayEE(){
+	char s[256],t[256],v[256];
+	int valid=0,empty=1;
+	int i,j;
+	s[0]=0;
+	v[0]=0;
+	PrintMessage(strings[S_EEMem]);	//"\r\nmemoria EEPROM:\r\n"
+	for(i=0;i<sizeEE;i+=COL){
+		valid=0;
+		for(j=i;j<i+COL&&j<sizeEE;j++){
+			sprintf(t,"%02X ",memEE[j]);
+			strcat(s,t);
+			sprintf(t,"%c",isprint(memEE[j])?memEE[j]:'.');
+			strcat(v,t);
+			if(memEE[j]<0xff) valid=1;
+		}
+		if(valid){
+			PrintMessage("%04X: %s %s\r\n",i,s,v);
+			empty=0;
+		}
+		s[0]=0;
+		v[0]=0;
+	}
+	if(empty) PrintMessage(strings[S_Empty]);	//empty
 }
 
 int StartHVReg(double V){
@@ -1750,7 +1873,7 @@ int StartHVReg(double V){
 		PrintMessage(strings[S_lowUsbV]);	//"Tensione USB troppo bassa (VUSB<4.5V)\r\n"
 		return 0;
 	}
-	for(;(v<(vreg/10.0-0.5)*G||v>(vreg/10.0+0.5)*G)&&t<t0+500;t=GetTickCount()){
+	for(;(v<(vreg/10.0-0.5)*G||v>(vreg/10.0+0.5)*G)&&t<t0+1500;t=GetTickCount()){
 		j=1;
 		bufferU[j++]=WAIT_T3;
 		bufferU[j++]=READ_ADC;
@@ -1803,54 +1926,45 @@ void ProgID()
 	else printf(" (?)\r\n\r\n");
 }
 
-
-void DisplayEE(){
-	char s[256],t[256],v[256];
-	int valid=0,empty=1;
-	int i,j;
-	s[0]=0;
-	v[0]=0;
-	PrintMessage(strings[S_EEMem]);	//"\r\nmemoria EEPROM:\r\n"
-	for(i=0;i<sizeEE;i+=COL){
-		valid=0;
-		for(j=i;j<i+COL&&j<sizeEE;j++){
-			sprintf(t,"%02X ",memEE[j]);
-			strcat(s,t);
-			sprintf(t,"%c",isprint(memEE[j])?memEE[j]:'.');
-			strcat(v,t);
-			if(memEE[j]<0xff) valid=1;
-		}
-		if(valid){
-			PrintMessage("%04X: %s %s\r\n",i,s,v);
-			empty=0;
-		}
-		s[0]=0;
-		v[0]=0;
-	}
-	if(empty) PrintMessage(strings[S_Empty]);	//empty
-}
-
-unsigned int htoi(const char *hex, int length)
+int CheckV33Regulator()
 {
-	int i;
-	unsigned int v = 0;
-	for (i = 0; i < length; i++) {
-		v <<= 4;
-		if (hex[i] >= '0' && hex[i] <= '9') v += hex[i] - '0';
-		else if (hex[i] >= 'a' && hex[i] <= 'f') v += hex[i] - 'a' + 10;
-		else if (hex[i] >= 'A' && hex[i] <= 'F') v += hex[i] - 'A' + 10;
-		else PrintMessage(strings[S_Inohex],hex);	//"Error: '%.4s' doesn't look very hexadecimal, right?\n"
-	}
-	return v;
+	int i,j=1;
+	bufferU[j++]=WRITE_RAM;
+	bufferU[j++]=0x0F;
+	bufferU[j++]=0x93;
+	bufferU[j++]=0xFE;	//B0 = output
+	bufferU[j++]=EXT_PORT;
+	bufferU[j++]=0x01;	//B0=1
+	bufferU[j++]=0;
+	bufferU[j++]=READ_RAM;
+	bufferU[j++]=0x0F;
+	bufferU[j++]=0x81;	//Check if B1=1
+	bufferU[j++]=EXT_PORT;
+	bufferU[j++]=0x00;	//B0=0
+	bufferU[j++]=0;
+	bufferU[j++]=READ_RAM;
+	bufferU[j++]=0x0F;
+	bufferU[j++]=0x81;	//Check if B1=0
+	bufferU[j++]=WRITE_RAM;
+	bufferU[j++]=0x0F;
+	bufferU[j++]=0x93;
+	bufferU[j++]=0xFF;	//BX = input
+	bufferU[j++]=FLUSH;
+	for(;j<DIMBUF;j++) bufferU[j]=0x0;
+	write();
+	msDelay(2);
+	read();
+	for(j=1;j<DIMBUF-3&&bufferI[j]!=READ_RAM;j++);
+	i=bufferI[j+3]&0x2;		//B1 should be high
+	for(j+=3;j<DIMBUF-3&&bufferI[j]!=READ_RAM;j++);
+	return (i+bufferI[j+3]&0x2)==2?1:0;
 }
-
 
 void TestHw() {
 	int j=1;
 	bufferU[0]=0;
 	PrintMessage(strings[I_TestHW]);		//"Test hardware ..."
 	getchar();
-//	PrintMessage("\n");
 	bufferU[j++]=SET_CK_D;
 	bufferU[j++]=0x0;
 	bufferU[j++]=EN_VPP_VCC;		//VDD+VPP
@@ -1874,7 +1988,6 @@ void TestHw() {
 	read();
 	PrintMessage("VDD=5V, VPP=0V, D=5V, CK=5V, PGM=5V");
 	getchar();
-//	for(;!kbhit(););
 	j=1;
 	bufferU[j++]=SET_CK_D;
 	bufferU[j++]=0x1;
@@ -1952,7 +2065,7 @@ int FindDevice(){
 	HANDLE DeviceHandle;
 	HANDLE hDevInfo;
 	GUID HidGuid;
-	int MyDeviceDetected; 
+	int MyDeviceDetected;
 	char MyDevicePathName[1024];
 	ULONG Length;
 	ULONG Required;
@@ -1997,7 +2110,7 @@ int FindDevice(){
 	GETMANUFACTURERSTRING HidD_GetManufacturerString=0;
 	GETPRODUCTSTRING HidD_GetProductString=0;
 	hHID = LoadLibrary("hid.dll");
-	if(!hHID){ 
+	if(!hHID){
 		printf("Can't find hid.dll");
 		return 0;
 	}
@@ -2025,14 +2138,14 @@ int FindDevice(){
 
 	HMODULE hSAPI=0;
 	hSAPI = LoadLibrary("setupapi.dll");
-	if(!hSAPI){ 
+	if(!hSAPI){
 		printf("Can't find setupapi.dll");
 		return 0;
 	}
 	typedef HDEVINFO (WINAPI* SETUPDIGETCLASSDEVS) (CONST GUID*,PCSTR,HWND,DWORD);
 	typedef BOOL (WINAPI* SETUPDIENUMDEVICEINTERFACES) (HDEVINFO,PSP_DEVINFO_DATA,CONST GUID*,DWORD,PSP_DEVICE_INTERFACE_DATA);
 	typedef BOOL (WINAPI* SETUPDIGETDEVICEINTERFACEDETAIL) (HDEVINFO,PSP_DEVICE_INTERFACE_DATA,PSP_DEVICE_INTERFACE_DETAIL_DATA_A,DWORD,PDWORD,PSP_DEVINFO_DATA);
-	typedef BOOL (WINAPI* SETUPDIDESTROYDEVICEINFOLIST) (HDEVINFO);	
+	typedef BOOL (WINAPI* SETUPDIDESTROYDEVICEINFOLIST) (HDEVINFO);
 	SETUPDIGETCLASSDEVS SetupDiGetClassDevsA=0;
 	SETUPDIENUMDEVICEINTERFACES SetupDiEnumDeviceInterfaces=0;
 	SETUPDIGETDEVICEINTERFACEDETAIL SetupDiGetDeviceInterfaceDetailA=0;
@@ -2045,8 +2158,8 @@ int FindDevice(){
 		||SetupDiEnumDeviceInterfaces==NULL\
 		||SetupDiDestroyDeviceInfoList==NULL\
 		||SetupDiGetDeviceInterfaceDetailA==NULL) return -1;
-	
-	
+
+
 	/*
 	The following code is adapted from Usbhidio_vc6 application example by Jan Axelson
 	for more information see see http://www.lvr.com/hidpage.htm

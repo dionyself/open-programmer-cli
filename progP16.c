@@ -39,25 +39,20 @@ void Read16Fxxx(int dim,int dim2,int dim3,int vdd){
 		ee2200=1;
 	}
 	if(dim>0x2000||dim<0){
-		PrintMessage(strings[S_CodeLim]);	//"Dimensione programma oltre i limiti\r\n"
+		PrintMessage(strings[S_CodeLim]);	//"Code size exceeds limits\r\n"
 		return;
 	}
 	if(dim2>0x400||dim2<0){		//Max 1K
-		PrintMessage(strings[S_EELim]);	//"Dimensione eeprom oltre i limiti\r\n"
+		PrintMessage(strings[S_EELim]);	//"EEPROM size exceeds limits\r\n"
 		return;
 	}
 	if(dim3>0x100||dim3<0){
-		PrintMessage(strings[S_ConfigLim]);	//"Dimensione area config oltre i limiti\r\n"
+		PrintMessage(strings[S_ConfigLim]);	//"Config area size exceeds limits\r\n"
 		return;
 	}
 	if(dim3<8)dim3=8;
 	if(saveLog){
-		RegFile=fopen(LogFileName,"w");
-		time_t rawtime;
-		struct tm * timeinfo;
-		time ( &rawtime );
-		timeinfo = localtime ( &rawtime );
-		fprintf(RegFile,"%s\n", asctime (timeinfo) );
+		OpenLogFile();
 		fprintf(RegFile,"Read12F6xx(%d,%d,%d,%d)\n",dim,dim2,dim3,vdd);
 	}
 	size=0x2100+dim2;
@@ -114,12 +109,12 @@ void Read16Fxxx(int dim,int dim2,int dim3,int vdd){
 	read();
 	if(saveLog)WriteLogIO();
 //****************** read code ********************
-	PrintMessage(strings[S_CodeReading1]);		//lettura codice ...
+	PrintMessage(strings[S_CodeReading1]);		//read code ...
 	PrintMessage("   ");
 	for(i=0,j=1;i<dim;i++){
 		bufferU[j++]=READ_DATA_PROG;
 		bufferU[j++]=INC_ADDR;
-		if(j>DIMBUF*2/4-2||i==dim-1){		//2 istruzioni -> 4 risposte
+		if(j>DIMBUF*2/4-2||i==dim-1){		//2B cmd -> 4B data
 			bufferU[j++]=FLUSH;
 			for(;j<DIMBUF;j++) bufferU[j]=0x0;
 			write();
@@ -154,7 +149,7 @@ void Read16Fxxx(int dim,int dim2,int dim3,int vdd){
 	for(i=0x2000;i<0x2000+dim3;i++){		//Config
 		bufferU[j++]=READ_DATA_PROG;
 		bufferU[j++]=INC_ADDR;
-		if(j>DIMBUF*2/4-2||i==0x2000+dim3-1){		//2 istruzioni -> 4 risposte
+		if(j>DIMBUF*2/4-2||i==0x2000+dim3-1){		//2B cmd -> 4B data
 			bufferU[j++]=FLUSH;
 			for(;j<DIMBUF;j++) bufferU[j]=0x0;
 			write();
@@ -193,7 +188,7 @@ void Read16Fxxx(int dim,int dim2,int dim3,int vdd){
 		for(k2=0,i=0x2100;i<0x2100+dim2;i++){
 			bufferU[j++]=READ_DATA_DATA;
 			bufferU[j++]=INC_ADDR;
-			if(j>DIMBUF*2/4-2||i==0x2100+dim2-1){		//2 istruzioni -> 4 risposte
+			if(j>DIMBUF*2/4-2||i==0x2100+dim2-1){		//2B cmd -> 4B data
 				bufferU[j++]=FLUSH;
 				for(;j<DIMBUF;j++) bufferU[j]=0x0;
 				write();
@@ -308,6 +303,265 @@ void Read16Fxxx(int dim,int dim2,int dim3,int vdd){
 	if(saveLog&&RegFile) fclose(RegFile);
 }
 
+void Read16F1xxx(int dim,int dim2,int dim3,int options){
+// read 14 bit enhanced PIC
+// dim=program size 	dim2=eeprom size   dim3=config size
+// options:
+//		bit0=0 -> vpp before vdd
+//		bit0=1 -> vdd before vpp
+//		bit1=1 -> LVP programming
+// DevID@0x8006
+// Config1@0x8007
+// Config2@0x8008
+// Calib1@0x8009
+// Calib2@0x800A
+// eeprom@0x0
+	int k=0,k2=0,z=0,i,j;
+	if(!CheckV33Regulator()){
+		PrintMessage(strings[S_noV33reg]);	//Can't find 3.3V expnsion board
+		return;
+	}
+	char str[512],s[256],t[256];
+	if(dim>0x8000||dim<0){
+		PrintMessage(strings[S_CodeLim]);	//"Code size exceeds limits\r\n"
+		return;
+	}
+	if(dim2>0x400||dim2<0){		//Max 1K
+		PrintMessage(strings[S_EELim]);	//"EEPROM size exceeds limits\r\n"
+		return;
+	}
+	if(dim3>0x200||dim3<0){
+		PrintMessage(strings[S_ConfigLim]);	//"Config area size exceeds limits\r\n"
+		return;
+	}
+	if(dim3<11)dim3=11;		//at least config1-2 + calib1-2
+
+	if(saveLog){
+		OpenLogFile();
+		fprintf(RegFile,"Read16F1xxx(%d,%d,%d,%d)\n",dim,dim2,dim3,options);
+	}
+	size=0x8000+dim3;
+	sizeEE=dim2;
+	dati_hex=malloc(sizeof(WORD)*size);
+	memEE=malloc(dim2);			//EEPROM
+	for(j=0;j<sizeEE;j++) memEE[j]=0xFF;
+	unsigned int start=GetTickCount();
+	bufferU[0]=0;
+	j=1;
+	bufferU[j++]=SET_PARAMETER;
+	bufferU[j++]=SET_T1T2;
+	bufferU[j++]=1;						//T1=1u
+	bufferU[j++]=100;					//T2=100u
+	bufferU[j++]=SET_PARAMETER;
+	bufferU[j++]=SET_T3;
+	bufferU[j++]=2000>>8;
+	bufferU[j++]=2000&0xff;
+	bufferU[j++]=EN_VPP_VCC;		//enter program mode
+	bufferU[j++]=0x0;
+	bufferU[j++]=SET_CK_D;
+	bufferU[j++]=0x0;
+	if((options&2)==0){				//HV entry
+		if((options&1)==0){				//VPP before VDD
+		bufferU[j++]=EN_VPP_VCC;
+		bufferU[j++]=4;				//VPP
+		bufferU[j++]=EN_VPP_VCC;
+		bufferU[j++]=0x5;			//VDD+VPP
+	}
+		else{							//VDD before VPP without delay
+		bufferU[j++]=EN_VPP_VCC;
+		bufferU[j++]=1;				//VDD
+		bufferU[j++]=EN_VPP_VCC;
+		bufferU[j++]=0x5;			//VDD+VPP
+	}
+	}
+	else{			//Low voltage programming
+		bufferU[j++]=EN_VPP_VCC;
+		bufferU[j++]=4;				//VPP
+		bufferU[j++]=WAIT_T3;
+		bufferU[j++]=TX16;			//0000 1010 0001 0010 1100 0010 1011 0010 = 0A12C2B2
+		bufferU[j++]=2;
+		bufferU[j++]=0x0A;
+		bufferU[j++]=0x12;
+		bufferU[j++]=0xC2;
+		bufferU[j++]=0xB2;
+		bufferU[j++]=SET_CK_D;		//Clock pulse
+		bufferU[j++]=0x4;
+		bufferU[j++]=SET_CK_D;
+		bufferU[j++]=0x0;
+	}
+	bufferU[j++]=FLUSH;
+	for(;j<DIMBUF;j++) bufferU[j]=0x0;
+	write();
+	msDelay(2);
+	read();
+	if(saveLog)WriteLogIO();
+//****************** read code ********************
+	PrintMessage(strings[S_CodeReading1]);		//read code ...
+	PrintMessage("   ");
+	for(i=0,j=1;i<dim;i++){
+		bufferU[j++]=READ_DATA_PROG;
+		bufferU[j++]=INC_ADDR;
+		if(j>DIMBUF*2/4-2||i==dim-1){		//2B cmd -> 4B data
+			bufferU[j++]=FLUSH;
+			for(;j<DIMBUF;j++) bufferU[j]=0x0;
+			write();
+			msDelay(5);
+			read();
+			for(z=1;z<DIMBUF-2;z++){
+				if(bufferI[z]==READ_DATA_PROG){
+					dati_hex[k++]=(bufferI[z+1]<<8)+bufferI[z+2];
+					z+=2;
+				}
+			}
+			PrintMessage("\b\b\b%2d%%",i*100/dim); fflush(stdout);
+			j=1;
+			if(saveLog){
+				fprintf(RegFile,strings[S_Log7],i,i,k,k);	//"i=%d(0x%X), k=%d(0x%X)\n"
+				WriteLogIO();
+			}
+		}
+	}
+	PrintMessage("\b\b\b");
+	if(k!=dim){
+		PrintMessage("\n");
+		PrintMessage(strings[S_ReadCodeErr],dim,k);	//"Errore in lettura area programma, richieste %d word, lette %d\r\n"
+	}
+	else PrintMessage(strings[S_Compl]);
+	for(i=k;i<0x8000;i++) dati_hex[i]=0x3fff;
+//****************** read config area ********************
+	PrintMessage(strings[S_Read_CONFIG_A]);		//lettura config ...
+	bufferU[j++]=LOAD_CONF;			//counter at 0x8000
+	bufferU[j++]=0xFF;
+	bufferU[j++]=0xFF;
+	for(i=0x8000;i<0x8000+dim3;i++){		//Config
+		bufferU[j++]=READ_DATA_PROG;
+		bufferU[j++]=INC_ADDR;
+		if(j>DIMBUF*2/4-2||i==0x8000+dim3-1){		//2B cmd -> 4B data
+			bufferU[j++]=FLUSH;
+			for(;j<DIMBUF;j++) bufferU[j]=0x0;
+			write();
+			msDelay(5);
+			read();
+			for(z=1;z<DIMBUF-2;z++){
+				if(bufferI[z]==READ_DATA_PROG){
+					dati_hex[0x8000+k2++]=(bufferI[z+1]<<8)+bufferI[z+2];
+					z+=2;
+				}
+			}
+			j=1;
+			if(saveLog){
+				fprintf(RegFile,strings[S_Log7],i,i,k2,k2);	//"i=%d, k=%d\n"
+				WriteLogIO();
+			}
+		}
+	}
+	if(k2!=dim3){
+		PrintMessage("\n");
+		PrintMessage(strings[S_ConfigErr],dim3,k2);	//"Errore in lettura area configurazione, richieste %d word, lette %d\r\n"
+	}
+	else PrintMessage(strings[S_Compl]);
+	for(i=0x8000+k2;i<0x8000+dim3;i++) dati_hex[i]=0x3fff;
+//****************** read eeprom ********************
+	if(dim2){
+		PrintMessage(strings[S_ReadEE]);		//lettura EE ...
+		bufferU[j++]=CUST_CMD;
+		bufferU[j++]=0x16;		//Reset address
+		for(i=k=0;i<dim2;i++){
+			bufferU[j++]=READ_DATA_DATA;
+			bufferU[j++]=INC_ADDR;
+			if(j>DIMBUF*2/4-2||i==dim2-1){		//2B cmd -> 4B data
+				bufferU[j++]=FLUSH;
+				for(;j<DIMBUF;j++) bufferU[j]=0x0;
+				write();
+				msDelay(5);
+				read();
+				for(z=1;z<DIMBUF-1;z++){
+					if(bufferI[z]==READ_DATA_DATA){
+						memEE[k++]=bufferI[z+1];
+						z++;
+					}
+				}
+				PrintMessage("\b\b\b%2d%%",i*100/(dim+dim2+dim3)); fflush(stdout);
+				j=1;
+				if(saveLog){
+					fprintf(RegFile,strings[S_Log7],i,i,k,k);	//"i=%d, k2=%d\n"
+					WriteLogIO();
+				}
+			}
+		}
+		PrintMessage("\b\b\b");
+		if(i!=dim2){
+
+			PrintMessage("\n");
+			PrintMessage(strings[S_ReadEEErr],dim2,i);	//"Errore in lettura area EE, ..."
+			for(;i<dim2;i++) memEE[i]=0xff;
+		}
+		else PrintMessage(strings[S_Compl]);
+	}
+	bufferU[j++]=NOP;				//exit program mode
+	bufferU[j++]=EN_VPP_VCC;
+	bufferU[j++]=1;					//VDD
+	bufferU[j++]=EN_VPP_VCC;
+	bufferU[j++]=0x0;
+	bufferU[j++]=SET_CK_D;
+	bufferU[j++]=0x0;
+	bufferU[j++]=FLUSH;
+	for(;j<DIMBUF;j++) bufferU[j]=0x0;
+	write();
+	msDelay(1);
+	read();
+	unsigned int stop=GetTickCount();
+//****************** visualize ********************
+	for(i=0;i<4;i+=2){
+		PrintMessage("ID%d: 0x%04X\tID%d: 0x%04X\r\n",i, dati_hex[0x8000+i],i+1, dati_hex[0x8000+i+1]);
+
+	}
+	PrintMessage(strings[S_DevID],dati_hex[0x8006]);	//"DevID: 0x%04X\r\n"
+	PIC_ID(dati_hex[0x8006]);
+	PrintMessage(strings[S_ConfigWordX],1,dati_hex[0x8007]);	//"Configuration word %d: 0x%04X\r\n"
+	PrintMessage(strings[S_ConfigWordX],2,dati_hex[0x8008]);	//"Configuration word %d: 0x%04X\r\n"
+	PrintMessage(strings[S_CalibWordX],1,dati_hex[0x8009]);	//"Calibration word %d: 0x%04X\r\n"
+	PrintMessage(strings[S_CalibWordX],2,dati_hex[0x800A]);	//"Calibration word %d: 0x%04X\r\n"
+	PrintMessage(strings[S_CodeMem2]);	//"\r\nMemoria programma:\r\n"
+	s[0]=0;
+	int valid=0,empty=1;
+	for(i=0;i<dim;i+=COL){
+		valid=0;
+		for(j=i;j<i+COL&&j<dim;j++){
+			sprintf(t,"%04X ",dati_hex[j]);
+			strcat(s,t);
+			if(dati_hex[j]<0x3fff) valid=1;
+		}
+		if(valid){
+			PrintMessage("%04X: %s\r\n",i,s);
+			empty=0;
+		}
+		s[0]=0;
+	}
+	if(empty) PrintMessage(strings[S_Empty]);	//empty
+	if(dim3>11){
+		empty=1;
+		PrintMessage(strings[S_ConfigResMem]);	//"\r\nMemoria configurazione e riservata:\r\n"
+		for(i=0x8000;i<0x8000+dim3;i+=COL){
+			valid=0;
+			for(j=i;j<i+COL&&j<0x8000+dim3;j++){
+				sprintf(t,"%04X ",dati_hex[j]);
+				strcat(s,t);
+				if(dati_hex[j]<0x3fff) valid=1;
+			}
+			if(valid){
+				PrintMessage("%04X: %s\r\n",i,s);
+				empty=0;
+			}
+			s[0]=0;
+		}
+		if(empty) PrintMessage(strings[S_Empty]);	//empty
+	}
+	if(dim2) DisplayEE();	//visualize
+	PrintMessage(strings[S_End],(stop-start)/1000.0);	//"\r\nFine (%.2f s)\r\n"
+	if(saveLog&&RegFile) fclose(RegFile);
+}
+
 void Write12F6xx(int dim,int dim2)
 // write 14 bit PIC
 // dim=program size 	dim2=eeprom size
@@ -346,12 +600,7 @@ void Write12F6xx(int dim,int dim2)
 		else if(dim2>size-0x2100) dim2=size-0x2100;
 	}
 	if(saveLog){
-		RegFile=fopen(LogFileName,"w");
-		time_t rawtime;
-		struct tm * timeinfo;
-		time ( &rawtime );
-		timeinfo = localtime ( &rawtime );
-		fprintf(RegFile,"%s\n", asctime (timeinfo) );
+		OpenLogFile();
 		fprintf(RegFile,"Write12F6xx(%d,%d)\n",dim,dim2);
 	}
 	for(i=0;i<0x2009&&i<size;i++) dati_hex[i]&=0x3FFF;
@@ -655,7 +904,8 @@ void Write12F6xx(int dim,int dim2)
 		z+=6;
 	}
 	for(;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
-	if (dati_hex[0x2007]!=(bufferI[z+1]<<8)+bufferI[z+2]){
+	if(!dati_hex[0x2007]&((bufferI[z+1]<<8)+bufferI[z+2])){	//error if written 0 and read 1 (!W&R)
+
 		PrintMessage("\n");
 		PrintMessage(strings[S_ConfigWErr3],dati_hex[0x2007],(bufferI[z+1]<<8)+bufferI[z+2]);	//"Errore in scrittura config: scritto %04X, letto %04X\r\n"
 		err_c++;
@@ -743,12 +993,7 @@ void Write16F8x (int dim,int dim2)
 		else if(dim2>size-0x2100) dim2=size-0x2100;
 	}
 	if(saveLog){
-		RegFile=fopen(LogFileName,"w");
-		time_t rawtime;
-		struct tm * timeinfo;
-		time ( &rawtime );
-		timeinfo = localtime ( &rawtime );
-		fprintf(RegFile,"%s\n", asctime (timeinfo) );
+		OpenLogFile();
 		fprintf(RegFile,"Write16F8x(%d,%d)\n",dim,dim2);
 	}
 	for(i=0;i<0x2009&&i<size;i++) dati_hex[i]&=0x3FFF;
@@ -1008,7 +1253,8 @@ void Write16F8x (int dim,int dim2)
 		z+=6;
 	}
 	for(;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
-	if (dati_hex[0x2007]!=(bufferI[z+1]<<8)+bufferI[z+2]){
+	if(!dati_hex[0x2007]&((bufferI[z+1]<<8)+bufferI[z+2])){	//error if written 0 and read 1 (!W&R)
+
 		PrintMessage("\n");
 		PrintMessage(strings[S_ConfigWErr3],dati_hex[0x2007],(bufferI[z+1]<<8)+bufferI[z+2]);	//"Errore in scrittura config: scritto %04X, letto %04X\r\n"
 		err_c++;
@@ -1131,12 +1377,7 @@ void Write16F62x (int dim,int dim2)
 		else if(dim2>size-0x2100) dim2=size-0x2100;
 	}
 	if(saveLog){
-		RegFile=fopen(LogFileName,"w");
-		time_t rawtime;
-		struct tm * timeinfo;
-		time ( &rawtime );
-		timeinfo = localtime ( &rawtime );
-		fprintf(RegFile,"%s\n", asctime (timeinfo) );
+		OpenLogFile();
 		fprintf(RegFile,"Write16F62x(%d,%d)\n",dim,dim2);
 	}
 	for(i=0;i<0x2009&&i<size;i++) dati_hex[i]&=0x3FFF;
@@ -1351,7 +1592,7 @@ void Write16F62x (int dim,int dim2)
 		z+=6;
 	}
 	for(;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
-	if (dati_hex[0x2007]!=(bufferI[z+1]<<8)+bufferI[z+2]){
+	if(!dati_hex[0x2007]&((bufferI[z+1]<<8)+bufferI[z+2])){	//error if written 0 and read 1 (!W&R)
 		PrintMessage(strings[S_ConfigWErr3],dati_hex[0x2007],(bufferI[z+1]<<8)+bufferI[z+2]);	//"Errore in scrittura config: scritto %04X, letto %04X\r\n"
 		err_c++;
 	}
@@ -1470,12 +1711,7 @@ void Write12F62x(int dim,int dim2)
 		else if(dim2>size-0x2100) dim2=size-0x2100;
 	}
 	if(saveLog){
-		RegFile=fopen(LogFileName,"w");
-		time_t rawtime;
-		struct tm * timeinfo;
-		time ( &rawtime );
-		timeinfo = localtime ( &rawtime );
-		fprintf(RegFile,"%s\n", asctime (timeinfo) );
+		OpenLogFile();
 		fprintf(RegFile,"Write12F62x(%d,%d)\n",dim,dim2);
 	}
 	for(i=0;i<size;i++) dati_hex[i]&=0x3FFF;
@@ -1673,7 +1909,7 @@ void Write12F62x(int dim,int dim2)
 		z+=6;
 	}
 	for(;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
-	if (dati_hex[0x2007]!=(bufferI[z+1]<<8)+bufferI[z+2]){
+	if(!dati_hex[0x2007]&((bufferI[z+1]<<8)+bufferI[z+2])){	//error if written 0 and read 1 (!W&R)
 		PrintMessage(strings[S_ConfigWErr3],dati_hex[0x2007],(bufferI[z+1]<<8)+bufferI[z+2]);	//"Errore in scrittura config: scritto %04X, letto %04X\r\n"
 		err_c++;
 	}
@@ -1807,12 +2043,7 @@ void Write16F87x (int dim,int dim2)
 		else if(dim2>size-0x2100) dim2=size-0x2100;
 	}
 	if(saveLog){
-		RegFile=fopen(LogFileName,"w");
-		time_t rawtime;
-		struct tm * timeinfo;
-		time ( &rawtime );
-		timeinfo = localtime ( &rawtime );
-		fprintf(RegFile,"%s\n", asctime (timeinfo) );
+		OpenLogFile();
 		fprintf(RegFile,"Write16F87x(%d,%d)\n",dim,dim2);
 	}
 	for(i=0;i<size;i++) dati_hex[i]&=0x3FFF;
@@ -2040,7 +2271,7 @@ void Write16F87x (int dim,int dim2)
 		z+=6;
 	}
 	for(;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
-	if (dati_hex[0x2007]!=(bufferI[z+1]<<8)+bufferI[z+2]){
+	if(!dati_hex[0x2007]&((bufferI[z+1]<<8)+bufferI[z+2])){	//error if written 0 and read 1 (!W&R)
 		PrintMessage(strings[S_ConfigWErr3],dati_hex[0x2007],(bufferI[z+1]<<8)+bufferI[z+2]);	//"Errore in scrittura config: scritto %04X, letto %04X\r\n"
 		err_c++;
 	}
@@ -2165,12 +2396,7 @@ void Write16F87xA (int dim,int dim2,int seq)
 		else if(dim2>size-0x2100) dim2=size-0x2100;
 	}
 	if(saveLog){
-		RegFile=fopen(LogFileName,"w");
-		time_t rawtime;
-		struct tm * timeinfo;
-		time ( &rawtime );
-		timeinfo = localtime ( &rawtime );
-		fprintf(RegFile,"%s\n", asctime (timeinfo) );
+		OpenLogFile();
 		fprintf(RegFile,"Write16F87x(%d,%d,%d)\n",dim,dim2,seq);
 	}
 	for(i=0;i<size;i++) dati_hex[i]&=0x3FFF;
@@ -2392,13 +2618,13 @@ void Write16F87xA (int dim,int dim2,int seq)
 		z+=7;
 	}
 	for(;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
-	if (dati_hex[0x2007]!=(bufferI[z+1]<<8)+bufferI[z+2]){
+	if(!dati_hex[0x2007]&((bufferI[z+1]<<8)+bufferI[z+2])){	//error if written 0 and read 1 (!W&R)
 		PrintMessage(strings[S_ConfigWErr3],dati_hex[0x2007],(bufferI[z+1]<<8)+bufferI[z+2]);	//"Errore in scrittura config: scritto %04X, letto %04X\r\n"
 		err_c++;
 	}
 	if(dati_hex[0x2008]!=0x3fff){
 		for(z+=7;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
-		if (dati_hex[0x2008]!=(bufferI[z+1]<<8)+bufferI[z+2]){
+		if(!dati_hex[0x2008]&((bufferI[z+1]<<8)+bufferI[z+2])){	//error if written 0 and read 1 (!W&R)
 			PrintMessage(strings[S_ConfigWErr3],dati_hex[0x2008],(bufferI[z+1]<<8)+bufferI[z+2]);	//"Errore in scrittura config: scritto %04X, letto %04X\r\n"
 			err_c++;
 		}
@@ -2523,12 +2749,7 @@ void Write16F81x (int dim,int dim2)
 		else if(dim2>size-0x2100) dim2=size-0x2100;
 	}
 	if(saveLog){
-		RegFile=fopen(LogFileName,"w");
-		time_t rawtime;
-		struct tm * timeinfo;
-		time ( &rawtime );
-		timeinfo = localtime ( &rawtime );
-		fprintf(RegFile,"%s\n", asctime (timeinfo) );
+		OpenLogFile();
 		fprintf(RegFile,"Write16F81x(%d,%d)\n",dim,dim2);
 	}
 	for(i=0;i<size;i++) dati_hex[i]&=0x3FFF;
@@ -2824,13 +3045,13 @@ void Write16F81x (int dim,int dim2)
 		z+=7;
 	}
 	for(;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
-	if (dati_hex[0x2007]!=(bufferI[z+1]<<8)+bufferI[z+2]){
+	if(!dati_hex[0x2007]&((bufferI[z+1]<<8)+bufferI[z+2])){	//error if written 0 and read 1 (!W&R)
 		PrintMessage(strings[S_ConfigWErr3],dati_hex[0x2007],(bufferI[z+1]<<8)+bufferI[z+2]);	//"Errore in scrittura config: scritto %04X, letto %04X\r\n"
 		err_c++;
 	}
 	if(dati_hex[0x2008]!=0x3fff){
 		for(z+=7;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
-		if (dati_hex[0x2008]!=(bufferI[z+1]<<8)+bufferI[z+2]){
+		if(!dati_hex[0x2008]&((bufferI[z+1]<<8)+bufferI[z+2])){	//error if written 0 and read 1 (!W&R)
 			PrintMessage(strings[S_ConfigWErr3],dati_hex[0x2008],(bufferI[z+1]<<8)+bufferI[z+2]);	//"Errore in scrittura config: scritto %04X, letto %04X\r\n"
 			err_c++;
 		}
@@ -2889,12 +3110,7 @@ void Write12F61x(int dim)
 		}
 	}
 	if(saveLog){
-		RegFile=fopen(LogFileName,"w");
-		time_t rawtime;
-		struct tm * timeinfo;
-		time ( &rawtime );
-		timeinfo = localtime ( &rawtime );
-		fprintf(RegFile,"%s\n", asctime (timeinfo) );
+		OpenLogFile();
 		fprintf(RegFile,"Write12F61x(%d)\n",dim);
 	}
 	for(i=0;i<0x2009&&i<size;i++) dati_hex[i]&=0x3FFF;
@@ -3109,7 +3325,8 @@ void Write12F61x(int dim)
 		z+=8;
 	}
 	for(;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
-	if (dati_hex[0x2007]!=(bufferI[z+1]<<8)+bufferI[z+2]){
+	if(!dati_hex[0x2007]&((bufferI[z+1]<<8)+bufferI[z+2])){	//error if written 0 and read 1 (!W&R)
+
 		PrintMessage("\n");
 		PrintMessage(strings[S_ConfigWErr3],dati_hex[0x2007],(bufferI[z+1]<<8)+bufferI[z+2]);	//"Errore in scrittura config: scritto %04X, letto %04X\r\n"
 		err_c++;
@@ -3188,12 +3405,7 @@ void Write16F88x(int dim,int dim2)
 		else if(dim2>size-0x2100) dim2=size-0x2100;
 	}
 	if(saveLog){
-		RegFile=fopen(LogFileName,"w");
-		time_t rawtime;
-		struct tm * timeinfo;
-		time ( &rawtime );
-		timeinfo = localtime ( &rawtime );
-		fprintf(RegFile,"%s\n", asctime (timeinfo) );
+		OpenLogFile();
 		fprintf(RegFile,"Write16F88x(%d,%d)\n",dim,dim2);
 	}
 	for(i=0;i<0x200A&&i<size;i++) dati_hex[i]&=0x3FFF;
@@ -3404,13 +3616,15 @@ void Write16F88x(int dim,int dim2)
 		z+=6;
 	}
 	for(;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
-	if (dati_hex[0x2007]!=(bufferI[z+1]<<8)+bufferI[z+2]){
+	if(!dati_hex[0x2007]&((bufferI[z+1]<<8)+bufferI[z+2])){	//error if written 0 and read 1 (!W&R)
+
 		PrintMessage("\n");
 		PrintMessage(strings[S_ConfigWErr3],dati_hex[0x2007],(bufferI[z+1]<<8)+bufferI[z+2]);	//"Errore in scrittura config: scritto %04X, letto %04X\r\n"
 		err_c++;
 	}
 	for(z+=6;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
-	if (dati_hex[0x2008]!=(bufferI[z+1]<<8)+bufferI[z+2]){
+	if(!dati_hex[0x2008]&((bufferI[z+1]<<8)+bufferI[z+2])){	//error if written 0 and read 1 (!W&R)
+
 		PrintMessage("\n");
 		PrintMessage(strings[S_ConfigWErr3],dati_hex[0x2008],(bufferI[z+1]<<8)+bufferI[z+2]);	//"Errore in scrittura config: scritto %04X, letto %04X\r\n"
 		err_c++;
@@ -3530,12 +3744,7 @@ void Write16F7x(int dim,int vdd)
 		return;
 	}
 	if(saveLog){
-		RegFile=fopen(LogFileName,"w");
-		time_t rawtime;
-		struct tm * timeinfo;
-		time ( &rawtime );
-		timeinfo = localtime ( &rawtime );
-		fprintf(RegFile,"%s\n", asctime (timeinfo) );
+		OpenLogFile();
 		fprintf(RegFile,"Write16F7x(%d,%d)\n",dim,vdd);
 	}
 	for(i=0;i<0x2009&&i<size;i++) dati_hex[i]&=0x3FFF;
@@ -3729,14 +3938,16 @@ void Write16F7x(int dim,int vdd)
 		z+=6;
 	}
 	for(;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
-	if (dati_hex[0x2007]!=(bufferI[z+1]<<8)+bufferI[z+2]){
+	if(!dati_hex[0x2007]&((bufferI[z+1]<<8)+bufferI[z+2])){	//error if written 0 and read 1 (!W&R)
+
 		PrintMessage("\n");
 		PrintMessage(strings[S_ConfigWErr3],dati_hex[0x2007],(bufferI[z+1]<<8)+bufferI[z+2]);	//"Errore in scrittura config: scritto %04X, letto %04X\r\n"
 		err_c++;
 	}
 	if(dati_hex[0x2008]<0x3fff){
 		for(z+=6;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
-		if (dati_hex[0x2008]!=(bufferI[z+1]<<8)+bufferI[z+2]){
+		if(!dati_hex[0x2008]&((bufferI[z+1]<<8)+bufferI[z+2])){	//error if written 0 and read 1 (!W&R)
+
 			PrintMessage("\n");
 			PrintMessage(strings[S_ConfigWErr3],dati_hex[0x2008],(bufferI[z+1]<<8)+bufferI[z+2]);	//"Errore in scrittura config: scritto %04X, letto %04X\r\n"
 			err_c++;
@@ -3790,12 +4001,7 @@ void Write16F71x(int dim,int vdd)
 		return;
 	}
 	if(saveLog){
-		RegFile=fopen(LogFileName,"w");
-		time_t rawtime;
-		struct tm * timeinfo;
-		time ( &rawtime );
-		timeinfo = localtime ( &rawtime );
-		fprintf(RegFile,"%s\n", asctime (timeinfo) );
+		OpenLogFile();
 		fprintf(RegFile,"Write16F71x(%d,%d)\n",dim,vdd);
 	}
 	for(i=0;i<0x2009&&i<size;i++) dati_hex[i]&=0x3FFF;
@@ -4015,14 +4221,16 @@ void Write16F71x(int dim,int vdd)
 		z+=6;
 	}
 	for(;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
-	if (dati_hex[0x2007]!=(bufferI[z+1]<<8)+bufferI[z+2]){
+	if(!dati_hex[0x2007]&((bufferI[z+1]<<8)+bufferI[z+2])){	//error if written 0 and read 1 (!W&R)
+
 		PrintMessage("\n");
 		PrintMessage(strings[S_ConfigWErr3],dati_hex[0x2007],(bufferI[z+1]<<8)+bufferI[z+2]);	//"Errore in scrittura config: scritto %04X, letto %04X\r\n"
 		err_c++;
 	}
 	if(dati_hex[0x2008]<0x3fff){
 		for(z+=6;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
-		if (dati_hex[0x2008]!=(bufferI[z+1]<<8)+bufferI[z+2]){
+		if(!dati_hex[0x2008]&((bufferI[z+1]<<8)+bufferI[z+2])){	//error if written 0 and read 1 (!W&R)
+
 			PrintMessage("\n");
 			PrintMessage(strings[S_ConfigWErr3],dati_hex[0x2007],(bufferI[z+1]<<8)+bufferI[z+2]);	//"Errore in scrittura config: scritto %04X, letto %04X\r\n"
 			err_c++;
@@ -4055,4 +4263,434 @@ void Write16F71x(int dim,int vdd)
 	unsigned int stop=GetTickCount();
 	if(saveLog&&RegFile) fclose(RegFile);
 	PrintMessage(strings[S_EndErr],(stop-start)/1000.0,errori,errori!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nFine (%.2f s) %d %s\r\n\r\n"
+}
+
+void Write16F1xxx(int dim,int dim2,int options)
+// write 14 bit enhanced PIC
+// dim=program size 	dim2=eeprom size   dim3=config size
+// options:
+//		bit0=0 -> vpp before vdd
+//		bit0=1 -> vdd before vpp
+//		bit1=1 -> LVP programming
+// DevID@0x8006
+// Config1@0x8007
+// Config2@0x8008
+// Calib1@0x8009
+// Calib2@0x800A
+// eeprom@0x0
+// erase: BULK_ERASE_PROG (1001) +5ms
+// write:LOAD_DATA_PROG (0010) + BEGIN_PROG (1000) + 2.5ms (8 word algorithm)
+// eeprom:	BULK_ERASE_DATA (1011) + 5ms
+//			LOAD_DATA_DATA (0011) + BEGIN_PROG (1000) + 2.5ms
+// verify after write
+{
+	int err=0,load_calibword=0;
+	WORD devID=0x3fff,calib1=0x3fff,calib2=0x3fff;
+	int k=0,k2=0,z=0,i,j,w;
+	if(!CheckV33Regulator()){
+		PrintMessage(strings[S_noV33reg]);	//Can't find 3.3V expnsion board
+		return;
+	}	if(size<0x8009){
+		PrintMessage(strings[S_NoConfigW4]);	//"Impossibile trovare la locazione CONFIG (0x2007-0x2008)\r\n"
+		return;
+	}
+	if(load_calibword){
+		if(size>0x800A) load_calibword=1;
+		else PrintMessage(strings[S_NoCalibW]);	//"Can't find calibration data\r\n"
+	}
+	if(saveLog){
+		OpenLogFile();
+		fprintf(RegFile,"Write16F1xxx(%d,%d,%d)\n",dim,dim2,options);
+	}
+	if(dim2>sizeEE) dim2=sizeEE;
+	if((options&2)==0){				//HV entry
+			if(!StartHVReg(8.5)){
+			PrintMessage(strings[S_HVregErr]); //"HV regulator error\r\n"
+			return;
+		}
+	}
+	else StartHVReg(-1);			//LVP mode, turn off HV
+	for(i=0;i<0x800B&&i<size;i++) dati_hex[i]&=0x3FFF;
+	unsigned int start=GetTickCount();
+	bufferU[0]=0;
+	j=1;
+	bufferU[j++]=SET_PARAMETER;
+	bufferU[j++]=SET_T1T2;
+	bufferU[j++]=1;						//T1=1u
+	bufferU[j++]=100;					//T2=100u
+	bufferU[j++]=EN_VPP_VCC;		//enter program mode
+	bufferU[j++]=0x0;
+	bufferU[j++]=SET_CK_D;
+	bufferU[j++]=0x0;
+	if((options&2)==0){				//HV entry
+		if((options&1)==0){				//VPP before VDD
+			bufferU[j++]=EN_VPP_VCC;
+			bufferU[j++]=4;				//VPP
+			bufferU[j++]=EN_VPP_VCC;
+			bufferU[j++]=0x5;			//VDD+VPP
+		}
+		else{							//VDD before VPP without delay
+			bufferU[j++]=EN_VPP_VCC;
+			bufferU[j++]=1;				//VDD
+			bufferU[j++]=EN_VPP_VCC;
+			bufferU[j++]=0x5;			//VDD+VPP
+		}
+	}
+	else{			//Low voltage programming
+		bufferU[j++]=EN_VPP_VCC;
+		bufferU[j++]=4;				//VPP
+		bufferU[j++]=WAIT_T3;
+		bufferU[j++]=TX16;			//0000 1010 0001 0010 1100 0010 1011 0010 = 0A12C2B2
+		bufferU[j++]=2;
+		bufferU[j++]=0x0A;
+		bufferU[j++]=0x12;
+		bufferU[j++]=0xC2;
+		bufferU[j++]=0xB2;
+		bufferU[j++]=SET_CK_D;		//Clock pulse
+	bufferU[j++]=0x4;
+		bufferU[j++]=SET_CK_D;
+		bufferU[j++]=0x0;
+	}
+	bufferU[j++]=WAIT_T2;
+	bufferU[j++]=WAIT_T2;
+	bufferU[j++]=WAIT_T2;
+	bufferU[j++]=LOAD_CONF;			//counter at 0x2000
+	bufferU[j++]=0xFF;
+	bufferU[j++]=0xFF;
+	bufferU[j++]=INC_ADDR_N;
+	bufferU[j++]=0x06;
+	bufferU[j++]=READ_DATA_PROG;	//DevID
+	bufferU[j++]=INC_ADDR;
+	bufferU[j++]=INC_ADDR;
+	bufferU[j++]=INC_ADDR;
+	bufferU[j++]=READ_DATA_PROG;	//Calib1
+	bufferU[j++]=INC_ADDR;
+	bufferU[j++]=READ_DATA_PROG;	//Calib2
+	bufferU[j++]=CUST_CMD;
+	bufferU[j++]=0x16;		//Reset address
+	bufferU[j++]=SET_PARAMETER;
+	bufferU[j++]=SET_T3;
+	bufferU[j++]=2500>>8;
+	bufferU[j++]=2500&0xff;
+	bufferU[j++]=FLUSH;
+	for(;j<DIMBUF;j++) bufferU[j]=0x0;
+	write();
+	msDelay(3);
+	read();
+	if(saveLog)WriteLogIO();
+	for(z=0;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
+	devID=(bufferI[z+1]<<8)+bufferI[z+2];
+	PrintMessage(strings[S_DevID],devID);	//"DevID: 0x%04X\r\n"
+	PIC_ID(devID);
+	if(dati_hex[0x8006]<0x3FFF&&devID!=dati_hex[0x8006]) PrintMessage(strings[S_DevMismatch]);	//"Warning: the device is different from what specified in source data"
+	for(z+=3;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
+	calib1=(bufferI[z+1]<<8)+bufferI[z+2];
+	if(calib1<0x3fff){
+		PrintMessage(strings[S_CalibWord1],calib1);	//"Calib1: 0x%04X\r\n"
+	}
+	for(z+=3;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
+	calib2=(bufferI[z+1]<<8)+bufferI[z+2];
+	if(calib2<0x3fff){
+		PrintMessage(strings[S_CalibWord2],calib2);	//"Calib2: 0x%04X\r\n"
+	}
+//****************** erase memory ********************
+	PrintMessage(strings[S_StartErase]);	//"Erasing ... "
+	j=1;
+	if(programID){
+		bufferU[j++]=LOAD_CONF;			//PC @ 0x8000
+		bufferU[j++]=0xFF;
+		bufferU[j++]=0xFF;
+	}
+	bufferU[j++]=BULK_ERASE_PROG;
+	bufferU[j++]=WAIT_T3;			// wait 5ms
+	bufferU[j++]=WAIT_T3;
+	bufferU[j++]=CUST_CMD;
+	bufferU[j++]=0x16;		//Reset address
+	bufferU[j++]=FLUSH;
+	for(;j<DIMBUF;j++) bufferU[j]=0x0;
+	write();
+	msDelay(8);
+	read();
+	if(saveLog)WriteLogIO();
+	PrintMessage(strings[S_Compl]);	//"completed\r\n"
+//****************** write code ********************
+	PrintMessage(strings[S_StartCodeProg]);	//"Write code ... "
+	PrintMessage("   ");
+	for(;dim>0&&dati_hex[dim]>=0x3fff;dim--); //skip empty space at end
+	dim+=dim%8;		//grow to 8 word multiple
+	int valid,inc;
+	for(i=k=0,j=1;i<dim;i+=8){
+		valid=inc=0;
+		for(;i<dim&&!valid;){	//skip empty locations (8 words)
+			valid=0;
+			for(k=0;k<8;k++) if(dati_hex[i+k]<0x3fff) valid=1;
+			if(!valid){
+				inc+=8;
+				i+=8;
+			}
+			if(inc&&(valid||inc==248)){	//increase address to skip empty words
+				bufferU[j++]=INC_ADDR_N;
+				bufferU[j++]=k=inc;
+				inc=0;
+			}
+			if(j>DIMBUF-4||valid){
+				bufferU[j++]=FLUSH;
+				for(;j<DIMBUF;j++) bufferU[j]=0x0;
+				write();
+				msDelay(2);
+				msDelay(1*k/2);	//wait for long INC_ADDR_N
+				read();
+				j=1;
+				if(saveLog)	WriteLogIO();
+			}
+		}
+		if(valid){
+			k=0;
+			bufferU[j++]=LOAD_DATA_PROG;
+			bufferU[j++]=dati_hex[i+k]>>8;  		//MSB
+			bufferU[j++]=dati_hex[i+k]&0xff;		//LSB
+			for(k=1;k<8;k++){
+				bufferU[j++]=INC_ADDR;
+				bufferU[j++]=LOAD_DATA_PROG;
+				bufferU[j++]=dati_hex[i+k]>>8;  		//MSB
+				bufferU[j++]=dati_hex[i+k]&0xff;		//LSB
+		}
+			bufferU[j++]=BEGIN_PROG;			//internally timed, T=2.5ms
+			bufferU[j++]=WAIT_T3;
+			bufferU[j++]=INC_ADDR;
+			bufferU[j++]=FLUSH;
+			for(;j<DIMBUF;j++) bufferU[j]=0x0;
+			write();
+			msDelay(3);
+			read();
+			j=1;
+			if(saveLog){
+				fprintf(RegFile,strings[S_Log7],i,i,0,0);	//"i=%d, k=%d 0=%d\n"
+				WriteLogIO();
+			}
+			PrintMessage("\b\b\b%2d%%",i*100/dim); fflush(stdout);
+		}
+	}
+	PrintMessage("\b\b\b");
+	PrintMessage(strings[S_Compl]);	//"completed\r\n"
+//****************** verify code ********************
+	PrintMessage(strings[S_CodeV]);	//"Verifying code ... "
+	PrintMessage("   ");
+	j=1;
+	bufferU[j++]=CUST_CMD;
+	bufferU[j++]=0x16;		//Reset address
+	bufferU[j++]=FLUSH;
+	for(;j<DIMBUF;j++) bufferU[j]=0x0;
+	write();
+	msDelay(2);
+	read();
+	if(saveLog)	WriteLogIO();
+	j=1;
+	for(i=k=0;i<dim;i++){
+		if(dati_hex[i]<0x3FFF) bufferU[j++]=READ_DATA_PROG;
+		bufferU[j++]=INC_ADDR;
+		if(j>DIMBUF*2/4-2||i==dim-1){		//2B cmd -> 4B data
+			bufferU[j++]=FLUSH;
+			for(;j<DIMBUF;j++) bufferU[j]=0x0;
+			write();
+			msDelay(5);
+			read();
+			for(z=1;z<DIMBUF-2;z++){
+				if(bufferI[z]==INC_ADDR) k++;
+				else if(bufferI[z]==READ_DATA_PROG){
+					if(dati_hex[k]<0x3FFF&&(dati_hex[k]!=(bufferI[z+1]<<8)+bufferI[z+2])){
+						fprintf(RegFile,strings[S_CodeWError2],k,dati_hex[k],(bufferI[z+1]<<8)+bufferI[z+2]);	//"Error writing address %3X: written %04X, read %04X\r\n"
+						err++;
+					}
+					z+=2;
+			}
+			}
+			PrintMessage("\b\b\b%2d%%",i*100/(dim+dim2)); fflush(stdout);
+			j=1;
+			if(saveLog){
+				fprintf(RegFile,strings[S_Log8],i,i,k,k,err);	//"i=%d, k=%d, errors=%d\n"
+				WriteLogIO();
+			}
+			if(err>=max_err) i=dim;
+		}
+	}
+	PrintMessage("\b\b\b");
+	if(k<dim){
+		PrintMessage(strings[S_CodeVError3],dim,k);	//"Errore in verifica area programma, richieste %d word, lette %d\r\n"
+	}
+	PrintMessage(strings[S_ComplErr],err);	//"completed, %d errors\r\n"
+	if(err>=max_err){
+		PrintMessage(strings[S_MaxErr],err);	//"Exceeded maximum number of errors (%d), write interrupted\r\n"
+	}
+//****************** write eeprom ********************
+	if(dim2&&err<max_err){
+		int errEE=0;
+		PrintMessage(strings[S_EEAreaW]);	//"Writing EEPROM ... "
+		PrintMessage("   ");
+		j=1;
+		bufferU[j++]=SET_PARAMETER;
+		bufferU[j++]=SET_T3;
+		bufferU[j++]=5000>>8;
+		bufferU[j++]=5000&0xff;
+		bufferU[j++]=BULK_ERASE_DATA;
+		bufferU[j++]=WAIT_T3;			// wait 5ms
+		bufferU[j++]=CUST_CMD;
+		bufferU[j++]=0x16;		//Reset address
+		bufferU[j++]=FLUSH;
+		for(;j<DIMBUF;j++) bufferU[j]=0x0;
+		write();
+		msDelay(7);
+		read();
+		j=1;
+		if(saveLog)WriteLogIO();
+		for(w=i=k=0;i<dim2;i++){
+			if(memEE[i]<0xff){
+				bufferU[j++]=LOAD_DATA_DATA;
+				bufferU[j++]=memEE[i];
+				bufferU[j++]=BEGIN_PROG;			//internally timed, T=5ms max
+				bufferU[j++]=WAIT_T3;				//Tprogram
+				bufferU[j++]=READ_DATA_DATA;
+				w++;
+			}
+			bufferU[j++]=INC_ADDR;
+			if(j>DIMBUF-12||i==dim2-1){
+				PrintMessage("\b\b\b%2d%%",(i+dim)*100/(dim+dim2));	//"Writing: %d%%, add. %03X"
+				bufferU[j++]=FLUSH;
+				for(;j<DIMBUF;j++) bufferU[j]=0x0;
+				write();
+				msDelay(w*5+2);
+				w=0;
+				read();
+				for(z=1;z<DIMBUF-4;z++){
+					if(bufferI[z]==INC_ADDR&&memEE[k]>=0xff) k++;
+					else if(bufferI[z]==LOAD_DATA_DATA&&bufferI[z+3]==READ_DATA_DATA){
+						if (memEE[k]!=bufferI[z+4]){
+							PrintMessage(strings[S_CodeWError3],k,memEE[k],bufferI[z+4]);	//"Error writing address %4X: written %02X, read %02X\r\n"
+							PrintMessage("\n");
+							errEE++;
+							if(max_err&&err+errEE>max_err){
+								PrintMessage(strings[S_MaxErr],err+errEE);	//"Exceeded maximum number of errors (%d), write interrupted\r\n"
+								PrintMessage(strings[S_IntW]);	//"write interrupted"
+								i=dim2;
+								z=DIMBUF;
+							}
+						}
+						k++;
+						z+=5;
+					}
+				}
+				j=1;
+				if(saveLog){
+					fprintf(RegFile,strings[S_Log8],i,i,k,k,errEE);	//"i=%d, k=%d, errors=%d\n"
+					WriteLogIO();
+				}
+			}
+		}
+		errEE+=i-k;
+		PrintMessage("\b\b\b");
+		PrintMessage(strings[S_ComplErr],errEE);	//"completed, %d errors\r\n"
+		err+=errEE;
+	}
+//****************** write ID, CONFIG, CALIB ********************
+	if(max_err&&err<max_err){
+		PrintMessage(strings[S_ConfigAreaW]);	//"Writing CONFIG area ... "
+		int err_c=0;
+		bufferU[j++]=SET_PARAMETER;
+		bufferU[j++]=SET_T3;
+		bufferU[j++]=5000>>8;
+		bufferU[j++]=5000&0xff;
+		bufferU[j++]=LOAD_CONF;			//PC @ 0x8000
+		bufferU[j++]=0xFF;
+		bufferU[j++]=0xFF;
+		if(programID){
+				for(i=0x8000;i<0x8004;i++){
+				bufferU[j++]=LOAD_DATA_PROG;
+				bufferU[j++]=dati_hex[i]>>8;		//MSB
+				bufferU[j++]=dati_hex[i]&0xff;		//LSB
+					bufferU[j++]=BEGIN_PROG;			//internally timed
+					bufferU[j++]=WAIT_T3;				//Tprogram 5ms
+				bufferU[j++]=READ_DATA_PROG;
+				bufferU[j++]=INC_ADDR;
+			}
+			bufferU[j++]=INC_ADDR_N;
+			bufferU[j++]=3;
+		}
+		else{
+			bufferU[j++]=INC_ADDR_N;
+			bufferU[j++]=7;
+		}
+		bufferU[j++]=LOAD_DATA_PROG;			//Config word 0x8007
+		bufferU[j++]=dati_hex[0x8007]>>8;		//MSB
+		bufferU[j++]=dati_hex[0x8007]&0xff;		//LSB
+		bufferU[j++]=BEGIN_PROG;			//internally timed
+		bufferU[j++]=WAIT_T3;				//Tprogram 5ms
+		bufferU[j++]=READ_DATA_PROG;
+		bufferU[j++]=INC_ADDR;
+		bufferU[j++]=LOAD_DATA_PROG;			//Config word 2
+		bufferU[j++]=dati_hex[0x8008]>>8;		//MSB
+		bufferU[j++]=dati_hex[0x8008]&0xff;		//LSB
+		bufferU[j++]=BEGIN_PROG;			//internally timed
+		bufferU[j++]=WAIT_T3;				//Tprogram 5ms
+		bufferU[j++]=READ_DATA_PROG;
+		bufferU[j++]=INC_ADDR;
+		bufferU[j++]=FLUSH;
+		for(;j<DIMBUF;j++) bufferU[j]=0x0;
+		write();
+		msDelay(12);
+		if(programID) msDelay(22);
+		read();
+		for(i=0,z=0;programID&&i<4;i++){
+			for(;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
+				if (dati_hex[0x8000+i]!=(bufferI[z+1]<<8)+bufferI[z+2]){
+
+				PrintMessage("\n");
+				PrintMessage(strings[S_IDErr],i,dati_hex[0x8000+i],(bufferI[z+1]<<8)+bufferI[z+2]);	//"Error writing ID%d: written %04X, read %04X\r\n"
+				err_c++;
+			}
+			z+=6;
+		}
+		for(;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
+		if (dati_hex[0x8007]!=(bufferI[z+1]<<8)+bufferI[z+2]){
+
+			PrintMessage("\n");
+			PrintMessage(strings[S_ConfigWErr3],dati_hex[0x8007],(bufferI[z+1]<<8)+bufferI[z+2]);	//"Error writing config area: written %04X, read %04X\r\n"
+			err_c++;
+		}
+		for(z+=6;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
+		if (dati_hex[0x8008]!=(bufferI[z+1]<<8)+bufferI[z+2]){
+
+			PrintMessage("\n");
+			PrintMessage(strings[S_ConfigWErr3],dati_hex[0x8008],(bufferI[z+1]<<8)+bufferI[z+2]);	//"Error writing config area: written %04X, read %04X\r\n"
+			err_c++;
+		}
+		err+=err_c;
+		PrintMessage(strings[S_ComplErr],err_c);	//"completed, %d errors\r\n"
+
+		if(saveLog){
+			fprintf(RegFile,strings[S_Log9],err);	//"Config area 	errors=%d \n"
+
+			WriteLogIO();
+		}
+	}
+//****************** exit ********************
+	j=1;
+	bufferU[j++]=SET_PARAMETER;
+	bufferU[j++]=SET_T3;
+	bufferU[j++]=2000>>8;
+	bufferU[j++]=2000&0xff;
+	bufferU[j++]=NOP;				//exit program mode
+	bufferU[j++]=EN_VPP_VCC;
+	bufferU[j++]=0x1;
+	bufferU[j++]=EN_VPP_VCC;
+	bufferU[j++]=0x0;
+	bufferU[j++]=SET_CK_D;
+	bufferU[j++]=0x0;
+	bufferU[j++]=FLUSH;
+	for(;j<DIMBUF;j++) bufferU[j]=0x0;
+	write();
+	msDelay(1);
+	read();
+	unsigned int stop=GetTickCount();
+	if(saveLog&&RegFile) fclose(RegFile);
+	PrintMessage(strings[S_EndErr],(stop-start)/1000.0,err,err!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nEnd (%.2f s) %d %s\r\n\r\n"
 }

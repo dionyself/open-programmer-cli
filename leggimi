@@ -17,7 +17,9 @@ V 0.6.2	ottobre 2009:	corretto algoritmo 16F628, 16F87/88 e 81X; supporto file b
 V 0.7.0	gennaio 2010:	aggiunte memorie SPI e alcuni micro PIC24F
 V 0.7.1	febbraio 2010:	aggiunti alcuni micro PIC18 e Atmel
 V 0.7.2	marzo 2010:		aggiunte alcune memorie uW, corretti algoritmi 16F7xx e alcuni bachi
-V 0.7.3	marzo 2010:		compilabile anche su windows, corretto baco nel caricamento di un file per EEPROM
+V 0.7.3	aprile 2010:	compilabile anche su windows, 
+						corretto baco nel caricamento di un file per EEPROM, 
+						aggiunti 16F1xxx, un po' di pulizia del codice
 
 Guida: op -h
 Elenco completo di dispositivi supportati: op -support
