@@ -1,6 +1,6 @@
 /*
  * progAVR.c - algorithms to program the Atmel AVR family of microcontrollers
- * Copyright (C) 2009 Alberto Maccioni
+ * Copyright (C) 2009-2010 Alberto Maccioni
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,87 +24,91 @@
 #define  FUSE_H 4
 #define  FUSE_X	8
 #define  CAL	16
+#define  SLOW	256
 
 void AtmelID(BYTE id[])
 {
-#define print(s,t) printf(s,t)
 	char str[128];
 	str[0]=0;
-	if(id[0]==0x1e) print("%s","Atmel ");
+	if(id[0]==0x1E) strcat(str,"Atmel ");
 	if(id[1]==0x90){
 		switch(id[2]){
 			case 0x01:
-				print("%s","AT90S1200");
+				strcat(str,"AT90S1200");
 				break;
 			default:
-				print("%s",strings[S_nodev]); //"Dispositivo sconosciuto\r\n");
+				strcat(str,strings[S_nodev]); //"Unknown device\r\n");
 		}
-		print("%s"," 1KB Flash");
+		strcat(str," 1KB Flash");
 	}
 	else if(id[1]==0x91){
 		switch(id[2]){
 			case 0x01:
-				print("%s","AT90S2313");
+				strcat(str,"AT90S2313");
+				break;
+			case 0x0A:
+				strcat(str,"ATtiny2313");
 				break;
 			default:
-				print("%s",strings[S_nodev]); //"Dispositivo sconosciuto\r\n");
+				strcat(str,strings[S_nodev]); //"Unknown device\r\n");
 		}
-		print("%s"," 2KB Flash");
+		strcat(str," 2KB Flash");
 	}
 	else if(id[1]==0x93){
 		switch(id[2]){
 			case 0x01:
-				print("%s","AT90S8515");
+				strcat(str,"AT90S8515");
 				break;
 			case 0x03:
-				print("%s","AT90S8535");
+				strcat(str,"AT90S8535");
 				break;
 			case 0x06:
-				print("%s","ATmega8515");
+				strcat(str,"ATmega8515");
 				break;
 			case 0x07:
-				print("%s","ATmega8");
+				strcat(str,"ATmega8");
 				break;
 			case 0x08:
-				print("%s","ATmega8535");
+				strcat(str,"ATmega8535");
 				break;
 			default:
-				print("%s",strings[S_nodev]); //"Dispositivo sconosciuto\r\n");
+				strcat(str,strings[S_nodev]); //"Unknown device\r\n");
 		}
-		print("%s"," 8KB Flash");
+		strcat(str," 8KB Flash");
 	}
 	else if(id[1]==0x94){
 		switch(id[2]){
 			case 0x03:
-				print("%s","ATmega16");
+				strcat(str,"ATmega16");
 				break;
 			default:
-				print("%s",strings[S_nodev]); //"Dispositivo sconosciuto\r\n");
+				strcat(str,strings[S_nodev]); //"Unknown device\r\n");
 		}
-		print("%s"," 16KB Flash");
+		strcat(str," 16KB Flash");
 	}
 	else if(id[1]==0x95){
 		switch(id[2]){
 			case 0x02:
-				print("%s","ATmega32");
+				strcat(str,"ATmega32");
 				break;
 			default:
-				print("%s",strings[S_nodev]); //"Dispositivo sconosciuto\r\n");
+				strcat(str,strings[S_nodev]); //"Unknown device\r\n");
 		}
-		print("%s"," 32KB Flash");
+		strcat(str," 32KB Flash");
 	}
 	else if(id[1]==0x96){
 		switch(id[2]){
 			case 0x02:
-				print("%s","ATmega64");
+				strcat(str,"ATmega64");
 				break;
 			default:
-				print("%s",strings[S_nodev]); //"Dispositivo sconosciuto\r\n");
+				strcat(str,strings[S_nodev]); //"Unknown device\r\n");
 		}
-		print("%s"," 64KB Flash");
+		strcat(str," 64KB Flash");
 	}
-	if(id[0]==0&&id[1]==1&&id[2]==2) print("%s",strings[S_Protected]);		//"Dispositivo protetto"
-	PrintMessage("\r\n");
+	if(id[0]==0&&id[1]==1&&id[2]==2) strcat(str,strings[S_Protected]);		//"Dispositivo protetto"
+	strcat(str,"\r\n");
+	PrintMessage(str);
 }
 
 #define RST 0x40
@@ -112,26 +116,28 @@ void ReadAT(int dim, int dim2, int options)
 // read ATMEL AVR
 // dim=FLASH size in bytes, dim2=EEPROM size
 // options: LOCK,FUSE,FUSE_H,FUSE_X,CAL
+//			SLOW = slow communication
 {
 	int k=0,k2=0,z=0,i,j;
 	BYTE signature[]={0,0,0};
 	if(dim>0x20000||dim<0){
-		PrintMessage(strings[S_CodeLim]);	//"Dimensione programma oltre i limiti\r\n"
+		PrintMessage(strings[S_CodeLim]);	//"Code size out of limits\r\n"
 		return;
 	}
 	if(dim2>0x800||dim2<0){
-		PrintMessage(strings[S_EELim]);	//"Dimensione eeprom oltre i limiti\r\n"
+		PrintMessage(strings[S_EELim]);	//"EEPROM size out of limits\r\n"
 		return;
 	}
 	if(saveLog){
-		OpenLogFile();
-		fprintf(RegFile,"ReadAT(0x%X,0x%X)\n",dim,dim2);
+		OpenLogFile();	//"Log.txt"
+		fprintf(logfile,"ReadAT(0x%X,0x%X,0x%X)\n",dim,dim2,options);
 	}
 	size=dim;
 	sizeEE=dim2;
 	memCODE=malloc(dim);		//CODE
 	memEE=malloc(dim2);			//EEPROM
-	PrintMessage(strings[S_StartRead]);	//"Inizio lettura...\r\n"
+	for(j=0;j<size;j++) memCODE[j]=0xFF;
+	for(j=0;j<sizeEE;j++) memEE[j]=0xFF;
 	unsigned int start=GetTickCount();
 	bufferU[0]=0;
 	j=1;
@@ -143,7 +149,7 @@ void ReadAT(int dim, int dim2, int options)
 	bufferU[j++]=EN_VPP_VCC;	//VDD
 	bufferU[j++]=0x0;
 	bufferU[j++]=SPI_INIT;
-	bufferU[j++]=1;				//0=100k, 1=200k
+	bufferU[j++]=options&SLOW?0:1;				//0=100k, 1=200k
 	bufferU[j++]=CLOCK_GEN;
 	bufferU[j++]=3;				//0=100k,200k,500k,1M,2M
 	bufferU[j++]=CLOCK_GEN;
@@ -187,7 +193,6 @@ void ReadAT(int dim, int dim2, int options)
 		read();
 		if(saveLog)WriteLogIO();
 		for(z=1;z<DIMBUF-2&&bufferI[z]!=SPI_READ;z++);
-		//str.Format("i=%d z=%d   rx:%02X%02X\r\n",i,z,bufferI[z+2],bufferI[z+3]);
 		if(bufferI[z+2]==0x53) i=32;
 	}
 	if(i<33){
@@ -207,8 +212,8 @@ void ReadAT(int dim, int dim2, int options)
 		msDelay(3);
 		read();
 		if(saveLog)WriteLogIO();
-		PrintMessage(strings[S_SyncErr]);	//"Errore di sincronizzazione\r\n"
-		if(saveLog&&RegFile) fclose(RegFile);
+		PrintMessage(strings[S_SyncErr]);	//"Synchronization error\r\n"
+		if(saveLog) CloseLogFile();
 		return;
 	}
 	j=1;
@@ -281,23 +286,23 @@ void ReadAT(int dim, int dim2, int options)
 	signature[1]=bufferI[z+2];
 	for(z+=3;z<DIMBUF-2&&bufferI[z]!=SPI_READ;z++);
 	signature[2]=bufferI[z+2];
-	PrintMessage("CHIP ID:%02X%02X%02X\r\n",signature[0],signature[1],signature[2]);
+	PrintMessage3("CHIP ID:%02X%02X%02X\r\n",signature[0],signature[1],signature[2]);
 	AtmelID(signature);
 	if(options&LOCK){			//LOCK byte
 		for(z+=3;z<DIMBUF-2&&bufferI[z]!=SPI_READ;z++);
-		print("LOCK bits:\t  0x%02X\r\n",bufferI[z+2]);
+		PrintMessage1("LOCK bits:\t  0x%02X\r\n",bufferI[z+2]);
 	}
 	if(options&FUSE){			//FUSE byte
 		for(z+=3;z<DIMBUF-2&&bufferI[z]!=SPI_READ;z++);
-		print("FUSE bits:\t  0x%02X\r\n",bufferI[z+2]);
+		PrintMessage1("FUSE bits:\t  0x%02X\r\n",bufferI[z+2]);
 	}
 	if(options&FUSE_H){			//FUSE high byte
 		for(z+=3;z<DIMBUF-2&&bufferI[z]!=SPI_READ;z++);
-		print("FUSE HIGH bits:\t  0x%02X\r\n",bufferI[z+2]);
+		PrintMessage1("FUSE HIGH bits:\t  0x%02X\r\n",bufferI[z+2]);
 	}
 	if(options&FUSE_X){			//extended FUSE byte
 		for(z+=3;z<DIMBUF-2&&bufferI[z]!=SPI_READ;z++);
-		print("Extended FUSE bits: 0x%02X\r\n",bufferI[z+2]);
+		PrintMessage1("Extended FUSE bits: 0x%02X\r\n",bufferI[z+2]);
 	}
 	if(options&CAL){			//calibration byte
 		j=1;
@@ -336,16 +341,16 @@ void ReadAT(int dim, int dim2, int options)
 		read();
 		if(saveLog)WriteLogIO();
 		for(z=1;z<DIMBUF-2&&bufferI[z]!=SPI_READ;z++);
-		PrintMessage("Calibration bits:\t  0x%02X",bufferI[z+2]);
+		PrintMessage1("Calibration bits:\t  0x%02X",bufferI[z+2]);
 		for(z+=3;z<DIMBUF-2&&bufferI[z]!=SPI_READ;z++);
-		PrintMessage(",0x%02X",bufferI[z+2]);
+		PrintMessage1(",0x%02X",bufferI[z+2]);
 		for(z+=3;z<DIMBUF-2&&bufferI[z]!=SPI_READ;z++);
-		PrintMessage(",0x%02X",bufferI[z+2]);
+		PrintMessage1(",0x%02X",bufferI[z+2]);
 		for(z+=3;z<DIMBUF-2&&bufferI[z]!=SPI_READ;z++);
-		PrintMessage(",0x%02X\r\n",bufferI[z+2]);
+		PrintMessage1(",0x%02X\r\n",bufferI[z+2]);
 	}
 //****************** read code ********************
-	PrintMessage(strings[S_CodeReading1]);		//lettura codice ...
+	PrintMessage(strings[S_CodeReading1]);		//read code ...
 	PrintMessage("   ");
 	int c=(DIMBUF-5)/2;
 	for(i=0,j=1;i<dim;i+=c*2){
@@ -356,27 +361,27 @@ void ReadAT(int dim, int dim2, int options)
 		bufferU[j++]=FLUSH;
 		for(;j<DIMBUF;j++) bufferU[j]=0x0;
 		write();
-		msDelay(15);
+		msDelay(options&SLOW?30:15);	//15
 		read();
 		if(bufferI[1]==AT_READ_DATA){
 			for(z=3;z<bufferI[2]*2+3&&z<DIMBUF;z++) memCODE[k++]=bufferI[z];
 		}
-		PrintMessage("\b\b\b%2d%%",i*100/dim); fflush(stdout);
+		PrintStatus(strings[S_CodeReading],i*100/(dim+dim2),i);	//"Lettura: %d%%, ind. %03X"
 		j=1;
 		if(saveLog){
-			fprintf(RegFile,strings[S_Log7],i,i,k,k);	//"i=%d(0x%X), k=%d(0x%X) \n"
+			fprintf(logfile,strings[S_Log7],i,i,k,k);	//"i=%d(0x%X), k=%d(0x%X)\n"
 			WriteLogIO();
 		}
 	}
 	PrintMessage("\b\b\b");
 	if(k!=dim){
-		PrintMessage("\n");
-		PrintMessage(strings[S_ReadCodeErr2],dim,k);	//"Errore in lettura area programma, richiesti %d byte, letti %d\r\n"
+		PrintMessage("\r\n");
+		PrintMessage2(strings[S_ReadCodeErr2],dim,k);	//"Errore in lettura area programma, richiesti %d byte, letti %d\r\n"
 	}
-	else PrintMessage(strings[S_Compl]);
+	else PrintMessage(strings[S_Compl]);	//"completed\r\n"
 //****************** read eeprom ********************
 	if(dim2){
-		PrintMessage(strings[S_ReadEE]);		//lettura eeprom ...
+		PrintMessage(strings[S_ReadEE]);		//read EE ...
 		PrintMessage("   ");
 		for(k2=0,i=0,j=1;i<dim2;i++){
 			bufferU[j++]=SPI_WRITE;		//Read eeprom memory
@@ -398,20 +403,20 @@ void ReadAT(int dim, int dim2, int options)
 						z+=3;
 					}
 				}
-				PrintMessage("\b\b\b%2d%%",i*100/dim2); fflush(stdout);
+				PrintStatus(strings[S_CodeReading],(i+dim)*100/(dim+dim2),i);	//"Lettura: %d%%, ind. %03X"
 				j=1;
 				if(saveLog){
-					fprintf(RegFile,strings[S_Log7],i,i,k2,k2);	//"i=%d, k2=%d 0=%d\n"
+					fprintf(logfile,strings[S_Log7],i,i,k2,k2);	//"i=%d(0x%X), k=%d(0x%X)\n"
 					WriteLogIO();
 				}
 			}
 		}
 		PrintMessage("\b\b\b");
 		if(k2!=dim2){
-			PrintMessage("\n");
-			PrintMessage(strings[S_ReadEEErr],dim2,k2);	//"Errore in lettura area EEPROM, richiesti %d byte, letti %d\r\n"
+			PrintMessage("\r\n");
+			PrintMessage2(strings[S_ReadEEErr],dim2,k2);	//"Errore in lettura area EEPROM, richiesti %d byte, letti %d\r\n"
 		}
-		else PrintMessage(strings[S_Compl]);
+		else PrintMessage(strings[S_Compl]);	//"completed\r\n"
 	}
 //****************** exit program mode ********************
 	bufferU[j++]=CLOCK_GEN;
@@ -429,7 +434,7 @@ void ReadAT(int dim, int dim2, int options)
 	unsigned int stop=GetTickCount();
 //****************** visualize ********************
 	PrintMessage(strings[S_CodeMem]);	//"\r\nMemoria programma:\r\n"
-	char s[256],t[256],v[256];
+	char s[256],t[256];
 	int valid=0,empty=1;
 	s[0]=0;
 	for(i=0;i<dim;i+=COL*2){
@@ -447,10 +452,10 @@ void ReadAT(int dim, int dim2, int options)
 	}
 	if(empty) PrintMessage(strings[S_Empty]);	//empty
 	if(dim2){
-		DisplayEE();	//visualize
+		DisplayEE();	//visualize EE
 	}
-	PrintMessage(strings[S_End],(stop-start)/1000.0);	//"\r\nFine (%.2f s)\r\n"
-	if(saveLog&&RegFile) fclose(RegFile);
+	PrintMessage1(strings[S_End],(stop-start)/1000.0);	//"\r\nEnd (%.2f s)\r\n"
+	if(saveLog) CloseLogFile();
 }
 
 void WriteAT(int dim, int dim2)
@@ -458,24 +463,24 @@ void WriteAT(int dim, int dim2)
 // dim=FLASH size in bytes, dim2=EEPROM size
 {
 	int k=0,z=0,i,j;
-	int errori=0,erroriEE=0,ritenta=0,maxtent=0;
+	int err=0,errEE=0,ritenta=0,maxtent=0;
 	BYTE signature[]={0,0,0};
 	if(dim>0x8000||dim<0){
-		PrintMessage(strings[S_CodeLim]);	//"Dimensione programma oltre i limiti\r\n"
+		PrintMessage(strings[S_CodeLim]);	//"Code size out of limits\r\n"
 		return;
 	}
 	if(dim2>0x800||dim2<0){
-		PrintMessage(strings[S_EELim]);	//"Dimensione eeprom oltre i limiti\r\n"
+		PrintMessage(strings[S_EELim]);	//"EEPROM size out of limits\r\n"
 		return;
 	}
 	if(saveLog){
-		OpenLogFile();
-		fprintf(RegFile,"WriteAT(0x%X,0x%X)\n",dim,dim2);
+		OpenLogFile();	//"Log.txt"
+		fprintf(logfile,"WriteAT(0x%X,0x%X)\n",dim,dim2);
 	}
 	if(dim>size) dim=size;
 	if(dim2>sizeEE) dim2=sizeEE;
 	if(dim<1){
-		PrintMessage(strings[S_NoCode]);	//"Area dati vuota\r\n"
+		PrintMessage(strings[S_NoCode]);	//"Data area is empty\r\n"
 		return;
 	}
 	PrintMessage(strings[S_Writing]);	//"Inizio scrittura...\r\n"
@@ -534,8 +539,8 @@ void WriteAT(int dim, int dim2)
 		read();
 		if(saveLog)WriteLogIO();
 		for(z=1;z<DIMBUF-2&&bufferI[z]!=SPI_READ;z++);
-		//str.Format("i=%d z=%d   rx:%02X%02X\r\n",i,z,bufferI[z+2],bufferI[z+3]);
-		//AggiungiDati(str);
+		//PrintMessage("i=%d z=%d   rx:%02X%02X\r\n",i,z,bufferI[z+2],bufferI[z+3]);
+		//PrintMessage(str);
 		if(bufferI[z+2]==0x53) i=32;
 	}
 	if(i<33){
@@ -555,8 +560,8 @@ void WriteAT(int dim, int dim2)
 		msDelay(1);
 		read();
 		if(saveLog)WriteLogIO();
-		PrintMessage(strings[S_SyncErr]);	//"Errore di sincronizzazione\r\n"
-		if(saveLog&&RegFile) fclose(RegFile);
+		PrintMessage(strings[S_SyncErr]);	//"Synchronization error\r\n"
+		if(saveLog) CloseLogFile();
 		return;
 	}
 	j=1;
@@ -593,10 +598,10 @@ void WriteAT(int dim, int dim2)
 	signature[1]=bufferI[z+2];
 	for(z+=3;z<DIMBUF-2&&bufferI[z]!=SPI_READ;z++);
 	signature[2]=bufferI[z+2];
-	PrintMessage("CHIP ID:%02X%02X%02X\r\n",signature[0],signature[1],signature[2]);
+	PrintMessage3("CHIP ID:%02X%02X%02X\r\n",signature[0],signature[1],signature[2]);
 	AtmelID(signature);
 //****************** erase memory ********************
-	PrintMessage(strings[S_StartErase]);	//"Cancellazione ... "
+	PrintMessage(strings[S_StartErase]);	//"Erase ... "
 	j=1;
 	bufferU[j++]=SPI_WRITE;		//Chip erase
 	bufferU[j++]=4;
@@ -614,9 +619,9 @@ void WriteAT(int dim, int dim2)
 	msDelay(15);
 	read();
 	if(saveLog)WriteLogIO();
-	PrintMessage(strings[S_Compl]);	//"completata\r\n"
+	PrintMessage(strings[S_Compl]);	//"completed\r\n"
 //****************** write code ********************
-	PrintMessage(strings[S_StartCodeProg]);	//"Scrittura codice ... "
+	PrintMessage(strings[S_StartCodeProg]);	//"Write code ... "
 	PrintMessage("   ");
 	for(i=0,j=1;i<dim;i++){
 		if(memCODE[i]!=0xFF){
@@ -642,7 +647,7 @@ void WriteAT(int dim, int dim2)
 			write();
 			msDelay(9);
 			read();
-			PrintMessage("\b\b\b%2d%%",i*100/dim); fflush(stdout);
+			PrintStatus(strings[S_CodeWriting],i*100/dim,i);	//"Write: %d%%, addr. %03X"
 			for(z=1;z<DIMBUF-2&&bufferI[z]!=SPI_READ;z++);
 			if(z==DIMBUF-2||memCODE[i]!=bufferI[z+2]){
 				if(ritenta<5){
@@ -651,28 +656,28 @@ void WriteAT(int dim, int dim2)
 					i--;
 				}
 				else{
-					errori++;
+					err++;
 					ritenta=0;
 				}
 			}
-			if(max_err&&errori>max_err){
-				PrintMessage(strings[S_MaxErr],errori);	//"Superato il massimo numero di errori (%d), scrittura interrotta\r\n"
-				PrintMessage(strings[S_IntW]);	//"Scrittura interrotta"
+			if(max_err&&err>max_err){
+				PrintMessage1(strings[S_MaxErr],err);	//"Exceeded maximum number of errors (%d), write interrupted\r\n"
+				PrintMessage(strings[S_IntW]);	//"Write interrupted"
 				i=dim;
 			}
 			if(saveLog){
-				fprintf(RegFile,strings[S_Log8],i,i,k,k,errori);	//"i=%d, k=%d, errori=%d\n"
+				fprintf(logfile,strings[S_Log8],i,i,k,k,err);	//"i=%d, k=%d, err=%d\n"
 				WriteLogIO();
 			}
 		}
 	}
 	PrintMessage("\b\b\b");
-	PrintMessage(strings[S_ComplErr],errori);	//"completata, %d errori\r\n"
+	PrintMessage1(strings[S_ComplErr],err);	//"completed, %d errors\r\n"
 //****************** write eeprom ********************
 	if(dim2){
-		PrintMessage(strings[S_EEAreaW]);	//"Scrittura EEPROM ... "
+		PrintMessage(strings[S_EEAreaW]);	//"Write EEPROM ... "
 		PrintMessage("   ");
-		int erroriEE=0;
+		int errEE=0;
 		for(i=0,j=1;i<dim2;i++){
 			if(memEE[i]!=0xFF){
 				bufferU[j++]=SPI_WRITE;		//Write EEPROM memory
@@ -697,7 +702,7 @@ void WriteAT(int dim, int dim2)
 				write();
 				msDelay(9);
 				read();
-				PrintMessage("\b\b\b%2d%%",i*100/dim2); fflush(stdout);
+				PrintStatus(strings[S_CodeWriting],i*100/dim2,i);	//"Write: %d%%, addr. %03X"
 				for(z=1;z<DIMBUF-2&&bufferI[z]!=SPI_READ;z++);
 				if(z==DIMBUF-2||memEE[i]!=bufferI[z+2]){
 					if(ritenta<10){
@@ -706,29 +711,29 @@ void WriteAT(int dim, int dim2)
 						i--;
 					}
 					else{
-						erroriEE++;
+						errEE++;
 						ritenta=0;
 					}
 				}
-				if(max_err&&errori+erroriEE>max_err){
-					PrintMessage(strings[S_MaxErr],errori+erroriEE);	//"Superato il massimo numero di errori (%d), scrittura interrotta\r\n"
-					PrintMessage(strings[S_IntW]);	//"Scrittura interrotta"
+				if(max_err&&err+errEE>max_err){
+					PrintMessage1(strings[S_MaxErr],err+errEE);	//"Exceeded maximum number of errors (%d), write interrupted\r\n"
+					PrintMessage(strings[S_IntW]);	//"Write interrupted"
 					i=dim2;
 				}
 				if(saveLog){
-					fprintf(RegFile,strings[S_Log8],i,i,k,k,erroriEE);	//"i=%d, k=%d, errori=%d\n"
+					fprintf(logfile,strings[S_Log8],i,i,k,k,errEE);	//"i=%d, k=%d, err=%d\n"
 					WriteLogIO();
 				}
 			}
 		}
 		PrintMessage("\b\b\b");
-		PrintMessage(strings[S_ComplErr],erroriEE);	//"terminata: %d errori \r\n"
-		errori+=erroriEE;
+		PrintMessage1(strings[S_ComplErr],errEE);	//"completed, %d errors\r\n"
+		err+=errEE;
 	}
-	if(maxtent) PrintMessage(strings[S_MaxRetry],maxtent); 	//"Max tentativi di scrittura: %d\r\n"
+	if(maxtent) PrintMessage1(strings[S_MaxRetry],maxtent); 	//"Max retries in writing: %d\r\n"
 //****************** write FUSE ********************
 	if(lock<0x100){
-		PrintMessage(strings[S_FuseAreaW]);	//"Scrittura area Fuse ... "
+		PrintMessage(strings[S_FuseAreaW]);	//"Write Fuse ... "
 		bufferU[j++]=SPI_WRITE;		//Write lock
 		bufferU[j++]=4;
 		bufferU[j++]=0xAC;
@@ -743,7 +748,7 @@ void WriteAT(int dim, int dim2)
 		msDelay(9);
 		read();
 		if(saveLog)WriteLogIO();
-		PrintMessage(strings[S_Compl]);	//"completata\r\n"
+		PrintMessage(strings[S_Compl]);	//"completed\r\n"
 	}
 //****************** exit program mode ********************
 	bufferU[j++]=CLOCK_GEN;
@@ -756,35 +761,36 @@ void WriteAT(int dim, int dim2)
 	msDelay(1);
 	read();
 	unsigned int stop=GetTickCount();
-	PrintMessage(strings[S_EndErr],(stop-start)/1000.0,errori,errori!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nFine (%.2f s) %d %s\r\n\r\n"
-	if(saveLog&&RegFile) fclose(RegFile);
+	PrintMessage3(strings[S_EndErr],(stop-start)/1000.0,err,err!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nFine (%.2f s) %d %s\r\n\r\n"
+	if(saveLog)	CloseLogFile();
 }
 
-void WriteATmega(int dim, int dim2, int page)
+void WriteATmega(int dim, int dim2, int page, int options)
 // write ATMEL micro
 // dim=FLASH size in bytes, dim2=EEPROM, page=FLASH page size in bytes
+// options: SLOW=slow communication
 {
 	int k=0,z=0,i,j;
-	int errori=0,erroriEE=0,ritenta=0,maxtent=0;
+	int err=0,errEE=0,ritenta=0,maxtent=0;
 	BYTE signature[]={0,0,0};
 	if(dim>0x10000||dim<0){
-		PrintMessage(strings[S_CodeLim]);	//"Dimensione programma oltre i limiti\r\n"
+		PrintMessage(strings[S_CodeLim]);	//"Code size out of limits\r\n"
 		return;
 	}
 	if(dim2>0x1000||dim2<0){
-		PrintMessage(strings[S_EELim]);	//"Dimensione eeprom oltre i limiti\r\n"
+		PrintMessage(strings[S_EELim]);	//"EEPROM size out of limits\r\n"
 		return;
 	}
 	if(saveLog){
-		OpenLogFile();
-		fprintf(RegFile,"WriteAT(0x%X,0x%X,0x%X)\n",dim,dim2,page);
+		OpenLogFile();	//"Log.txt"
+		fprintf(logfile,"WriteATmega(0x%X,0x%X,0x%X)\n",dim,dim2,page);
 	}
 	if(dim>size) dim=size;
 	else{
 		size=dim;
 		memCODE=realloc(memCODE,dim);
 	}
-	if(size%(page*2)){
+	if(size%(page*2)){	//grow to an integer number of pages
 		j=size;
 		dim=(j/(page*2)+1)*page*2;
 		memCODE=realloc(memCODE,dim);
@@ -792,10 +798,9 @@ void WriteATmega(int dim, int dim2, int page)
 	}
 	if(dim2>sizeEE) dim2=sizeEE;
 	if(dim<1){
-		PrintMessage(strings[S_NoCode]);	//"Area dati vuota\r\n"
+		PrintMessage(strings[S_NoCode]);	//"Data area is empty\r\n"
 		return;
 	}
-	PrintMessage(strings[S_Writing]);	//"Inizio scrittura...\r\n"
 	unsigned int start=GetTickCount();
 	bufferU[0]=0;
 	j=1;
@@ -807,7 +812,7 @@ void WriteATmega(int dim, int dim2, int page)
 	bufferU[j++]=EN_VPP_VCC;	//VDD
 	bufferU[j++]=0x0;
 	bufferU[j++]=SPI_INIT;
-	bufferU[j++]=1;
+	bufferU[j++]=options&SLOW?0:1;				//0=100k, 1=200k
 	bufferU[j++]=CLOCK_GEN;
 	bufferU[j++]=3;
 	bufferU[j++]=CLOCK_GEN;
@@ -851,8 +856,8 @@ void WriteATmega(int dim, int dim2, int page)
 		read();
 		if(saveLog)WriteLogIO();
 		for(z=1;z<DIMBUF-2&&bufferI[z]!=SPI_READ;z++);
-		//str.Format("i=%d z=%d   rx:%02X%02X\r\n",i,z,bufferI[z+2],bufferI[z+3]);
-		//AggiungiDati(str);
+		//PrintMessage("i=%d z=%d   rx:%02X%02X\r\n",i,z,bufferI[z+2],bufferI[z+3]);
+		//PrintMessage(str);
 		if(bufferI[z+2]==0x53) i=32;
 	}
 	if(i<33){
@@ -872,8 +877,8 @@ void WriteATmega(int dim, int dim2, int page)
 		msDelay(2);
 		read();
 		if(saveLog)WriteLogIO();
-		PrintMessage(strings[S_SyncErr]);	//"Errore di sincronizzazione\r\n"
-		if(saveLog&&RegFile) fclose(RegFile);
+		PrintMessage(strings[S_SyncErr]);	//"Synchronization error\r\n"
+		if(saveLog) CloseLogFile();
 		return;
 	}
 	j=1;
@@ -910,10 +915,10 @@ void WriteATmega(int dim, int dim2, int page)
 	signature[1]=bufferI[z+2];
 	for(z+=3;z<DIMBUF-2&&bufferI[z]!=SPI_READ;z++);
 	signature[2]=bufferI[z+2];
-	PrintMessage("CHIP ID:%02X%02X%02X\r\n",signature[0],signature[1],signature[2]);
+	PrintMessage3("CHIP ID:%02X%02X%02X\r\n",signature[0],signature[1],signature[2]);
 	AtmelID(signature);
 //****************** erase memory ********************
-	PrintMessage(strings[S_StartErase]);	//"Cancellazione ... "
+	PrintMessage(strings[S_StartErase]);	//"Erase ... "
 	j=1;
 	bufferU[j++]=SPI_WRITE;		//Chip erase
 	bufferU[j++]=4;
@@ -931,9 +936,9 @@ void WriteATmega(int dim, int dim2, int page)
 	msDelay(15);
 	read();
 	if(saveLog)WriteLogIO();
-	PrintMessage(strings[S_Compl]);	//"completata\r\n"
+	PrintMessage(strings[S_Compl]);	//"completed\r\n"
 //****************** write code ********************
-	PrintMessage(strings[S_StartCodeProg]);	//"Scrittura codice ... "
+	PrintMessage(strings[S_StartCodeProg]);	//"Write code ... "
 	PrintMessage("   ");
 	int w,v,c,Rtry;
 	for(i=0;i<dim;i+=page*2){
@@ -950,7 +955,7 @@ void WriteATmega(int dim, int dim2, int page)
 				for(;j<DIMBUF;j++) bufferU[j]=0x0;
 				j=1;
 				write();
-				msDelay(15);
+				msDelay(options&SLOW?30:15);
 				read();
 				if(saveLog)WriteLogIO();
 			}
@@ -967,7 +972,7 @@ void WriteATmega(int dim, int dim2, int page)
 			write();
 			msDelay(10);
 			read();
-			PrintMessage("\b\b\b%2d%%",i*100/dim); fflush(stdout);
+			PrintStatus(strings[S_CodeWriting],i*100/dim,i);	//"Write: %d%%, addr. %03X"
 			if(saveLog)WriteLogIO();
 			c=(DIMBUF-5)/2;
 			for(k=0,j=1;k<page;k+=c){
@@ -979,14 +984,14 @@ void WriteATmega(int dim, int dim2, int page)
 					bufferU[j++]=FLUSH;
 					for(;j<DIMBUF;j++) bufferU[j]=0x0;
 					write();
-					msDelay(25);
+					msDelay(options&SLOW?30:15);	//25
 					read();
 					if(saveLog)WriteLogIO();
 					if(bufferI[1]==AT_READ_DATA){
 						for(w=0,z=3;z<bufferI[2]*2+3&&z<DIMBUF;z++){
 							if(memCODE[i+k*2+w]!=bufferI[z]){
 								if(Rtry<4)	z=DIMBUF;
-								else errori++;
+								else err++;
 							}
 							w++;
 						}
@@ -996,22 +1001,22 @@ void WriteATmega(int dim, int dim2, int page)
 				}
 			}
 			if(saveLog){
-				fprintf(RegFile,strings[S_Log8],i,i,w,w,errori);	//"i=%d, k=%d, errori=%d\n"
+				fprintf(logfile,strings[S_Log8],i,i,w,w,err);	//"i=%d, k=%d, err=%d\n"
 			}
-			if(max_err&&errori>max_err){
-				PrintMessage(strings[S_MaxErr],errori);	//"Superato il massimo numero di errori (%d), scrittura interrotta\r\n"
-				PrintMessage(strings[S_IntW]);	//"Scrittura interrotta"
+			if(max_err&&err>max_err){
+				PrintMessage1(strings[S_MaxErr],err);	//"Exceeded maximum number of errors (%d), write interrupted\r\n"
+				PrintMessage(strings[S_IntW]);	//"Write interrupted"
 				i=dim;
 			}
 		}
 	}
 	PrintMessage("\b\b\b");
-	PrintMessage(strings[S_ComplErr],errori);	//"completata, %d errori\r\n"
+	PrintMessage1(strings[S_ComplErr],err);	//"completed, %d errors\r\n"
 //****************** write eeprom ********************
 	if(dim2){
-		PrintMessage(strings[S_EEAreaW]);	//"Scrittura EEPROM ... "
+		PrintMessage(strings[S_EEAreaW]);	//"Write EEPROM ... "
 		PrintMessage("   ");
-		int erroriEE=0;
+		int errEE=0;
 		for(i=0,j=1;i<dim2;i++){
 			if(memEE[i]!=0xFF){
 				bufferU[j++]=SPI_WRITE;		//Write EEPROM memory
@@ -1035,7 +1040,7 @@ void WriteATmega(int dim, int dim2, int page)
 				write();
 				msDelay(11);
 				read();
-				PrintMessage("\b\b\b%2d%%",i*100/dim2); fflush(stdout);
+				PrintStatus(strings[S_CodeWriting],i*100/dim2,i);	//"Write: %d%%, addr. %03X"
 				for(z=1;z<DIMBUF-2&&bufferI[z]!=SPI_READ;z++);
 				if(z==DIMBUF-2||memEE[i]!=bufferI[z+2]){
 					if(ritenta<4){
@@ -1044,28 +1049,28 @@ void WriteATmega(int dim, int dim2, int page)
 						i--;
 					}
 					else{
-						erroriEE++;
+						errEE++;
 						ritenta=0;
 					}
 				}
-				if(max_err&&errori+erroriEE>max_err){
-					PrintMessage(strings[S_MaxErr],errori+erroriEE);	//"Superato il massimo numero di errori (%d), scrittura interrotta\r\n"
-					PrintMessage(strings[S_IntW]);	//"Scrittura interrotta"
+				if(max_err&&err+errEE>max_err){
+					PrintMessage1(strings[S_MaxErr],err+errEE);	//"Exceeded maximum number of errors (%d), write interrupted\r\n"
+					PrintMessage(strings[S_IntW]);	//"Write interrupted"
 					i=dim2;
 				}
 				if(saveLog){
-					fprintf(RegFile,strings[S_Log8],i,i,k,k,erroriEE);	//"i=%d, k=%d, errori=%d\n"
+					fprintf(logfile,strings[S_Log8],i,i,k,k,errEE);	//"i=%d, k=%d, err=%d\n"
 					WriteLogIO();
 				}
 			}
 		}
 		PrintMessage("\b\b\b");
-		PrintMessage(strings[S_ComplErr],erroriEE);	//"terminata: %d errori \r\n"
-		errori+=erroriEE;
+		PrintMessage1(strings[S_ComplErr],errEE);	//"completed, %d errors\r\n"
+		err+=errEE;
 	}
 //****************** write FUSE ********************
 	int err_f=0;
-	if(lock<0x100||fuse<0x100||fuse_h<0x100||fuse_x<0x100)PrintMessage(strings[S_FuseAreaW]);	//"Scrittura area Fuse ... "
+	if(lock<0x100||fuse<0x100||fuse_h<0x100||fuse_x<0x100)PrintMessage(strings[S_FuseAreaW]);	//"Write Fuse ... "
 	if(lock<0x100){
 		bufferU[j++]=SPI_WRITE;		//Write lock
 		bufferU[j++]=4;
@@ -1166,11 +1171,11 @@ void WriteATmega(int dim, int dim2, int page)
 		for(z=1;z<DIMBUF-2&&bufferI[z]!=SPI_READ;z++);
 		if(z==DIMBUF-2||fuse_x!=bufferI[z+2]) err_f++;
 	}
-	errori+=err_f;
+	err+=err_f;
 	if(lock<0x100||fuse<0x100||fuse_h<0x100||fuse_x<0x100){
-		PrintMessage(strings[S_ComplErr],err_f);	//"completata, %d errori\r\n"
+		PrintMessage1(strings[S_ComplErr],err_f);	//"completed, %d errors\r\n"
 	}
-//	if(maxtent) PrintMessage(strings[S_MaxRetry],maxtent); 	//"Max tentativi di scrittura: %d\r\n"
+//	if(maxtent) PrintMessage(strings[S_MaxRetry],maxtent); 	//"Max retries in writing: %d\r\n"
 //****************** exit program mode ********************
 	bufferU[j++]=CLOCK_GEN;
 	bufferU[j++]=0xFF;
@@ -1185,7 +1190,7 @@ void WriteATmega(int dim, int dim2, int page)
 	msDelay(1);
 	read();
 	unsigned int stop=GetTickCount();
-	PrintMessage(strings[S_EndErr],(stop-start)/1000.0,errori,errori!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nFine (%.2f s) %d %s\r\n\r\n"
-	if(saveLog&&RegFile) fclose(RegFile);
+	PrintMessage3(strings[S_EndErr],(stop-start)/1000.0,err,err!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nFine (%.2f s) %d %s\r\n\r\n"
+	if(saveLog)CloseLogFile();
 }
 

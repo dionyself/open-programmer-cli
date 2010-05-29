@@ -1,6 +1,6 @@
 /*
  * progEEPROM.c - algorithms to program various EEPROM types
- * Copyright (C) 2009 Alberto Maccioni
+ * Copyright (C) 2009-2010 Alberto Maccioni
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,16 +22,23 @@
 
 void ReadI2C(int dim,int addr)
 // read I2C memories
-// dim=size in bytes		addr=0: 1 byte address     =1: 2 byte address
+// dim=size in bytes
+// addr:
+//      [3:0]  =0: 1 byte address        =1: 2 byte address
+//      [7:4]  A2:A0 value
+//      [11:8] 17th address bit location (added to control byte)
 {
 	int k=0,z=0,i,j;
+	int AX=(addr>>4)&7;
+	int addr17=(addr>>8)&0xF;
+	addr&=1;
 	if(dim>0x30000||dim<0){
-		PrintMessage(strings[S_EELim]);	//"Dimensione programma oltre i limiti\r\n"
+		PrintMessage(strings[S_EELim]);	//"EEPROM size out of limits\r\n"
 		return;
 	}
 	if(saveLog){
-		OpenLogFile();
-		fprintf(RegFile,"ReadI2C(%d,%d)    (0x%X,0x%X)\n",dim,addr,dim,addr);
+		OpenLogFile();	//"Log.txt"
+		fprintf(logfile,"ReadI2C(%d,%d)    (0x%X,0x%X)\n",dim,addr,dim,addr);
 	}
 	sizeEE=dim;
 	memEE=malloc(dim);			//EEPROM
@@ -40,7 +47,7 @@ void ReadI2C(int dim,int addr)
 	j=1;
 	bufferU[j++]=VREG_DIS;
 	bufferU[j++]=I2C_INIT;
-	bufferU[j++]=0;
+	bufferU[j++]=AX;			//100k
 	bufferU[j++]=EN_VPP_VCC;		//VDD
 	bufferU[j++]=0x1;
 	bufferU[j++]=FLUSH;
@@ -50,7 +57,7 @@ void ReadI2C(int dim,int addr)
 	read();
 	if(saveLog)WriteLogIO();
 //****************** read ********************
-	PrintMessage(strings[S_ReadEE]);		//lettura EE ...
+	PrintMessage(strings[S_ReadEE]);		//read EEPROM ...
 	PrintMessage("   ");
 	for(i=0,j=1;i<dim;i+=DIMBUF-4){
 		if(!addr){									//1 byte address
@@ -62,7 +69,7 @@ void ReadI2C(int dim,int addr)
 		else{										//2 bytes address
 			bufferU[j++]=I2C_READ2;
 			bufferU[j++]=i<dim-(DIMBUF-4)?DIMBUF-4:dim-i;
-			bufferU[j++]=0xA0+(i>0xFFFF?8:0);
+			bufferU[j++]=0xA0+(i>0xFFFF?addr17:0); //17th bit if>64K
 			bufferU[j++]=(i>>8)&0xFF;
 			bufferU[j++]=i&0xFF;
 		}
@@ -74,17 +81,17 @@ void ReadI2C(int dim,int addr)
 		if((bufferI[1]==I2C_READ||bufferI[1]==I2C_READ2)&&bufferI[2]<0xFA){
 			for(z=3;z<bufferI[2]+3&&z<DIMBUF;z++) memEE[k++]=bufferI[z];
 		}
-		PrintMessage("\b\b\b%2d%%",i*100/dim); fflush(stdout);
+		PrintStatus(strings[S_CodeReading2],i*100/(dim),i);	//"Read: %d%%, addr. %05X"
 		j=1;
 		if(saveLog){
-			fprintf(RegFile,strings[S_Log7],i,i,k,k);	//"i=%d(0x%X), k=%d(0x%X) \n"
+			fprintf(logfile,strings[S_Log7],i,i,k,k);	//"i=%d(0x%X), k=%d(0x%X) \n"
 			WriteLogIO();
 		}
 	}
 	PrintMessage("\b\b\b");
 	if(k!=dim){
-		PrintMessage("\n");
-		PrintMessage(strings[S_ReadEEErr],dim,k);	//"Errore in lettura area EEPROM, richiesti %d byte, letti %d\r\n"
+		PrintMessage("\r\n");
+		PrintMessage2(strings[S_ReadEEErr],dim,k);	//"Error reading EEPROM area, requested %d bytes, read %d\r\n"
 		sizeEE=k;
 	}
 	else PrintMessage(strings[S_Compl]);
@@ -98,24 +105,32 @@ void ReadI2C(int dim,int addr)
 	read();
 	unsigned int stop=GetTickCount();
 	DisplayEE();	//visualize
-	PrintMessage(strings[S_End],(stop-start)/1000.0);	//"\r\nFine (%.2f s)\r\n"
-	if(saveLog&&RegFile) fclose(RegFile);
+	PrintMessage1(strings[S_End],(stop-start)/1000.0);	//"\r\nEnd (%.2f s)\r\n"
+	if(saveLog) CloseLogFile();
 }
 
 void WriteI2C(int dim,int addr,int page, float wait)
 // write I2C memories
-// dim=size in bytes		addr=0: 1 byte address     =1: 2 byte address
-// page=page size		wait=write delay
+// dim=size in bytes
+// addr:
+//      [3:0]  =0: 1 byte address        =1: 2 byte address
+//      [7:4]  A2:A0 value
+//      [11:8] 17th address bit location (added to control byte)
+// page=page size
+// wait=write delay (ms)
 {
 	int k=0,z=0,i,j;
-	int errori=0;
+	int err=0;
+	int AX=(addr>>4)&7;
+	int addr17=(addr>>8)&0xF;
+	addr&=1;
 	if(dim>0x30000||dim<0){
-		PrintMessage(strings[S_EELim]);	//"Dimensione eeprom oltre i limiti\r\n"
+		PrintMessage(strings[S_EELim]);	//"EEPROM size out of limits\r\n"
 		return;
 	}
 	if(saveLog){
-		OpenLogFile();
-		fprintf(RegFile,"WriteI2C(%d,%d,%d,%f)    (0x%X,0x%X)\n",dim,addr,page,wait,dim,addr);
+		OpenLogFile();	//"Log.txt"
+		fprintf(logfile,"WriteI2C(%d,%d,%d,%f)    (0x%X,0x%X)\n",dim,addr,page,wait,dim,addr);
 	}
 	if(dim>sizeEE){
 		i=sizeEE;
@@ -124,7 +139,7 @@ void WriteI2C(int dim,int addr,int page, float wait)
 		sizeEE=dim;
 	}
 	if(dim<1){
-		PrintMessage(strings[S_NoCode]);	//"Area dati vuota\r\n"
+		PrintMessage(strings[S_NoCode]);	//"Data area is empty\r\n"
 		return;
 	}
 	unsigned int start=GetTickCount();
@@ -132,7 +147,7 @@ void WriteI2C(int dim,int addr,int page, float wait)
 	j=1;
 	bufferU[j++]=VREG_DIS;
 	bufferU[j++]=I2C_INIT;
-	bufferU[j++]=0;
+	bufferU[j++]=AX;			//100k
 	bufferU[j++]=EN_VPP_VCC;		//VDD
 	bufferU[j++]=0x1;
 	bufferU[j++]=FLUSH;
@@ -142,7 +157,7 @@ void WriteI2C(int dim,int addr,int page, float wait)
 	read();
 	if(saveLog)WriteLogIO();
 //****************** write ********************
-	PrintMessage(strings[S_EEAreaW]);	//"Scrittura EEPROM ... "
+	PrintMessage(strings[S_EEAreaW]);	//"Write EEPROM ... "
 	PrintMessage("   ");
 	for(;page>=DIMBUF-6;page>>=1);
 	for(i=0,j=1;i<dim;i+=page){
@@ -154,7 +169,7 @@ void WriteI2C(int dim,int addr,int page, float wait)
 		}
 		else{										//2 bytes address
 			bufferU[j++]=page+1;
-			bufferU[j++]=0xA0+(i>0xFFFF?8:0);
+			bufferU[j++]=0xA0+(i>0xFFFF?addr17:0); //17th bit if>64K
 			bufferU[j++]=(i>>8)&0xFF;
 			bufferU[j++]=i&0xFF;
 		}
@@ -165,22 +180,17 @@ void WriteI2C(int dim,int addr,int page, float wait)
 		msDelay(wait+1);
 		read();
 		if(bufferI[1]!=I2C_WRITE||bufferI[2]>=0xFA) i=dim+10;
-		PrintMessage("\b\b\b%2d%%",i*100/dim); fflush(stdout);
+		PrintStatus(strings[S_CodeWriting2],i*100/(dim),i);	//"Write: %d%%, addr. %04X"
 		j=1;
 		if(saveLog){
-			fprintf(RegFile,strings[S_Log7],i,i,k,k);	//"i=%d(0x%X), k=%d(0x%X)\n"
+			fprintf(logfile,strings[S_Log7],i,i,k,k);	//"i=%d(0x%X), k=%d(0x%X)\n"
 			WriteLogIO();
 		}
 	}
-	msDelay(wait+1);
-	msDelay(20);
 	PrintMessage("\b\b\b");
-	if(i!=dim){
-		PrintMessage(strings[S_CodeWError4],i,dim);	//"Errore in scrittura area programma, richiesti %d byte, scritti %d\r\n"
-	}
-	else PrintMessage(strings[S_Compl]);	//"terminata\r\n"
+	PrintMessage(strings[S_Compl]);	//"completed\r\n"
 //****************** verify EEPROM ********************
-	PrintMessage(strings[S_EEV]);	//"Verifica EEPROM ... "
+	PrintMessage(strings[S_EEV]);	//"Verify EEPROM ... "
 	PrintMessage("   ");
 	k=0;
 	for(i=0,j=1;i<dim;i+=DIMBUF-4){
@@ -193,7 +203,7 @@ void WriteI2C(int dim,int addr,int page, float wait)
 		else{										//2 bytes address
 			bufferU[j++]=I2C_READ2;
 			bufferU[j++]=i<dim-(DIMBUF-4)?DIMBUF-4:dim-i;
-			bufferU[j++]=0xA0+(i>0xFFFF?8:0);
+			bufferU[j++]=0xA0+(i>0xFFFF?addr17:0); //17th bit if>64K
 			bufferU[j++]=(i>>8)&0xFF;
 			bufferU[j++]=i&0xFF;
 		}
@@ -205,26 +215,26 @@ void WriteI2C(int dim,int addr,int page, float wait)
 		if((bufferI[1]==I2C_READ||bufferI[1]==I2C_READ2)&&bufferI[2]<0xFA){
 			for(z=3;z<bufferI[2]+3&&z<DIMBUF;z++){
 				if(memEE[k++]!=bufferI[z]){
-					PrintMessage("\n");
-					PrintMessage(strings[S_CodeVError],i+z-3,i+z-3,memEE[k-1],bufferI[z]);	//"Errore in verifica, indirizzo %04X (%d), scritto %02X, letto %02X\r\n"
-					errori++;
+					PrintMessage("\r\n");
+					PrintMessage4(strings[S_CodeVError],i+z-3,i+z-3,memEE[k-1],bufferI[z]);	//"Errore in verifica, indirizzo %04X (%d), scritto %02X, letto %02X\r\n"
+					err++;
 				}
 			}
 		}
-		PrintMessage("\b\b\b%2d%%",i*100/dim); fflush(stdout);
+		PrintStatus(strings[S_CodeV2],i*100/(dim),i);	//"Verify: %d%%, addr. %04X"
 		j=1;
 		if(saveLog){
-			fprintf(RegFile,strings[S_Log8],i,i,k,k,errori);	//"i=%d, k=%d, errori=%d\n"
+			fprintf(logfile,strings[S_Log8],i,i,k,k,err);	//"i=%d, k=%d, err=%d\n"
 			WriteLogIO();
 		}
-		if(errori>=max_err) break;
+		if(err>=max_err) break;
 	}
 	PrintMessage("\b\b\b");
 	if(k!=dim){
-		PrintMessage("\n");
-		PrintMessage(strings[S_ReadEEErr],dim,k);	//"Errore in lettura area EEPROM, richiesti %d byte, letti %d\r\n"
+		PrintMessage("\r\n");
+		PrintMessage2(strings[S_ReadEEErr],dim,k);	//"Error reading EEPROM area, requested %d bytes, read %d\r\n"
 	}
-	PrintMessage(strings[S_ComplErr],errori);	//"terminata: %d errori\r\n"
+	PrintMessage1(strings[S_ComplErr],err);	//"completed: %d errors\r\n"
 //****************** exit ********************
 	bufferU[j++]=EN_VPP_VCC;
 	bufferU[j++]=0x0;
@@ -234,8 +244,8 @@ void WriteI2C(int dim,int addr,int page, float wait)
 	msDelay(2);
 	read();
 	unsigned int stop=GetTickCount();
-	PrintMessage(strings[S_EndErr],(stop-start)/1000.0,errori,errori!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nFine (%.2f s) %d %s\r\n\r\n"
-	if(saveLog&&RegFile) fclose(RegFile);
+	PrintMessage3(strings[S_EndErr],(stop-start)/1000.0,err,err!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nEnd (%.2f s) %d %s\r\n\r\n"
+	if(saveLog) CloseLogFile();
 }
 
 #define PRE 0x08	//RB3
@@ -251,13 +261,13 @@ void Read93x(int dim,int na,int options)
 {
 	int k=0,z=0,i,j;
 	if(dim>0x3000||dim<0){
-		PrintMessage(strings[S_EELim]);	//"Dimensione programma oltre i limiti\r\n"
+		PrintMessage(strings[S_EELim]);	//"EEPROM size out of limits\r\n"
 		return;
 	}
 	if(na>13) na=13;
 	if(saveLog){
-		OpenLogFile();
-		fprintf(RegFile,"Read93x(%d,%d,%d)    (0x%X,0x%X)\n",dim,na,options,dim,na);
+		OpenLogFile();	//"Log.txt"
+		fprintf(logfile,"Read93x(%d,%d,%d)    (0x%X,0x%X)\n",dim,na,options,dim,na);
 	}
 	sizeEE=dim;
 	memEE=malloc(dim);			//EEPROM
@@ -273,7 +283,7 @@ void Read93x(int dim,int na,int options)
 	bufferU[j++]=0;
 	bufferU[j++]=uWTX;
 	bufferU[j++]=na+3;				//READ
-	bufferU[j++]=0xC0;				//110aaaaa aaax0000 
+	bufferU[j++]=0xC0;				//110aaaaa aaax0000
 	bufferU[j++]=0;
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
@@ -282,7 +292,7 @@ void Read93x(int dim,int na,int options)
 	read();
 	if(saveLog)WriteLogIO();
 //****************** read ********************
-	PrintMessage(strings[S_ReadEE]);		//lettura EE ...
+	PrintMessage(strings[S_ReadEE]);		//read EEPROM ...
 	PrintMessage("   ");
 	int n=(DIMBUF-2);
 	if(n>30) n=30;				//max 240 bit = 30 Byte
@@ -299,17 +309,17 @@ void Read93x(int dim,int na,int options)
 				memEE[k++]=bufferI[j];
 			}
 		}
-		PrintMessage("\b\b\b%2d%%",i*100/dim); fflush(stdout);
+		PrintStatus(strings[S_CodeReading2],i*100/(dim),i);	//"Read: %d%%, addr. %05X"
 		j=1;
 		if(saveLog){
-			fprintf(RegFile,strings[S_Log7],i,i,k,k);	//"i=%d(0x%X), k=%d(0x%X) \n"
+			fprintf(logfile,strings[S_Log7],i,i,k,k);	//"i=%d(0x%X), k=%d(0x%X) \n"
 			WriteLogIO();
 		}
 	}
 	PrintMessage("\b\b\b");
 	if(k!=dim){
-		PrintMessage("\n");
-		PrintMessage(strings[S_ReadEEErr],dim,k);	//"Errore in lettura area EEPROM, richiesti %d byte, letti %d\r\n"
+		PrintMessage("\r\n");
+		PrintMessage2(strings[S_ReadEEErr],dim,k);	//"Error reading EEPROM area, requested %d bytes, read %d\r\n"
 		sizeEE=k;
 	}
 	else PrintMessage(strings[S_Compl]);
@@ -333,8 +343,8 @@ void Read93x(int dim,int na,int options)
 	read();
 	unsigned int stop=GetTickCount();
 	DisplayEE();	//visualize
-	PrintMessage(strings[S_End],(stop-start)/1000.0);	//"\r\nFine (%.2f s)\r\n"
-	if(saveLog&&RegFile) fclose(RegFile);
+	PrintMessage1(strings[S_End],(stop-start)/1000.0);	//"\r\nEnd (%.2f s)\r\n"
+	if(saveLog) CloseLogFile();
 }
 
 void Write93Sx(int dim,int na,int page, double wait)
@@ -345,15 +355,15 @@ void Write93Sx(int dim,int na,int page, double wait)
 // wait=write delay
 {
 	int k=0,z=0,i,j;
-	int errori=0;
+	int err=0;
 	if(dim>0x1000||dim<0){
-		PrintMessage(strings[S_EELim]);	//"Dimensione eeprom oltre i limiti\r\n"
+		PrintMessage(strings[S_EELim]);	//"EEPROM size out of limits\r\n"
 		return;
 	}
 	if(na>13) na=13;
 	if(saveLog){
-		OpenLogFile();
-		fprintf(RegFile,"Write93Sx(%d,%d,%d,%f)    (0x%X,0x%X)\n",dim,na,page,wait,dim,na);
+		OpenLogFile();	//"Log.txt"
+		fprintf(logfile,"Write93Sx(%d,%d,%d,%f)    (0x%X,0x%X)\n",dim,na,page,wait,dim,na);
 	}
 	if(dim>sizeEE){
 		i=sizeEE;
@@ -362,7 +372,7 @@ void Write93Sx(int dim,int na,int page, double wait)
 		sizeEE=dim;
 	}
 	if(dim<1){
-		PrintMessage(strings[S_NoCode]);	//"Area dati vuota\r\n"
+		PrintMessage(strings[S_NoCode]);	//"Data area is empty\r\n"
 		return;
 	}
 	unsigned int start=GetTickCount();
@@ -412,7 +422,7 @@ void Write93Sx(int dim,int na,int page, double wait)
 	read();
 	if(saveLog)WriteLogIO();
 //****************** write ********************
-	PrintMessage(strings[S_EEAreaW]);	//"Scrittura EEPROM ... "
+	PrintMessage(strings[S_EEAreaW]);	//"Write EEPROM ... "
 	PrintMessage("   ");
 	int addr=0;
 	for(i=0,j=1;i<dim;i+=page,addr+=(0x10000>>na)*page/2){
@@ -441,21 +451,18 @@ void Write93Sx(int dim,int na,int page, double wait)
 		msDelay(wait+1);
 		read();
 		if(bufferI[2]!=uWTX||bufferI[3]>=0xFA) i=dim+10;
-		PrintMessage("\b\b\b%2d%%",i*100/dim); fflush(stdout);
+		PrintStatus(strings[S_CodeWriting2],i*100/(dim),i);	//"Write: %d%%, addr. %04X"
 		j=1;
 		if(saveLog){
-			fprintf(RegFile,strings[S_Log7],i,i,k,k);	//"i=%d(0x%X), k=%d(0x%X)\n"
+			fprintf(logfile,strings[S_Log7],i,i,k,k);	//"i=%d(0x%X), k=%d(0x%X)\n"
 			WriteLogIO();
 		}
 	}
 	msDelay(wait+1);
 	PrintMessage("\b\b\b");
-	if(i!=dim){
-		PrintMessage(strings[S_CodeWError4],i,dim);	//"Errore in scrittura area programma, richiesti %d byte, scritti %d\r\n"
-	}
-	else PrintMessage(strings[S_Compl]);	//"terminata\r\n"
+	PrintMessage(strings[S_Compl]);	//"completed\r\n"
 //****************** verify EEPROM ********************
-	PrintMessage(strings[S_EEV]);	//"Verifica EEPROM ... "
+	PrintMessage(strings[S_EEV]);	//"Verify EEPROM ... "
 	PrintMessage("   ");
 	bufferU[0]=0;
 	j=1;
@@ -486,31 +493,31 @@ void Write93Sx(int dim,int na,int page, double wait)
 		if(bufferI[1]==uWRX&&bufferI[2]<0xFA){
 			for(z=3;z<bufferI[2]/8+3&&z<DIMBUF;z+=2,k+=2){
 				if(memEE[k+1]!=bufferI[z]){
-					PrintMessage("\n");
-					PrintMessage(strings[S_CodeVError],i+z-3,i+z-3,memEE[k+1],bufferI[z]);	//"Errore in verifica, indirizzo %04X (%d), scritto %02X, letto %02X\r\n"
-					errori++;
+					PrintMessage("\r\n");
+					PrintMessage4(strings[S_CodeVError],i+z-3,i+z-3,memEE[k+1],bufferI[z]);	//"Errore in verifica, indirizzo %04X (%d), scritto %02X, letto %02X\r\n"
+					err++;
 				}
 				if(memEE[k]!=bufferI[z+1]){
-					PrintMessage("\n");
-					PrintMessage(strings[S_CodeVError],i+z-3,i+z-3,memEE[k],bufferI[z+1]);	//"Errore in verifica, indirizzo %04X (%d), scritto %02X, letto %02X\r\n"
-					errori++;
+					PrintMessage("\r\n");
+					PrintMessage4(strings[S_CodeVError],i+z-3,i+z-3,memEE[k],bufferI[z+1]);	//"Errore in verifica, indirizzo %04X (%d), scritto %02X, letto %02X\r\n"
+					err++;
 				}
 			}
 		}
-		PrintMessage("\b\b\b%2d%%",i*100/dim); fflush(stdout);
+		PrintStatus(strings[S_CodeV2],i*100/(dim),i);	//"Verify: %d%%, addr. %04X"
 		j=1;
 		if(saveLog){
-			fprintf(RegFile,strings[S_Log8],i,i,k,k,errori);	//"i=%d, k=%d, errori=%d\n"
+			fprintf(logfile,strings[S_Log8],i,i,k,k,err);	//"i=%d, k=%d, err=%d\n"
 			WriteLogIO();
 		}
-		if(errori>=max_err) break;
+		if(err>=max_err) break;
 	}
 	PrintMessage("\b\b\b");
 	if(k!=dim){
-		PrintMessage("\n");
-		PrintMessage(strings[S_ReadEEErr],dim,k);	//"Errore in lettura area EEPROM, richiesti %d byte, letti %d\r\n"
+		PrintMessage("\r\n");
+		PrintMessage2(strings[S_ReadEEErr],dim,k);	//"Error reading EEPROM area, requested %d bytes, read %d\r\n"
 	}
-	PrintMessage(strings[S_ComplErr],errori);	//"terminata: %d errori\r\n"
+	PrintMessage1(strings[S_ComplErr],err);	//"completed: %d errors\r\n"
 //****************** exit ********************
 	bufferU[j++]=EXT_PORT;
 	bufferU[j++]=0;
@@ -523,8 +530,8 @@ void Write93Sx(int dim,int na,int page, double wait)
 	msDelay(2);
 	read();
 	unsigned int stop=GetTickCount();
-	PrintMessage(strings[S_EndErr],(stop-start)/1000.0,errori,errori!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nFine (%.2f s) %d %s\r\n\r\n"
-	if(saveLog&&RegFile) fclose(RegFile);
+	PrintMessage3(strings[S_EndErr],(stop-start)/1000.0,err,err!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nEnd (%.2f s) %d %s\r\n\r\n"
+	if(saveLog) CloseLogFile();
 }
 
 void Write93Cx(int dim,int na, int options)
@@ -534,15 +541,15 @@ void Write93Cx(int dim,int na, int options)
 // options=0: x16 organization     =1: x8 organization
 {
 	int k=0,z=0,i,j;
-	int errori=0;
+	int err=0;
 	if(dim>0x1000||dim<0){
-		PrintMessage(strings[S_EELim]);	//"Dimensione eeprom oltre i limiti\r\n"
+		PrintMessage(strings[S_EELim]);	//"EEPROM size out of limits\r\n"
 		return;
 	}
 	if(na>13) na=13;
 	if(saveLog){
-		OpenLogFile();
-		fprintf(RegFile,"Write93Cx(%d,%d,%d)    (0x%X,0x%X)\n",dim,na,options,dim,na);
+		OpenLogFile();	//"Log.txt"
+		fprintf(logfile,"Write93Cx(%d,%d,%d)    (0x%X,0x%X)\n",dim,na,options,dim,na);
 	}
 	if(dim>sizeEE){
 		i=sizeEE;
@@ -551,7 +558,7 @@ void Write93Cx(int dim,int na, int options)
 		sizeEE=dim;
 	}
 	if(dim<1){
-		PrintMessage(strings[S_NoCode]);	//"Area dati vuota\r\n"
+		PrintMessage(strings[S_NoCode]);	//"Data area is empty\r\n"
 		return;
 	}
 	unsigned int start=GetTickCount();
@@ -608,7 +615,7 @@ void Write93Cx(int dim,int na, int options)
 		k=bufferI[3];
 	}
 //****************** write ********************
-	PrintMessage(strings[S_EEAreaW]);	//"Scrittura EEPROM ... "
+	PrintMessage(strings[S_EEAreaW]);	//"Write EEPROM ... "
 	PrintMessage("   ");
 	int addr=0;
 	j=1;
@@ -645,10 +652,10 @@ void Write93Cx(int dim,int na, int options)
 			msDelay(1.5);
 			read();
 			if(bufferI[1]!=uWTX||bufferI[2]>=0xFA) i=dim+10;
-			PrintMessage("\b\b\b%2d%%",i*100/dim); fflush(stdout);
+			PrintStatus(strings[S_CodeWriting2],i*100/(dim),i);	//"Write: %d%%, addr. %04X"
 			j=1;
 			if(saveLog){
-				fprintf(RegFile,strings[S_Log7],i,i,k,k);	//"i=%d(0x%X), k=%d(0x%X)\n"
+				fprintf(logfile,strings[S_Log7],i,i,k,k);	//"i=%d(0x%X), k=%d(0x%X)\n"
 				WriteLogIO();
 			}
 			bufferU[j++]=uWRX;
@@ -668,13 +675,12 @@ void Write93Cx(int dim,int na, int options)
 	msDelay(1);
 	PrintMessage("\b\b\b");
 	if(i!=dim){
-		PrintMessage(strings[S_CodeWError4],i,dim);	//"Errore in scrittura area programma, richiesti %d byte, scritti %d\r\n"
+		PrintMessage2(strings[S_CodeWError4],i,dim);	//"Error writing code area, requested %d bytes, read %d\r\n"
 	}
-	else PrintMessage(strings[S_Compl]);	//"terminata\r\n"
+	else PrintMessage(strings[S_Compl]);	//"completed\r\n"
 //****************** verify EEPROM ********************
-	PrintMessage(strings[S_EEV]);	//"Verifica EEPROM ... "
+	PrintMessage(strings[S_EEV]);	//"Verify EEPROM ... "
 	PrintMessage("   ");
-	bufferU[0]=0;
 	j=1;
 	bufferU[j++]=EXT_PORT;
 	bufferU[j++]=options==0?ORG+PRE:PRE;
@@ -717,14 +723,14 @@ void Write93Cx(int dim,int na, int options)
 			if(bufferI[1]==uWRX&&bufferI[2]<0xFA){
 				for(z=3;z<bufferI[2]/8+3&&z<DIMBUF;z+=2,k+=2){
 					if(memEE[k+1]!=bufferI[z]){
-						PrintMessage("\n");
-						PrintMessage(strings[S_CodeVError],i+z-3,i+z-3,memEE[k+1],bufferI[z]);	//"Errore in verifica, indirizzo %04X (%d), scritto %02X, letto %02X\r\n"
-						errori++;
+						PrintMessage("\r\n");
+						PrintMessage4(strings[S_CodeVError],i+z-3,i+z-3,memEE[k+1],bufferI[z]);	//"Errore in verifica, indirizzo %04X (%d), scritto %02X, letto %02X\r\n"
+						err++;
 					}
 					if(memEE[k]!=bufferI[z+1]){
-						PrintMessage("\n");
-						PrintMessage(strings[S_CodeVError],i+z-3,i+z-3,memEE[k],bufferI[z+1]);	//"Errore in verifica, indirizzo %04X (%d), scritto %02X, letto %02X\r\n"
-						errori++;
+						PrintMessage("\r\n");
+						PrintMessage4(strings[S_CodeVError],i+z-3,i+z-3,memEE[k],bufferI[z+1]);	//"Errore in verifica, indirizzo %04X (%d), scritto %02X, letto %02X\r\n"
+						err++;
 					}
 				}
 			}
@@ -733,27 +739,27 @@ void Write93Cx(int dim,int na, int options)
 			if(bufferI[1]==uWRX&&bufferI[2]<0xFA){
 				for(z=3;z<bufferI[2]/8+3&&z<DIMBUF;z++,k++){
 					if(memEE[k]!=bufferI[z]){
-						PrintMessage("\n");
-						PrintMessage(strings[S_CodeVError],i+z-3,i+z-3,memEE[k],bufferI[z]);	//"Errore in verifica, indirizzo %04X (%d), scritto %02X, letto %02X\r\n"
-						errori++;
+						PrintMessage("\r\n");
+						PrintMessage4(strings[S_CodeVError],i+z-3,i+z-3,memEE[k],bufferI[z]);	//"Errore in verifica, indirizzo %04X (%d), scritto %02X, letto %02X\r\n"
+						err++;
 					}
 				}
 			}
 		}
-		PrintMessage("\b\b\b%2d%%",i*100/dim); fflush(stdout);
+		PrintStatus(strings[S_CodeV2],i*100/(dim),i);	//"Verify: %d%%, addr. %04X"
 		j=1;
 		if(saveLog){
-			fprintf(RegFile,strings[S_Log8],i,i,k,k,errori);	//"i=%d, k=%d, errori=%d\n"
+			fprintf(logfile,strings[S_Log8],i,i,k,k,err);	//"i=%d, k=%d, err=%d\n"
 			WriteLogIO();
 		}
-		if(errori>=max_err) break;
+		if(err>=max_err) break;
 	}
 	PrintMessage("\b\b\b");
 	if(k!=dim){
-		PrintMessage("\n");
-		PrintMessage(strings[S_ReadEEErr],dim,k);	//"Errore in lettura area EEPROM, richiesti %d byte, letti %d\r\n"
+		PrintMessage("\r\n");
+		PrintMessage2(strings[S_ReadEEErr],dim,k);	//"Error reading EEPROM area, requested %d bytes, read %d\r\n"
 	}
-	PrintMessage(strings[S_ComplErr],errori);	//"terminata: %d errori\r\n"
+	PrintMessage1(strings[S_ComplErr],err);	//"completed: %d errors\r\n"
 //****************** exit ********************
 	bufferU[j++]=EXT_PORT;
 	bufferU[j++]=0;
@@ -766,8 +772,8 @@ void Write93Cx(int dim,int na, int options)
 	msDelay(2);
 	read();
 	unsigned int stop=GetTickCount();
-	PrintMessage(strings[S_EndErr],(stop-start)/1000.0,errori,errori!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nFine (%.2f s) %d %s\r\n\r\n"
-	if(saveLog&&RegFile) fclose(RegFile);
+	PrintMessage3(strings[S_EndErr],(stop-start)/1000.0,err,err!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nEnd (%.2f s) %d %s\r\n\r\n"
+	if(saveLog) CloseLogFile();
 }
 
 #define CS 8
@@ -780,13 +786,12 @@ void Read25xx(int dim)
 {
 	int k=0,z=0,i,j;
 	if(dim>0x1000000||dim<0){
-		PrintMessage(strings[S_EELim]);	//"Dimensione eeprom oltre i limiti\r\n"
-
+		PrintMessage(strings[S_EELim]);	//"EEPROM size out of limits\r\n"
 		return;
 	}
 	if(saveLog){
-		OpenLogFile();
-		fprintf(RegFile,"Read25xx(%d)    (0x%X)\n",dim,dim);
+		OpenLogFile();	//"Log.txt"
+		fprintf(logfile,"Read25xx(%d)    (0x%X)\n",dim,dim);
 	}
 	sizeEE=dim;
 	memEE=malloc(dim);			//EEPROM
@@ -830,7 +835,7 @@ void Read25xx(int dim)
 	read();
 	if(saveLog)WriteLogIO();
 //****************** read ********************
-	PrintMessage(strings[S_ReadEE]);		//lettura EE ...
+	PrintMessage(strings[S_ReadEE]);		//read EEPROM ...
 	PrintMessage("   ");
 	for(i=0,j=1;i<dim;i+=DIMBUF-4){
 		bufferU[j++]=SPI_READ;
@@ -843,17 +848,17 @@ void Read25xx(int dim)
 		if(bufferI[1]==SPI_READ&&bufferI[2]<0xFA){
 			for(z=3;z<bufferI[2]+3&&z<DIMBUF;z++) memEE[k++]=bufferI[z];
 		}
-		PrintMessage("\b\b\b%2d%%",i*100/dim); fflush(stdout);
+		PrintStatus(strings[S_CodeReading2],i*100/(dim),i);	//"Read: %d%%, addr. %05X"
 		j=1;
 		if(saveLog){
-			fprintf(RegFile,strings[S_Log7],i,i,k,k);	//"i=%d(0x%X), k=%d(0x%X) \n"
+			fprintf(logfile,strings[S_Log7],i,i,k,k);	//"i=%d(0x%X), k=%d(0x%X) \n"
 			WriteLogIO();
 		}
 	}
 	PrintMessage("\b\b\b");
 	if(k!=dim){
-		PrintMessage("\n");
-		PrintMessage(strings[S_ReadEEErr],dim,k);	//"Errore in lettura area EEPROM, richiesti %d byte, letti %d\r\n"
+		PrintMessage("\r\n");
+		PrintMessage2(strings[S_ReadEEErr],dim,k);	//"Error reading EEPROM area, requested %d bytes, read %d\r\n"
 		sizeEE=k;
 	}
 	else PrintMessage(strings[S_Compl]);
@@ -870,8 +875,8 @@ void Read25xx(int dim)
 	read();
 	unsigned int stop=GetTickCount();
 	DisplayEE();	//visualize
-	PrintMessage(strings[S_End],(stop-start)/1000.0);	//"\r\nFine (%.2f s)\r\n"
-	if(saveLog&&RegFile) fclose(RegFile);
+	PrintMessage1(strings[S_End],(stop-start)/1000.0);	//"\r\nEnd (%.2f s)\r\n"
+	if(saveLog) CloseLogFile();
 }
 
 void Write25xx(int dim,int page,float wait)
@@ -880,14 +885,14 @@ void Write25xx(int dim,int page,float wait)
 // page=page size		wait=write delay
 {
 	int k=0,z=0,i,j;
-	int errori=0;
+	int err=0;
 	if(dim>0x1000000||dim<0){
-		PrintMessage(strings[S_EELim]);	//"Dimensione eeprom oltre i limiti\r\n"
+		PrintMessage(strings[S_EELim]);	//"EEPROM size out of limits\r\n"
 		return;
 	}
 	if(saveLog){
-		OpenLogFile();
-		fprintf(RegFile,"Write25xx(%d,%d,%f)    (0x%X)\n",dim,page,wait,dim);
+		OpenLogFile();	//"Log.txt"
+		fprintf(logfile,"Write25xx(%d,%d,%f)    (0x%X)\n",dim,page,wait,dim);
 	}
 	if(dim>sizeEE){
 		i=sizeEE;
@@ -896,7 +901,7 @@ void Write25xx(int dim,int page,float wait)
 		sizeEE=dim;
 	}
 	if(dim<1){
-		PrintMessage(strings[S_NoCode]);	//"Area dati vuota\r\n"
+		PrintMessage(strings[S_NoCode]);	//"Data area is empty\r\n"
 		return;
 	}
 	unsigned int start=GetTickCount();
@@ -927,7 +932,7 @@ void Write25xx(int dim,int page,float wait)
 	read();
 	if(saveLog)WriteLogIO();
 //****************** write ********************
-	PrintMessage(strings[S_EEAreaW]);	//"Scrittura EEPROM ... "
+	PrintMessage(strings[S_EEAreaW]);	//"Write EEPROM ... "
 	for(;page>=DIMBUF-22;page>>=1);
 	//page=1;
 	for(i=0,j=1;i<dim;i+=page){
@@ -972,17 +977,17 @@ void Write25xx(int dim,int page,float wait)
 		msDelay(wait+2);
 		read();
 		if(bufferI[2]!=SPI_WRITE||bufferI[3]>=0xFA) i=dim+10;
-		PrintMessage("\b\b\b%2d%%",i*100/dim); fflush(stdout);
+		PrintStatus(strings[S_CodeWriting2],i*100/(dim),i);	//"Write: %d%%, addr. %04X"
 		j=1;
 		if(saveLog){
-			fprintf(RegFile,strings[S_Log7],i,i,0,0);	//"i=%d(0x%X), k=%d(0x%X)\n"
+			fprintf(logfile,strings[S_Log7],i,i,0,0);	//"i=%d(0x%X), k=%d(0x%X)\n"
 			WriteLogIO();
 		}
 	}
 	PrintMessage("\b\b\b");
-	PrintMessage(strings[S_Compl]);	//"terminata\r\n"
+	PrintMessage(strings[S_Compl]);	//"completed\r\n"
 //****************** verify EEPROM ********************
-	PrintMessage(strings[S_EEV]);	//"Verifica EEPROM ... "
+	PrintMessage(strings[S_EEV]);	//"Verify EEPROM ... "
 	PrintMessage("   ");
 	j=1;
 	bufferU[j++]=EXT_PORT;	//CS=0, HLD=1, WP=0
@@ -1025,27 +1030,27 @@ void Write25xx(int dim,int page,float wait)
 		if(bufferI[1]==SPI_READ&&bufferI[2]<0xFA){
 			for(z=3;z<bufferI[2]+3&&z<DIMBUF;z++){
 				if(memEE[k++]!=bufferI[z]){
-					PrintMessage("\n");
-					PrintMessage(strings[S_CodeVError],i+z-3,i+z-3,memEE[k-1],bufferI[z]);	//"Errore in verifica, indirizzo %04X (%d), scritto %02X, letto %02X\r\n"
-					errori++;
+					PrintMessage("\r\n");
+					PrintMessage4(strings[S_CodeVError],i+z-3,i+z-3,memEE[k-1],bufferI[z]);	//"Errore in verifica, indirizzo %04X (%d), scritto %02X, letto %02X\r\n"
+					err++;
 				}
 			}
 		}
-		PrintMessage("\b\b\b%2d%%",i*100/dim); fflush(stdout);
+		PrintStatus(strings[S_CodeV2],i*100/(dim),i);	//"Verify: %d%%, addr. %04X"
 		j=1;
 		if(saveLog){
-			fprintf(RegFile,strings[S_Log8],i,i,k,k,errori);	//"i=%d, k=%d, errori=%d\n"
+			fprintf(logfile,strings[S_Log8],i,i,k,k,err);	//"i=%d, k=%d, err=%d\n"
 			WriteLogIO();
 		}
-		if(errori>=max_err) break;
+		if(err>=max_err) break;
 	}
 	PrintMessage("\b\b\b");
 	if(k!=dim){
-		PrintMessage("\n");
-		PrintMessage(strings[S_ReadEEErr],dim,k);	//"Errore in lettura area EEPROM, richiesti %d byte, letti %d\r\n"
+		PrintMessage("\r\n");
+		PrintMessage2(strings[S_ReadEEErr],dim,k);	//"Error reading EEPROM area, requested %d bytes, read %d\r\n"
 		sizeEE=k;
 	}
-	PrintMessage(strings[S_ComplErr],errori);	//"terminata: %d errori\r\n"
+	PrintMessage1(strings[S_ComplErr],err);	//"completed: %d errors\r\n"
 //****************** exit ********************
 	bufferU[j++]=EN_VPP_VCC;
 	bufferU[j++]=0x0;
@@ -1055,21 +1060,6 @@ void Write25xx(int dim,int page,float wait)
 	msDelay(2);
 	read();
 	unsigned int stop=GetTickCount();
-	PrintMessage(strings[S_EndErr],(stop-start)/1000.0,errori,errori!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nFine (%.2f s) %d %s\r\n\r\n"
-	if(saveLog&&RegFile) fclose(RegFile);
+	PrintMessage3(strings[S_EndErr],(stop-start)/1000.0,err,err!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nEnd (%.2f s) %d %s\r\n\r\n"
+	if(saveLog) CloseLogFile();
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

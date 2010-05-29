@@ -1,6 +1,6 @@
 /*
  * progP12.c - algorithms to program the PIC12 (12 bit word) family of microcontrollers
- * Copyright (C) 2009 Alberto Maccioni
+ * Copyright (C) 2009-2010 Alberto Maccioni
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,8 +34,8 @@ void Read12F5xx(int dim,int dim2)
 	size=0x1000;
 	dati_hex=malloc(sizeof(WORD)*size);
 	if(saveLog){
-		OpenLogFile();
-		fprintf(RegFile,"Read12F5xx(%d,%d)\n",dim,dim2);
+		OpenLogFile();	//"Log.txt"
+		fprintf(logfile,"Read12F5xx(%d,%d)\n",dim,dim2);
 	}
 	unsigned int start=GetTickCount();
 	bufferU[0]=0;
@@ -48,7 +48,7 @@ void Read12F5xx(int dim,int dim2)
 	bufferU[j++]=SET_T3;
 	bufferU[j++]=2000>>8;
 	bufferU[j++]=2000&0xff;
-	bufferU[j++]=EN_VPP_VCC;		//entrata program mode
+	bufferU[j++]=EN_VPP_VCC;		//enter program mode
 	bufferU[j++]=0x0;
 	bufferU[j++]=SET_CK_D;
 	bufferU[j++]=0x0;
@@ -69,7 +69,7 @@ void Read12F5xx(int dim,int dim2)
 	if(z<DIMBUF-2){
 		dati_hex[0xfff]=(bufferI[z+1]<<8)+bufferI[z+2];
 		PrintMessage("\r\n");
-		PrintMessage(strings[S_ConfigWord],dati_hex[0xfff]);	//"\r\nConfiguration word: 0x%03X\r\n"
+		PrintMessage1(strings[S_ConfigWord],dati_hex[0xfff]);	//"\r\nConfiguration word: 0x%03X\r\n"
 		switch(dati_hex[0xfff]&0x03){
 			case 0:
 				PrintMessage(strings[S_LPOsc]);	//"LP oscillator\r\n"
@@ -110,10 +110,10 @@ void Read12F5xx(int dim,int dim2)
 					z+=2;
 				}
 			}
-			PrintMessage("\b\b\b%2d%%",i*100/(dim+dim2)); fflush(stdout);
+			PrintStatus(strings[S_CodeReading],i*100/(dim+dim2),i);	//"Read: %d%%, addr. %03X"
 			j=1;
 			if(saveLog){
-				fprintf(RegFile,strings[S_Log7],i,i,k,k);	//"i=%d(0x%X), k=%d(0x%X)\n"
+				fprintf(logfile,strings[S_Log7],i,i,k,k);	//"i=%d(0x%X), k=%d(0x%X)\n"
 				WriteLogIO();
 			}
 		}
@@ -133,21 +133,21 @@ void Read12F5xx(int dim,int dim2)
 	msDelay(1);
 	read();
 	unsigned int stop=GetTickCount();
-	if(saveLog&&RegFile) fclose(RegFile);
+	if(saveLog)CloseLogFile();
 	for(i=k;i<0xfff;i++) dati_hex[i]=0xfff;
 	if(k!=dim+dim2){
 		PrintMessage("\n");
-		PrintMessage(strings[S_ReadErr],dim+dim2,k);	//"Errore in lettura: word richieste=%d, lette=%d\r\n"
+		PrintMessage2(strings[S_ReadErr],dim+dim2,k);	//"Errore in lettura: word richieste=%d, lette=%d\r\n"
 	}
-	else PrintMessage(strings[S_Compl],k);	//"completata\n"
+	else PrintMessage1(strings[S_Compl],k);	//"completed\n"
 //****************** visualize ********************
 	for(i=0;i<4;i+=2){
-		PrintMessage(strings[S_ChipID],i,dati_hex[dim+i],i+1,dati_hex[dim+i+1]);	//"ID%d: 0x%03X   ID%d: 0x%03X\r\n"
+		PrintMessage4(strings[S_ChipID],i,dati_hex[dim+i],i+1,dati_hex[dim+i+1]);	//"ID%d: 0x%03X   ID%d: 0x%03X\r\n"
 	}
 	if(dim2>4){
-		PrintMessage(strings[S_BKOsccal],dati_hex[dim+4]);	//"Backup OSCCAL: 0x%03X\r\n"
+		PrintMessage1(strings[S_BKOsccal],dati_hex[dim+4]);	//"Backup OSCCAL: 0x%03X\r\n"
 	}
-	PrintMessage("\n");
+	PrintMessage("\r\n");
 	PrintMessage(strings[S_CodeMem]);	//"\r\nMemoria programma:\r\n"
 	s[0]=0;
 	int valid=0,empty=1;
@@ -183,8 +183,9 @@ void Read12F5xx(int dim,int dim2)
 		}
 		if(empty) PrintMessage(strings[S_Empty]);	//empty
 	}
-	PrintMessage("\n");
-	PrintMessage(strings[S_End],(stop-start)/1000.0);	//"\r\nFine (%.2f s)\r\n"
+	PrintMessage("\r\n");
+	PrintMessage1(strings[S_End],(stop-start)/1000.0);	//"\r\nEnd (%.2f s)\r\n"
+
 }
 
 void Write12F5xx(int dim,int OscAddr)
@@ -199,7 +200,7 @@ void Write12F5xx(int dim,int OscAddr)
 // write: BEGIN_PROG (1000) + Tprogram 2ms + END_PROG2 (1110);
 	int k=0,z=0,i,j,w;
 	int err=0;
-	WORD osccal=0xffff,BKosccal=0xffff;
+	WORD osccal=-1,BKosccal=-1;
 	if(OscAddr>dim) OscAddr=dim-1;
 	if(OscAddr==-1) usa_BKosccal=usa_osccal=0;
 	if(size<0x1000){
@@ -207,8 +208,8 @@ void Write12F5xx(int dim,int OscAddr)
 		return;
 	}
 	if(saveLog){
-		OpenLogFile();
-		fprintf(RegFile,"Write12F5xx(%d,%d)\n",dim,OscAddr);
+		OpenLogFile();	//"Log.txt"
+		fprintf(logfile,"Write12F5xx(%d,%d)\n",dim,OscAddr);
 	}
 	for(i=0;i<size;i++) dati_hex[i]&=0xFFF;
 	unsigned int start=GetTickCount();
@@ -218,7 +219,7 @@ void Write12F5xx(int dim,int OscAddr)
 	bufferU[j++]=SET_T1T2;
 	bufferU[j++]=1;						//T1=1u
 	bufferU[j++]=100;					//T2=100u
-	bufferU[j++]=EN_VPP_VCC;		//entrata program mode
+	bufferU[j++]=EN_VPP_VCC;		//enter program mode
 	bufferU[j++]=0x0;
 	bufferU[j++]=SET_CK_D;
 	bufferU[j++]=0x0;
@@ -267,18 +268,18 @@ void Write12F5xx(int dim,int OscAddr)
 		if(z<DIMBUF-2) osccal=(bufferI[z+1]<<8)+bufferI[z+2];
 		for(z+=3;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
 		if(z<DIMBUF-2) BKosccal=(bufferI[z+1]<<8)+bufferI[z+2];
-		if(osccal==0xffff||BKosccal==0xffff){
+		if(osccal==-1||BKosccal==-1){
 			PrintMessage(strings[S_ErrOsccal]);	//"Errore in lettura OSCCAL e BKOSCCAL"
-			PrintMessage("\n");
+			PrintMessage("\r\n");
 			return;
 		}
-		PrintMessage(strings[S_Osccal],osccal);	//"OSCCAL: 0x%03X\r\n"
-		PrintMessage(strings[S_BKOsccal],BKosccal);	//"Backup OSCCAL: 0x%03X\r\n"
+		PrintMessage1(strings[S_Osccal],osccal);	//"OSCCAL: 0x%03X\r\n"
+		PrintMessage1(strings[S_BKOsccal],BKosccal);	//"Backup OSCCAL: 0x%03X\r\n"
  	}
 //****************** erase memory ********************
 	PrintMessage(strings[S_StartErase]);	//"Cancellazione ... "
 	j=1;
-	bufferU[j++]=EN_VPP_VCC;			// entrata program mode
+	bufferU[j++]=EN_VPP_VCC;			// enter program mode
 	bufferU[j++]=0x1;
 	bufferU[j++]=NOP;
 	bufferU[j++]=EN_VPP_VCC;
@@ -320,8 +321,8 @@ void Write12F5xx(int dim,int OscAddr)
 	bufferU[j++]=0x1;
 	bufferU[j++]=EN_VPP_VCC;
 	bufferU[j++]=0x0;
-	bufferU[j++]=WAIT_T3;			// ritardo T3=10ms tra uscita e rientro program mode
-	bufferU[j++]=EN_VPP_VCC;		// entrata program mode
+	bufferU[j++]=WAIT_T3;			// delay T3=10ms before entering program mode
+	bufferU[j++]=EN_VPP_VCC;		// enter program mode
 	bufferU[j++]=0x1;
 	bufferU[j++]=NOP;
 	bufferU[j++]=EN_VPP_VCC;
@@ -337,7 +338,7 @@ void Write12F5xx(int dim,int OscAddr)
 	msDelay(30);
 	if(dim>OscAddr+1) msDelay(20);
 	read();
-	PrintMessage(strings[S_Compl]);	//"completata\r\n"
+	PrintMessage(strings[S_Compl]);	//"completed\r\n"
 	if(saveLog)WriteLogIO();
 //****************** write code ********************
 	PrintMessage(strings[S_StartCodeProg]);	//"Scrittura codice ... "
@@ -361,7 +362,7 @@ void Write12F5xx(int dim,int OscAddr)
 		}
 		bufferU[j++]=INC_ADDR;
 		if(j>DIMBUF-10||i==dim1-1){
-			PrintMessage("\b\b\b%2d%%",i*100/dim); fflush(stdout);
+			PrintStatus(strings[S_CodeWriting],i*100/dim,i);	//"Write: %d%%, ind. %03X"
 			bufferU[j++]=FLUSH;
 			for(;j<DIMBUF;j++) bufferU[j]=0x0;
 			write();
@@ -372,12 +373,12 @@ void Write12F5xx(int dim,int OscAddr)
 				if(bufferI[z]==INC_ADDR&&dati_hex[k]>=0xfff) k++;
 				else if(bufferI[z]==LOAD_DATA_PROG&&bufferI[z+5]==READ_DATA_PROG){
 					if (dati_hex[k]!=(bufferI[z+6]<<8)+bufferI[z+7]){
-						PrintMessage("\n");
-						PrintMessage(strings[S_CodeWError],k,dati_hex[k],(bufferI[z+6]<<8)+bufferI[z+7]);	//"Errore in scrittura all'indirizzo %3X: scritto %03X, letto %03X\r\n"
+						PrintMessage("\r\n");
+						PrintMessage3(strings[S_CodeWError],k,dati_hex[k],(bufferI[z+6]<<8)+bufferI[z+7]);	//"Errore in scrittura all'indirizzo %3X: scritto %03X, letto %03X\r\n"
 						err++;
 						if(max_err&&err>max_err){
-							PrintMessage(strings[S_MaxErr],err);	//"Superato il massimo numero di errori (%d), scrittura interrotta\r\n"
-							PrintMessage(strings[S_IntW]);	//"Scrittura interrotta"
+							PrintMessage1(strings[S_MaxErr],err);	//"Exceeded maximum number of errors (%d), write interrupted\r\n"
+							PrintMessage(strings[S_IntW]);	//"write interrupted"
 							i=dim1;
 							z=DIMBUF;
 						}
@@ -388,16 +389,16 @@ void Write12F5xx(int dim,int OscAddr)
 			}
 			j=1;
 			if(saveLog){
-				fprintf(RegFile,strings[S_Log8],i,i,k,k,err);	//"i=%d, k=%d, errori=%d\n"
+				fprintf(logfile,strings[S_Log8],i,i,k,k,err);	//"i=%d, k=%d, errori=%d\n"
 				WriteLogIO();
 			}
 		}
 	}
 	PrintMessage("\b\b\b");
 	err+=i-k;
-	PrintMessage(strings[S_ComplErr],err);	//"completata, %d errori\r\n"
+	PrintMessage1(strings[S_ComplErr],err);	//"completed, %d errors\r\n"
 //****************** write CONFIG ********************
-	PrintMessage(strings[S_ConfigW]);	//"Scrittura CONFIG ... "
+	PrintMessage(strings[S_ConfigW]);	//"Write CONFIG ... "
 	int err_c=0;
 	bufferU[j++]=NOP;				//uscita program mode
 	bufferU[j++]=EN_VPP_VCC;
@@ -411,7 +412,7 @@ void Write12F5xx(int dim,int OscAddr)
 	bufferU[j++]=WAIT_T3;
 	bufferU[j++]=WAIT_T3;
 	bufferU[j++]=WAIT_T3;
-	bufferU[j++]=EN_VPP_VCC;		//entrata program mode
+	bufferU[j++]=EN_VPP_VCC;		//enter program mode
 	bufferU[j++]=0x1;
 	bufferU[j++]=NOP;
 	bufferU[j++]=EN_VPP_VCC;
@@ -438,22 +439,22 @@ void Write12F5xx(int dim,int OscAddr)
 	read();
 	unsigned int stop=GetTickCount();
 	for(z=10;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
-	if (z<(DIMBUF-2)&&(!dati_hex[0xfff]&((bufferI[z+1]<<8)+bufferI[z+2]))){	//error only on 0 bits
-		PrintMessage("\n");
-		PrintMessage(strings[S_ConfigWErr],dati_hex[0xfff],(bufferI[z+1]<<8)+bufferI[z+2]);	//"Errore in scrittura config:\r\ndato scritto %03X, letto %03X\r\n"
+	if (~dati_hex[0xfff]&((bufferI[z+1]<<8)+bufferI[z+2])){	//error if written 0 and read 1 (~W&R)
+		PrintMessage("\r\n");
+		PrintMessage2(strings[S_ConfigWErr],dati_hex[0xfff],(bufferI[z+1]<<8)+bufferI[z+2]);	//"Errore in Write CONFIG:\r\ndato scritto %03X, letto %03X\r\n"
 		err_c++;
 	}
 	err+=err_c;
 	if (z>DIMBUF-2){
-		PrintMessage("\n");
-		PrintMessage(strings[S_ConfigWErr2]);	//"Errore in scrittura CONFIG"
+		PrintMessage("\r\n");
+		PrintMessage(strings[S_ConfigWErr2]);	//"Error writing CONFIG"
 	}
-	PrintMessage(strings[S_ComplErr],err_c);	//"completata, %d errori\r\n"
+	PrintMessage1(strings[S_ComplErr],err_c);	//"completed, %d errors\r\n"
 	if(saveLog){
-		fprintf(RegFile,strings[S_Log8],i,i,k,k,err);	//"i=%d, k=%d, errori=%d\n"
+		fprintf(logfile,strings[S_Log8],i,i,k,k,err);	//"i=%d, k=%d, errori=%d\n"
 		WriteLogIO();
+		CloseLogFile();
 	}
-	if(saveLog&&RegFile) fclose(RegFile);
-	PrintMessage(strings[S_EndErr],(stop-start)/1000.0,err,err!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nFine (%.2f s) %d %s\r\n\r\n"
+	PrintMessage3(strings[S_EndErr],(stop-start)/1000.0,err,err!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nFine (%.2f s) %d %s\r\n\r\n"
 }
 

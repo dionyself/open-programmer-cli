@@ -1,6 +1,6 @@
 /*
  * op.c - control program for the open programmer
- * Copyright (C) 2009 2010 Alberto Maccioni
+ * Copyright (C) 2009-2010 Alberto Maccioni
  * for detailed info see:
  * http://openprog.altervista.org/
  *
@@ -50,13 +50,14 @@
 #include "instructions.h"
 
 #define COL 16
-#define VERSION "0.7.3"
+#define VERSION "0.7.4"
 #define G (12.0/34*1024/5)		//=72,2823529412
 #define  LOCK	1
 #define  FUSE	2
 #define  FUSE_H 4
 #define  FUSE_X	8
 #define  CAL	16
+#define  SLOW	256
 
 #if !defined _WIN32 && !defined __CYGWIN__
     #define write() ioctl(fd, HIDIOCSUSAGES, &ref_multi_u); ioctl(fd,HIDIOCSREPORT, &rep_info_u);
@@ -77,14 +78,12 @@
 typedef unsigned long DWORD;
 typedef unsigned short WORD;
 typedef unsigned char BYTE;
+#define CloseLogFile() if(logfile)fclose(logfile);
 
 #if !defined _WIN32 && !defined __CYGWIN__
 DWORD GetTickCount();
 #endif
 void msDelay(double delay);
-void WriteLogIO();
-void PIC_ID(int id);
-void AtmelID(BYTE id[]);
 void Save(char* dev,char* savefile);
 int Load(char* dev,char* loadfile);
 void SaveEE(char* dev,char* savefile);
@@ -92,7 +91,7 @@ void LoadEE(char* dev,char* loadfile);
 unsigned int htoi(const char *hex, int length);
 void Read12F5xx(int dim,int dim2);
 void Read16Fxxx(int dim,int dim2,int dim3,int vdd);
-void Read18Fx(int dim,int dim2);
+void Read18Fx(int dim,int dim2,int options);
 void Read25xx(int dim);
 void Write12F5xx(int dim,int OscAddr);
 void Write12F6xx(int dim,int dim2);
@@ -108,7 +107,7 @@ void ReadI2C(int dim,int addr);
 void WriteI2C(int dim, int addr, int page, float wait);
 void ReadAT(int dim,int dim2,int options);
 void WriteAT(int dim,int dim2);
-void WriteATmega(int dim,int dim2,int page);
+void WriteATmega(int dim,int dim2,int page,int options);
 void Read93Sx(int dim,int na);
 void Write93Sx(int dim,int na, int page, double wait);
 void Write25xx(int dim,int page,float wait);
@@ -117,13 +116,14 @@ int StartHVReg(double V);
 void ProgID();
 void DisplayEE();
 int FindDevice();
+void OpenLogFile();
 
 char** strings;
 int saveLog=0,programID=0,MinDly=1,load_osccal=0,load_BKosccal=0,usa_osccal=1,usa_BKosccal=0;
 int load_calibword=0,max_err=200;
 int lock=0x100,fuse=0x100,fuse_h=0x100,fuse_x=0x100;
 int FWVersion=0;
-FILE* RegFile=0;
+FILE* logfile=0;
 char LogFileName[256]="";
 char loadfile[256]="",savefile[256]="";
 char loadfileEE[256]="",savefileEE[256]="";
@@ -166,7 +166,7 @@ int main (int argc, char **argv) {
 	struct option long_options[] =
 	{
 		{"BKosccal",      no_argument,  &load_BKosccal, 1},
-		{"calib",         no_argument,     &load_calibword, 1},
+		{"calib",         no_argument, &load_calibword, 1},
 		{"d",             required_argument,       0, 'd'},
 		{"device",        required_argument,       0, 'd'},
 		{"D",             required_argument,       0, 'D'},
@@ -185,7 +185,7 @@ int main (int argc, char **argv) {
 		{"i2c_r2",        no_argument,            &i2c, 2},
 		{"i2c_w",         no_argument,            &i2c, 3},
 		{"i2c_w2",        no_argument,            &i2c, 4},
-		{"id",            no_argument,             &programID, 1},
+		{"id",            no_argument,      &programID, 1},
 		{"l",             optional_argument,       0, 'l'}, //bug di getopt: ci vuole -l=valore
 		{"log",           optional_argument,       0, 'l'},
 		{"lock",          required_argument,       0, 'L'},
@@ -296,7 +296,7 @@ int main (int argc, char **argv) {
 	for(j=0,i = optind; i < argc&&i<128; i++,j++) sscanf(argv[i], "%x", &tmpbuf[j]);
 	for(;j<128;j++) tmpbuf[j]=0;
 	if (ver){
-		printf("OP v%s\nCopyright (C) Alberto Maccioni 2009 2010\
+		printf("OP v%s\nCopyright (C) Alberto Maccioni 2009-2010\
 \n	For detailed info see http://openprog.altervista.org/\
 \nThis program is free software; you can redistribute it and/or modify it under \
 the terms of the GNU General Public License as published by the Free Software \
@@ -305,9 +305,9 @@ Foundation; either version 2 of the License, or (at your option) any later versi
 		return 0;
 	}
 	if (lista){
-		printf("%s\
-\n10F200, 10F202, 10F204, 10F206, 10F220, 10F222,\n\
-12F508, 12F509, 12F510, 12F519, 12F609, 12F615, 12F629, 12F635, 12F675, 12F683,\n\
+		printf("%s\n\
+10F200, 10F202, 10F204, 10F206, 10F220, 10F222,\n\
+12F508, 12F509, 12F510, 12F519, 12F609, 12F615, 12F629, 12F635, 12F675, 12F683, \
 16F505, 16F506, 16F526, 16F54, 16F610, 16F616, 16F627, 16F627A, 16F628, 16F628A, \
 16F630, 16F631, 16F636, 16F639, 16F648A, 16F676, 16F677, 16F684, 16F685, 16F687, \
 16F688, 16F689, 16F690, 16F716, 16F73, 16F737, 16F74, 16F747, 16F76, 16F767, 16F77, \
@@ -317,24 +317,50 @@ Foundation; either version 2 of the License, or (at your option) any later versi
 16F914, 16F916, 16F917, 16F946,\n\
 16F1822, 16F1823, 16F1824, 16F1825, 16F1826, 16F1827, 16F1828, 16F1829, 16F1933, \
 16F1934, 16F1936, 16F1937, 16F1938, 16F1939, 16F1946, 16F1947,\n\
-18F242, 18F248, 18F252, 18F258, 18F442, 18F448, 18F452, 18F458, 18F1220, 18F1230, \
-18F1320, 18F1330, 18F2220, 18F2221, 18F2320, 18F2321, 18F2331, 18F2410, 18F2420, \
-18F2423, 18F2431, 18F2439, 18F2450, 18F2455, 18F2458, 18F2480, 18F2510, 18F2515, \
-18F2520, 18F2523, 18F2525, 18F2539, 18F2550, 18F2553, 18F2580, 18F2585, 18F2610, \
-18F2620, 18F2680, 18F2682, 18F2685, 18F4220, 18F4221, 18F4320, 18F4321, 18F4331, \
-18F4410, 18F4420, 18F4423, 18F4431, 18F4439, 18F4450, 18F4455, 18F4458, 18F4480, \
-18F4510, 18F4515, 18F4520, 18F4523, 18F4525, 18F4539, 18F4550, 18F4553, 18F4580, \
-18F4585, 18F4610, 18F4620, 18F4680, 18F4682, 18F4685, 18F8722,\n\
+18F242, 18F248, 18F252, 18F258, 18F442, 18F448, 18F452, 18F458, 18F1220, 18F1230,\
+18F1320, 18F1330, 18F13K50, 18F14K50, 18F2220, 18F2221, 18F2320, 18F23K20, 18F2321, \
+18F2331, 18F2410, 18F24J10, 18F24J11, 18F2420, 18F24K20, 18F2423, 18F2431, 18F2439, \
+18F2450, 18F24J50, 18F2455, 18F2458, 18F2480, 18F2510, 18F25J10, 18F25J11, 18F2515, \
+18F25K20, 18F2520, 18F2523, 18F2525, 18F2539, 18F2550, 18F25J50, 18F2553, 18F2580, \
+18F2585, 18F2610, 18F26J11, 18F26J13, 18F2620, 18F26K20, 18F26J50, 18F26J53, 18F2680, \
+18F2682, 18F2685, 18F27J13, 18F27J53, 18F4220, 18F4221, 18F4320, 18F43K20, 18F4321, \
+18F4331, 18F4410, 18F44J10, 18F44J11, 18F4420, 18F44K20, 18F4423, 18F4431, 18F4439, \
+18F4450, 18F44J50, 18F4455, 18F4458, 18F4480, 18F4510, 18F45J10, 18F45J11, 18F4515, \
+18F4520, 18F45K20, 18F4523, 18F4525, 18F4539, 18F4550, 18F45J50, 18F4553, 18F4580, \
+18F4585, 18F4610, 18F46J11, 18F46J13, 18F4620, 18F46K20, 18F46J50, 18F46J53, 18F4680, \
+18F4682, 18F4685, 18F47J13, 18F47J53, 18F8722,\n\
 24F04KA200, 24F04KA201, 24F08KA101, 24F08KA102, 24F16KA101, 24F16KA102, 24FJ16GA002, \
-24FJ16GA004, 24FJ32GA002, 24FJ32GA004, 24FJ48GA002, 24FJ48GA004, 24FJ64GA002, \
-24FJ64GA004, 24FJ64GA006, 24FJ64GA008, 24FJ64GA010, 24FJ96GA006, 24FJ96GA008, \
-24FJ96GA010, 24FJ128GA006, 24FJ128GA008, 24FJ128GA010,\n\
-2400, 2401, 2402, 2404, 2408, 2416, 2432, 2464, 24128, 24256, 24512, 241025,\n\
+24FJ16GA004, 24FJ32GA002, 24FJ32GA004, 24FJ48GA002, 24FJ48GA004, 24FJ64GA002, 24FJ64GA004, \
+24FJ64GA006, 24FJ64GA008, 24FJ64GA010, 24FJ96GA006, 24FJ96GA008, 24FJ96GA010, 24FJ128GA006, \
+24FJ128GA008, 24FJ128GA010, 24FJ32GA102, 24FJ32GA104, 24FJ32GB002, 24FJ32GB004, 24FJ64GA102, \
+24FJ64GA104, 24FJ64GB002, 24FJ64GB004, 24FJ64GB106, 24FJ64GB108, 24FJ64GB110, 24FJ128GA106, \
+24FJ128GB106, 24FJ128GA108, 24FJ128GB108, 24FJ128GA110, 24FJ128GB110, 24FJ192GA106, \
+24FJ192GB106, 24FJ192GA108, 24FJ192GB108, 24FJ192GA110, 24FJ192GB110, 24FJ256GA106, \
+24FJ256GB106, 24FJ256GA108, 24FJ256GB108, 24FJ256GA110, 24FJ256GB110, 24HJ12GP201, \
+24HJ12GP202, 24HJ16GP304, 24HJ32GP202, 24HJ32GP204, 24HJ32GP302, 24HJ32GP304, 24HJ64GP202, \
+24HJ64GP204, 24HJ64GP206, 24HJ64GP210, 24HJ64GP502, 24HJ64GP504, 24HJ64GP506, 24HJ64GP510, \
+24HJ128GP202, 24HJ128GP204, 24HJ128GP206, 24HJ128GP210, 24HJ128GP306, 24HJ128GP310, \
+24HJ128GP502, 24HJ128GP504, 24HJ128GP506, 24HJ128GP510, 24HJ256GP206, 24HJ256GP210, \
+24HJ256GP610,\n\
+30F2010, 30F2011, 30F2012, 30F3010, 30F3011, 30F3012, 30F3013, 30F3014, 30F4011, 30F4012, \
+30F4013, 30F5011, 30F5013, 30F5015, 30F5016, 30F6010, 30F6011, 30F6012, 30F6013, 30F6014, \
+30F6015,\n\
+33FJ06GS101, 33FJ06GS102, 33FJ06GS202, 33FJ12GP201, 33FJ12GP202, 33FJ12MC201, 33FJ12MC202, \
+33FJ16GP304, 33FJ16GS402, 33FJ16GS404, 33FJ16GS502, 33FJ16GS504, 33FJ16MC304, 33FJ32GP202, \
+33FJ32GP204, 33FJ32GP302, 33FJ32GP304, 33FJ32GS406, 33FJ32GS606, 33FJ32GS608, 33FJ32GS610, \
+33FJ32MC202, 33FJ32MC204, 33FJ32MC302, 33FJ32MC304, 33FJ64GP202, 33FJ64GP204, 33FJ64GP206, \
+33FJ64GP306, 33FJ64GP310, 33FJ64GP706, 33FJ64GP708, 33FJ64GP710, 33FJ64GP802, 33FJ64GP804, \
+33FJ64GS406, 33FJ64GS606, 33FJ64GS608, 33FJ64GS610, 33FJ64MC202, 33FJ64MC204, 33FJ64MC506, \
+33FJ64MC508, 33FJ64MC510, 33FJ64MC706, 33FJ64MC710, 33FJ64MC802, 33FJ64MC804, 33FJ128GP202, \
+33FJ128GP204, 33FJ128GP206, 33FJ128GP306, 33FJ128GP310, 33FJ128GP706, 33FJ128GP708, \
+33FJ128GP710, 33FJ128GP802, 33FJ128GP804, 33FJ128MC202, 33FJ128MC204, 33FJ128MC506, \
+33FJ128MC510, 33FJ128MC706, 33FJ128MC708, 33FJ128MC710, 33FJ128MC802, 33FJ128MC804, \
+33FJ256GP506, 33FJ256GP510, 33FJ256GP710, 33FJ256MC510, 33FJ256MC710,\n\
+2400, 2401, 2402, 2404, 2408, 2416, 2432, 2464, 24128, 24256, 24512, 241024, 241025,\n\
 25010, 25020, 25040, 25080, 25160, 25320, 25640, 25128, 25256, 25512, 251024,\n\
-93S46, 93x46, 93x46A, 93S56, 93x56, 93x56A, 93S66, 93x66, 93x66A, 93x76, 93x76A, \
-93x86, 93x86A,\n\
-AT90S1200, AT90S8515, AT90S8535, ATmega8, ATmega8A, ATmega8515, ATmega8535, \
-ATmega16, ATmega16A, ATmega32, ATmega32A, ATmega64, ATmega64A\n\
+93S46, 93x46, 93x46A, 93S56, 93x56, 93x56A, 93S66, 93x66, 93x66A, 93x76, 93x76A, 93x86, 93x86A,\n\
+AT90S1200, AT90S2313, AT90S8515, AT90S8535, ATmega8, ATmega8A, ATmega8515, ATmega8535,\
+ATmega16, ATmega16A, ATmega32, ATmega32A, ATmega64, ATmega64A, ATtiny2313\n\
 \n%s\
 \n12C508, 12C508A, 12C509, 12C509A, 12C671, 12C672, 12CE673, 12CE674\n"\
 		,strings[L_DEV_RW],strings[L_DEV_RO]);
@@ -358,9 +384,8 @@ ATmega16, ATmega16A, ATmega32, ATmega32A, ATmega64, ATmega64A\n\
 	DWORD t0,t;
 	t=t0=GetTickCount();
 	ProgID();
-	if(!strncmp(dev,"16F1",4)) StartHVReg(8.5);
+	if(!strncmp(dev,"16F1",4));
 	else if(!strncmp(dev,"10",2)||!strncmp(dev,"12",2)||!strncmp(dev,"16",2)||testhw) StartHVReg(13);
-	else if(!strncmp(dev,"18",2)) StartHVReg(12);
 	else StartHVReg(-1);
 	if(testhw){			//test hardware
 		TestHw();
@@ -487,6 +512,7 @@ ATmega16, ATmega16A, ATmega32, ATmega32A, ATmega64, ATmega64A\n\
 		}
 		if(!strncmp(dev,"AT",2)&&loadfileEE[0]) LoadEE(dev,loadfileEE);
 //-------------PIC10-16---------------------------------------------------------
+	if(!strncmp(dev,"10",2)||!strncmp(dev,"12",2)||!strncmp(dev,"16",2)){
 		if(EQ("10F200")||EQ("10F204")||EQ("10F220")){
 			Write12F5xx(0x100,0xFF);						//256
 		}
@@ -601,15 +627,32 @@ ATmega16, ATmega16A, ATmega32, ATmega32A, ATmega64, ATmega64A\n\
 		else if(EQ("16F1938")||EQ("16F1939")||EQ("16F1947")){
 			Write16F1xxx(0x4000,ee?0x100:0,0);				//16K, 256
 		}
+		else{
+			PrintMessage(strings[S_nodev_w]); //"Dispositivo non supportato in scrittura\r\n");
+		}
+	}
 //-------------PIC18---------------------------------------------------------
-		else if(EQ("18F1230")){
+// options:
+//	bit [3:0]
+//     0 = vdd before vpp (12V)
+//     1 = vdd before vpp (9V)
+//     2 = low voltage entry with 32 bit key
+//	bit [7:4]
+//     0 = normal eeprom write algoritm
+//     1 = with unlock sequence 55 AA
+//	bit [11:8]
+//     0 = 5ms erase delay, 1ms code write time, 5ms EE write delay, 5ms config write time
+//     1 = 550ms erase delay, 1.2ms code write time, no config or EEPROM
+//     2 = 550ms erase delay, 3.4ms code write time, no config or EEPROM
+	else if(!strncmp(dev,"18F",3)){
+		if(EQ("18F1230")){
 			Write18Fx(0x1000,ee?0x80:0,8,0x0F0F,0x8787,0);		//4K, 128, 8
 		}
 		else if(EQ("18F2221")||EQ("18F4221")){
 			Write18Fx(0x1000,ee?0x100:0,8,0x3F3F,0x8F8F,0);		//4K, 256, 8
 		}
 		else if(EQ("18F1220")||EQ("18F2220")||EQ("18F4220")){
-			Write18Fx(0x1000,ee?0x100:0,8,0x10000,0x80,1);		//4K, 256, 8, EE with unlock
+			Write18Fx(0x1000,ee?0x100:0,8,0x10000,0x80,0x10);		//4K, 256, 8, EE with unlock
 		}
 		else if(EQ("18F1330")){
 			Write18Fx(0x2000,ee?0x80:0,8,0x0F0F,0x8787,0);		//8K, 128, 8
@@ -618,19 +661,37 @@ ATmega16, ATmega16A, ATmega32, ATmega32A, ATmega64, ATmega64A\n\
 			Write18Fx(0x2000,ee?0x100:0,8,0x3F3F,0x8F8F,0);		//8K, 256, 8
 		}
 		else if(EQ("18F1320")||EQ("18F2320")||EQ("18F4320")||EQ("18F2331")||EQ("18F4331")){
-			Write18Fx(0x2000,ee?0x100:0,8,0x10000,0x80,1);		//8K, 256, 8, EE with unlock
+			Write18Fx(0x2000,ee?0x100:0,8,0x10000,0x80,0x10);		//8K, 256, 8, EE with unlock
+		}
+		else if(EQ("18F13K50")){
+			Write18Fx(0x2000,ee?0x100:0,8,0x0F0F,0x8F8F,1);		//8K, 256, 9V
+		}
+		else if(EQ("18F23K20")||EQ("18F43K20")){
+			Write18Fx(0x2000,ee?0x100:0,16,0x0F0F,0x8F8F,1);		//8K, 256, 9V
 		}
 		else if(EQ("18F2439")||EQ("18F4439")){
-			Write18Fx(0x3000,ee?0x100:0,8,0x10000,0x80,1);		//12K, 256, 8, EE with unlock
+			Write18Fx(0x3000,ee?0x100:0,8,0x10000,0x80,0x10);		//12K, 256, 8, EE with unlock
 		}
 		else if(EQ("18F2410")||EQ("18F4410")){
 			Write18Fx(0x4000,0,32,0x3F3F,0x8F8F,0);				//16K, 0, 32
 		}
+		else if(EQ("18F24J10")||EQ("18F44J10")){
+			Write18Fx(0x4000,0,64,0x0101,0x8080,0x202);				//16K, 0, 64, LV
+		}
+		else if(EQ("18F24J11")||EQ("18F24J50")||EQ("18F44J11")||EQ("18F44J50")){
+			Write18Fx(0x4000,0,64,0x0101,0x8080,0x102);				//16K, 0, 64, LV
+		}
 		else if(EQ("18F2450")||EQ("18F4450")){
 			Write18Fx(0x4000,0,16,0x3F3F,0x8F8F,0);				//16K, 0, 16
 		}
+		else if(EQ("18F14K50")){
+			Write18Fx(0x4000,ee?0x100:0,16,0x0F0F,0x8F8F,1);	//16K, 256, 9V
+		}
+		else if(EQ("18F24K20")||EQ("18F44K20")){
+			Write18Fx(0x4000,ee?0x100:0,32,0x0F0F,0x8F8F,1);	//16K, 256, 9V
+		}
 		else if(EQ("18F2431")||EQ("18F4431")||EQ("18F242")||EQ("18F248")||EQ("18F442")||EQ("18F448")){
-			Write18Fx(0x4000,ee?0x100:0,8,0x10000,0x80,1);		//16K, 256, 8, EE with unlock
+			Write18Fx(0x4000,ee?0x100:0,8,0x10000,0x80,0x10);		//16K, 256, 8, EE with unlock
 		}
 		else if(EQ("18F2420")||EQ("18F2423")||EQ("18F4420")||EQ("18F4423")||EQ("18F2480")||EQ("18F4480")){
 			Write18Fx(0x4000,ee?0x100:0,32,0x3F3F,0x8F8F,0);	//16K, 256, 32
@@ -639,16 +700,25 @@ ATmega16, ATmega16A, ATmega32, ATmega32A, ATmega64, ATmega64A\n\
 			Write18Fx(0x6000,ee?0x100:0,32,0x3F3F,0x8F8F,0);	//24K, 256, 32
 		}
 		else if(EQ("18F2539")||EQ("18F4539")){
-			Write18Fx(0x6000,ee?0x100:0,8,0x10000,0x80,1);		//24K, 256, 8, EE with unlock
+			Write18Fx(0x6000,ee?0x100:0,8,0x10000,0x80,0x10);	//24K, 256, 8, EE with unlock
 		}
 		else if(EQ("18F2510")||EQ("18F4510")){
 			Write18Fx(0x8000,0,32,0x3F3F,0x8F8F,0);				//32K, 0, 32
 		}
+		else if(EQ("18F25J10")||EQ("18F45J10")){
+			Write18Fx(0x8000,0,64,0x0101,0x8080,0x202);			//32K, 0, 64, LV
+		}
+		else if(EQ("18F25J11")||EQ("18F25J50")||EQ("18F45J11")||EQ("18F45J50")){
+			Write18Fx(0x8000,0,64,0x0101,0x8080,0x102);			//32K, 0, 64, LV
+		}
 		else if(EQ("18F252")||EQ("18F258")||EQ("18F452")||EQ("18F458")){
-			Write18Fx(0x8000,ee?0x100:0,8,0x10000,0x80,1);		//32K, 256, 8, EE with unlock
+			Write18Fx(0x8000,ee?0x100:0,8,0x10000,0x80,0x10);	//32K, 256, 8, EE with unlock
 		}
 		else if(EQ("18F2550")||EQ("18F2553")||EQ("18F4550")||EQ("18F4553")||EQ("18F2520")||EQ("18F2523")||EQ("18F4520")||EQ("18F4523")||EQ("18F2580")||EQ("18F4580")){
 			Write18Fx(0x8000,ee?0x100:0,32,0x3F3F,0x8F8F,0);	//32K, 256, 32
+		}
+		else if(EQ("18F25K20")||EQ("18F45K20")){
+			Write18Fx(0x8000,ee?0x100:0,32,0x0F0F,0x8F8F,1);	//32K, 256, 32, 9V
 		}
 		else if(EQ("18F2515")||EQ("18F4515")){
 			Write18Fx(0xC000,0,64,0x3F3F,0x8F8F,0);				//48K, 0, 64
@@ -659,8 +729,14 @@ ATmega16, ATmega16A, ATmega32, ATmega32A, ATmega64, ATmega64A\n\
 		else if(EQ("18F2610")||EQ("18F4610")){
 			Write18Fx(0x10000,0,64,0x3F3F,0x8F8F,0);			//64K, 0, 64
 		}
+		else if(EQ("18F26J11")||EQ("18F26J13")||EQ("18F26J50")||EQ("18F26J53")||EQ("18F46J11")||EQ("18F46J13")||EQ("18F46J50")||EQ("18F46J53")){
+			Write18Fx(0x10000,0,64,0x0101,0x8080,0x102);		//64K, 0, 64, LV
+		}
 		else if(EQ("18F2620")||EQ("18F2680")||EQ("18F4620")||EQ("18F4680")){
 			Write18Fx(0x10000,ee?0x400:0,64,0x3F3F,0x8F8F,0);	//64K, 1K, 64
+		}
+		else if(EQ("18F26K20")||EQ("18F46K20")){
+			Write18Fx(0x10000,ee?0x100:0,64,0x0F0F,0x8F8F,1);	//64K, 256, 64, 9V
 		}
 		else if(EQ("18F2682")||EQ("18F4682")){
 			Write18Fx(0x14000,ee?0x400:0,64,0x3F3F,0x8F8F,0);	//80K, 1K, 64
@@ -668,61 +744,169 @@ ATmega16, ATmega16A, ATmega32, ATmega32A, ATmega64, ATmega64A\n\
 		else if(EQ("18F2685")||EQ("18F4685")){
 			Write18Fx(0x18000,ee?0x400:0,64,0x3F3F,0x8F8F,0);	//96K, 1K, 64
 		}
+		else if(EQ("18F27J13")||EQ("18F27J53")||EQ("18F47J13")||EQ("18F47J53")){
+			Write18Fx(0x20000,0,64,0x0101,0x8080,0x102);		//128K, 0, 64, LV
+		}
 		else if(EQ("18F8722")){
 			Write18Fx(0x20000,ee?0x400:0,64,0xFFFF,0x8787,0);	//128K, 1K, 64
 		}
+		else{
+			PrintMessage(strings[S_nodev_w]); //"Dispositivo non supportato in scrittura\r\n");
+		}
+	}
 //-------------PIC24---------------------------------------------------------
-		else if(EQ("24F04KA200")||EQ("24F04KA201")){
-			Write24Fx(0xB00,0,3,0x05BE,32,2.0,0xFE00,0x4064,0x4004);			//1.375KW, HV
+// options:
+//	bit [3:0]
+//     0 = low voltage ICSP entry
+//     1 = High voltage ICSP entry (6V)
+//     2 = High voltage ICSP entry (12V) + PIC30F sequence (additional NOPs)
+//	bit [7:4]
+//	   0 = config area in the last 2 program words
+//	   1 = config area in the last 3 program words
+//	   2 = config area in the last 4 program words
+//	   3 = 0xF80000 to 0xF80010 except 02 (24F)
+//     4 = 0xF80000 to 0xF80016 (24H-33F)
+//     5 = 0xF80000 to 0xF8000C (x16 bit, 30F)
+//     6 = 0xF80000 to 0xF8000E (30FSMPS)
+//	bit [11:8]
+//	   0 = code erase word is 0x4064, row write is 0x4004
+//	   1 = code erase word is 0x404F, row write is 0x4001
+//	   2 = code erase word is 0x407F, row write is 0x4001, 55AA unlock and external timing (2 ms)
+//	   3 = code erase word is 0x407F, row write is 0x4001, 55AA unlock and external timing (200 ms)
+//	bit [15:12]
+//	   0 = eeprom erase word is 0x4050, write word is 0x4004
+//	   1 = eeprom erased with bulk erase, write word is 0x4004
+//	   2 = eeprom erased with special sequence, write word is 0x4004
+//	bit [19:16]
+//	   0 = config write is 0x4000
+//	   1 = config write is 0x4003
+//	   2 = config write is 0x4004
+//	   3 = config write is 0x4008
+	else if(!strncmp(dev,"24F",3)||!strncmp(dev,"24H",3)||!strncmp(dev,"30F",3)||!strncmp(dev,"33F",3)){
+		if(EQ("24F04KA200")||EQ("24F04KA201")){
+			Write24Fx(0xB00,0,0x20031,0x05BE,32,2.0);				//1.375KW, HV
 		}
 		else if(EQ("24F08KA101")||EQ("24F08KA102")){
-			Write24Fx(0x1600,ee?0x100:0,3,0x05BE,32,2.0,0xFE00,0x4064,0x4004);//2.75KW, HV, 256W
+			Write24Fx(0x1600,ee?0x200:0,0x20031,0x05BE,32,2.0);		//2.75KW, HV, 512
 		}
 		else if(EQ("24F16KA101")||EQ("24F16KA102")){
-			Write24Fx(0x2C00,ee?0x100:0,3,0x05BE,32,2.0,0xFE00,0x4064,0x4004);//5.5KW, HV, 256W
+			Write24Fx(0x2C00,ee?0x200:0,0x20031,0x05BE,32,2.0);		//5.5KW, HV, 512
 		}
 		else if(EQ("24FJ16GA002")||EQ("24FJ16GA004")){
-			Write24Fx(0x2C00,0,0,0x05BE,64,2.0,0,0x404F,0x4001);				//5.5KW
+			Write24Fx(0x2C00,0,0x10100,0x05BE,64,2.0);				//5.5KW
 		}
 		else if(EQ("24FJ32GA002")||EQ("24FJ32GA004")){
-			Write24Fx(0x5800,0,0,0x05BE,64,2.0,0,0x404F,0x4001);				//11KW
+			Write24Fx(0x5800,0,0x10100,0x05BE,64,2.0);				//11KW
+		}
+		else if(EQ("24FJ32GA102")||EQ("24FJ32GA104")||EQ("24FJ32GB002")||EQ("24FJ32GB004")){
+			Write24Fx(0x5800,0,0x10120,0x07F0,64,2.0);				//11KW
 		}
 		else if(EQ("24FJ48GA002")||EQ("24FJ48GA004")){
-			Write24Fx(0x8400,0,0,0x05BE,64,2.0,0,0x404F,0x4001);				//16.5KW
+			Write24Fx(0x8400,0,0x10100,0x05BE,64,2.0);				//16.5KW
 		}
 		else if(EQ("24FJ64GA002")||EQ("24FJ64GA004")||EQ("24FJ64GA006")||EQ("24FJ64GA008")||EQ("24FJ64GA010")){
-			Write24Fx(0xAC00,0,0,0x05BE,64,2.0,0,0x404F,0x4001);				//22KW
+			Write24Fx(0xAC00,0,0x10100,0x05BE,64,2.0);				//22KW
+		}
+		else if(EQ("24FJ64GA102")||EQ("24FJ64GA104")||EQ("24FJ64GB002")||EQ("24FJ64GB004")){
+			Write24Fx(0xAC00,0,0x10120,0x07F0,64,2.0);				//22KW
+		}
+		else if(EQ("24FJ64GB106")||EQ("24FJ64GB108")||EQ("24FJ64GB110")){
+			Write24Fx(0xAC00,0,0x10110,0x07F0,64,2.0);				//22KW
 		}
 		else if(EQ("24FJ96GA006")||EQ("24FJ96GA008")||EQ("24FJ96GA010")){
-			Write24Fx(0x10000,0,0,0x05BE,64,2.0,0,0x404F,0x4001);				//32KW
+			Write24Fx(0x10000,0,0x10100,0x05BE,64,2.0);				//32KW
 		}
 		else if(EQ("24FJ128GA006")||EQ("24FJ128GA008")||EQ("24FJ128GA010")){
-			Write24Fx(0x15800,0,0,0x05BE,64,2.0,0,0x404F,0x4001);				//44KW
+			Write24Fx(0x15800,0,0x10100,0x05BE,64,2.0);				//44KW
 		}
+		else if(EQ("24FJ128GA106")||EQ("24FJ128GA108")||EQ("24FJ128GA110")||EQ("24FJ128GB106")||EQ("24FJ128GB108")||EQ("24FJ128GB110")){
+			Write24Fx(0x15800,0,0x10110,0x07F0,64,2.0);				//44KW
+		}
+		else if(EQ("24FJ192GA106")||EQ("24FJ192GA108")||EQ("24FJ192GA110")||EQ("24FJ192GB106")||EQ("24FJ192GB108")||EQ("24FJ192GB110")){
+			Write24Fx(0x20C00,0,0x10110,0x07F0,64,2.0);				//68KW
+		}
+		else if(EQ("24FJ256GA106")||EQ("24FJ256GA108")||EQ("24FJ256GA110")||EQ("24FJ256GB106")||EQ("24FJ256GB108")||EQ("24FJ256GB110")){
+			Write24Fx(0x2AC00,0,0x10110,0x07F0,64,2.0);				//88KW
+		}
+		else if(!strncmp(dev,"33FJ06",6)){
+			Write24Fx(0x1000,0,0x00140,0x07F0,64,2.0);				//2KW
+		}
+		else if(!strncmp(dev,"24HJ12",6)||!strncmp(dev,"33FJ12",6)){
+			Write24Fx(0x2000,0,0x00140,0x07F0,64,2.0);				//4KW
+		}
+		else if(!strncmp(dev,"24HJ16",6)||!strncmp(dev,"33FJ16",6)){
+			Write24Fx(0x2C00,0,0x00140,0x07F0,64,2.0);				//5.5KW
+		}
+		else if(!strncmp(dev,"24HJ32",6)||!strncmp(dev,"33FJ32",6)){
+			Write24Fx(0x5800,0,0x00140,0x07F0,64,2.0);				//11KW
+		}
+		else if(!strncmp(dev,"24HJ64",6)||!strncmp(dev,"33FJ64",6)){
+			Write24Fx(0xAC00,0,0x00140,0x07F0,64,2.0);				//22KW
+		}
+		else if(!strncmp(dev,"24HJ128",7)||!strncmp(dev,"33FJ128",7)){
+			Write24Fx(0x15800,0,0x00140,0x07F0,64,2.0);				//44KW
+		}
+		else if(!strncmp(dev,"24HJ256",7)||!strncmp(dev,"33FJ256",7)){
+			Write24Fx(0x2AC00,0,0x00140,0x07F0,64,2.0);				//88KW
+		}
+		else if(EQ("30F2010")){
+			Write24Fx(0x2000,ee?0x400:0,0x31252,0x05BE,32,2.0);		//4KW, 1K, HV12
+		}
+		else if(EQ("30F2011")||EQ("30F2012")){
+			Write24Fx(0x2000,0,0x31252,0x05BE,32,2.0);				//4KW, HV12
+		}
+		else if(!strncmp(dev,"30F301",6)){
+			Write24Fx(0x4000,ee?0x400:0,0x31252,0x05BE,32,2.0);		//8KW, 1K, HV12
+		}
+		else if(!strncmp(dev,"30F401",6)){
+			Write24Fx(0x8000,ee?0x400:0,0x31252,0x05BE,32,2.0);		//16KW, 1K, HV12
+		}
+		else if(!strncmp(dev,"30F501",6)){
+			Write24Fx(0xB000,ee?0x400:0,0x31252,0x05BE,32,2.0);		//22KW, 1K, HV12
+		}
+		else if(EQ("30F6011")||EQ("30F6013")){
+			Write24Fx(0x16000,ee?0x800:0,0x31252,0x05BE,32,2.0);	//44KW, 2K, HV12
+		}
+		else if(EQ("30F6010")||EQ("30F6012")||EQ("30F6014")||EQ("30F6015")){
+			Write24Fx(0x18000,ee?0x1000:0,0x31252,0x05BE,32,2.0);	//49KW, 4K, HV12
+		}
+		else{
+			PrintMessage(strings[S_nodev_w]); //"Dispositivo non supportato in scrittura\r\n");
+		}
+	}
 //-------------ATMEL---------------------------------------------------------
-		else if(EQ("AT90S1200")){
+	else if(!strncmp(dev,"AT",2)){
+		if(EQ("AT90S1200")){
 			WriteAT(0x400,ee?0x40:0);						//1K, 64
 		}
 		else if(EQ("AT90S2313")){
 			WriteAT(0x800,ee?0x80:0);						//2K, 128
 		}
+		else if(EQ("ATtiny2313")){
+			WriteATmega(0x800,ee?0x80:0,16,SLOW);			//2K, 128
+		}
 		else if(EQ("AT90S8515")||EQ("AT90S8535")){
 			WriteAT(0x2000,ee?0x100:0);						//8K, 256
 		}
 		else if(EQ("ATmega8")||EQ("ATmega8A")||EQ("ATmega8515")||EQ("ATmega8535")){
-			WriteATmega(0x2000,ee?0x200:0,32);				//8K, 512
+			WriteATmega(0x2000,ee?0x200:0,32,0);				//8K, 512
 		}
 		else if(EQ("ATmega16")||EQ("ATmega16A")){
-			WriteATmega(0x4000,ee?0x200:0,64);				//16K, 512
+			WriteATmega(0x4000,ee?0x200:0,64,0);				//16K, 512
 		}
 		else if(EQ("ATmega32")||EQ("ATmega32A")){
-			WriteATmega(0x8000,ee?0x400:0,64);				//32K, 1K
+			WriteATmega(0x8000,ee?0x400:0,64,0);				//32K, 1K
 		}
 		else if(EQ("ATmega64")||EQ("ATmega64A")){
-			WriteATmega(0x10000,ee?0x800:0,128);			//64K, 2K
+			WriteATmega(0x10000,ee?0x800:0,128,0);			//64K, 2K
 		}
+		else{
+			PrintMessage(strings[S_nodev_w]); //"Dispositivo non supportato in scrittura\r\n");
+		}
+	}
 //-------------I2C---------------------------------------------------------
-		else if(EQ("2400")){
+	else if(!strncmp(dev,"24",2)||!strncmp(dev,"25",2)||!strncmp(dev,"93",2)){
+		if(EQ("2400")){
 			WriteI2C(0x10,0,1,10);			//16, 1B addr.
 		}
 		else if(EQ("2401")){
@@ -755,8 +939,11 @@ ATmega16, ATmega16A, ATmega32, ATmega32A, ATmega64, ATmega64A\n\
 		else if(EQ("24512")){
 			WriteI2C(0x10000,1,128,5);		//64K, 2B addr.
 		}
+		else if(EQ("241024")){
+			WriteI2C(0x20000,0x201,256,5);	//128K, 2B addr.
+		}
 		else if(EQ("241025")){
-			WriteI2C(0x20000,1,128,5);		//128K, 2B addr.
+			WriteI2C(0x20000,0x841,128,5);	//128K, 2B addr.
 		}
 //-------------Microwire EEPROM---------------------------------------------------------
 		else if(EQ("93S46")){
@@ -832,6 +1019,10 @@ ATmega16, ATmega16A, ATmega32, ATmega32A, ATmega64, ATmega64A\n\
 		else if(EQ("251024")){
 			Write25xx(0x20000,256,5);							//128K
 		}
+		else{
+			PrintMessage(strings[S_nodev_r]); //"Dispositivo non supportato in lettura\r\n");
+		}
+	}
 //-------------Unsupported device---------------------------------------------------------
 		else{
 			PrintMessage(strings[S_nodev_w]); //"Dispositivo non supportato in scrittura\r\n");
@@ -842,10 +1033,11 @@ ATmega16, ATmega16A, ATmega32, ATmega32A, ATmega64, ATmega64A\n\
 //-------------Read---------------------------------------------------------
 	else{
 //-------------PIC10-16---------------------------------------------------------
+	if(!strncmp(dev,"10",2)||!strncmp(dev,"12",2)||!strncmp(dev,"16",2)){
 		if(EQ("10F200")||EQ("10F204")||EQ("10F220")){
 			Read12F5xx(0x100,r?0x40:5);						//256
 		}
-		else if(EQ("12C508/A")||EQ("16F54")){
+		else if(!strncmp(dev,"12C508",6)||EQ("16F54")){
 			Read12F5xx(0x200,r?0x40:4);						//512
 		}
 		else if(EQ("12F508")||EQ("10F202")||EQ("10F206")||EQ("10F222")){
@@ -854,7 +1046,7 @@ ATmega16, ATmega16A, ATmega32, ATmega32A, ATmega64, ATmega64A\n\
 		else if(EQ("16C83")||EQ("16F83")||EQ("16F83A")){
 			Read16Fxxx(0x200,ee?0x40:0,r?0x10:8,1);			//512, 64, vdd
 		}
-		else if(EQ("12C509/A")){
+		else if(!strncmp(dev,"12C509",6)){
 			Read12F5xx(0x400,r?0x40:4);						//1K
 		}
 		else if(EQ("12F509")||EQ("12F510")||EQ("16F505")||EQ("16F506")){
@@ -986,92 +1178,201 @@ ATmega16, ATmega16A, ATmega32, ATmega32A, ATmega64, ATmega64A\n\
 		else if(EQ("16F1938")||EQ("16F1939")||EQ("16F1947")){
 			Read16F1xxx(0x4000,ee?0x100:0,r?0x200:11,0);	//16K, 256, vpp
 		}
+		else{
+			PrintMessage(strings[S_nodev_r]); //"Dispositivo non supportato in lettura\r\n");
+		}
+	}
 //-------------PIC18---------------------------------------------------------
-		else if(EQ("18F1230")){
-			Read18Fx(0x1000,ee?0x80:0);					//4K, 128
+	else if(!strncmp(dev,"18F",3)){
+		if(EQ("18F1230")){
+			Read18Fx(0x1000,ee?0x80:0,0);					//4K, 128
 		}
 		else if(EQ("18F2221")||EQ("18F4221")||EQ("18F1220")||EQ("18F2220")||EQ("18F4220")){
-			Read18Fx(0x1000,ee?0x100:0);					//4K, 256
+			Read18Fx(0x1000,ee?0x100:0,0);					//4K, 256
 		}
 		else if(EQ("18F1330")){
-			Read18Fx(0x2000,ee?0x80:0);					//8K, 128
+			Read18Fx(0x2000,ee?0x80:0,0);					//8K, 128
 		}
 		else if(EQ("18F2321")||EQ("18F4321")||EQ("18F1320")||EQ("18F2320")||EQ("18F4320")||EQ("18F2331")||EQ("18F4331")){
-			Read18Fx(0x2000,ee?0x100:0);					//8K, 256
+			Read18Fx(0x2000,ee?0x100:0,0);					//8K, 256
+		}
+		else if(EQ("18F13K50")||EQ("18F23K20")||EQ("18F43K20")){
+			Read18Fx(0x2000,ee?0x100:0,1);					//8K, 256, 9V
 		}
 		else if(EQ("18F2439")||EQ("18F4439")){
-			Read18Fx(0x3000,ee?0x100:0);					//12K, 256
+			Read18Fx(0x3000,ee?0x100:0,0);					//12K, 256
 		}
 		else if(EQ("18F2410")||EQ("18F4410")||EQ("18F2450")||EQ("18F4450")){
-			Read18Fx(0x4000,0);							//16K, 0
+			Read18Fx(0x4000,0,0);							//16K, 0
+		}
+		else if(EQ("18F24J10")||EQ("18F44J10")||EQ("18F24J11")||EQ("18F24J50")||EQ("18F44J11")||EQ("18F44J50")){
+			Read18Fx(0x4000,0,2);							//16K, 0, LV
 		}
 		else if(EQ("18F2420")||EQ("18F2423")||EQ("18F4420")||EQ("18F4423")||EQ("18F2431")||EQ("18F4431")||EQ("18F2480")||EQ("18F4480")||EQ("18F242")||EQ("18F248")||EQ("18F442")||EQ("18F448")){
-			Read18Fx(0x4000,ee?0x100:0);					//16K, 256
+			Read18Fx(0x4000,ee?0x100:0,0);					//16K, 256
+		}
+		else if(EQ("18F14K50")||EQ("18F24K20")||EQ("18F44K20")){
+			Read18Fx(0x4000,ee?0x100:0,1);					//16K, 256, 9V
 		}
 		else if(EQ("18F2455")||EQ("18F2458")||EQ("18F4455")||EQ("18F4458")||EQ("18F2539")||EQ("18F4539")){
-			Read18Fx(0x6000,ee?0x100:0);					//24K, 256
+			Read18Fx(0x6000,ee?0x100:0,0);					//24K, 256
 		}
 		else if(EQ("18F2510")||EQ("18F4510")){
-			Read18Fx(0x8000,0);							//32K, 0
+			Read18Fx(0x8000,0,0);							//32K, 0
+		}
+		else if(EQ("18F25J10")||EQ("18F25J11")||EQ("18F25J50")||EQ("18F45J10")||EQ("18F45J11")||EQ("18F45J50")){
+			Read18Fx(0x8000,0,2);							//32K, 0, LV
 		}
 		else if(EQ("18F2550")||EQ("18F2553")||EQ("18F4550")||EQ("18F4553")||EQ("18F2520")||EQ("18F2523")||EQ("18F4520")||EQ("18F4523")||EQ("18F2580")||EQ("18F4580")||EQ("18F252")||EQ("18F258")||EQ("18F452")||EQ("18F458")){
-			Read18Fx(0x8000,ee?0x100:0);					//32K, 256
+			Read18Fx(0x8000,ee?0x100:0,0);					//32K, 256
+		}
+		else if(EQ("18F25K20")||EQ("18F45K20")){
+			Read18Fx(0x8000,ee?0x100:0,1);					//32K, 256, 9V
 		}
 		else if(EQ("18F2515")||EQ("18F4515")){
-			Read18Fx(0xC000,0);							//48K, 0
+			Read18Fx(0xC000,0,0);							//48K, 0
 		}
 		else if(EQ("18F2525")||EQ("18F2585")||EQ("18F4525")||EQ("18F4585")){
-			Read18Fx(0xC000,ee?0x400:0);					//48K, 1K
+			Read18Fx(0xC000,ee?0x400:0,0);					//48K, 1K
 		}
 		else if(EQ("18F2610")||EQ("18F4610")){
-			Read18Fx(0x10000,0);							//64K, 0
+			Read18Fx(0x10000,0,0);							//64K, 0
+		}
+		else if(EQ("18F26J11")||EQ("18F26J13")||EQ("18F26J50")||EQ("18F26J53")||EQ("18F46J11")||EQ("18F46J13")||EQ("18F46J50")||EQ("18F46J53")){
+			Read18Fx(0x10000,0,2);							//64K, 0, LV
 		}
 		else if(EQ("18F2620")||EQ("18F2680")||EQ("18F4620")||EQ("18F4680")){
-			Read18Fx(0x10000,ee?0x400:0);					//64K, 1K
+			Read18Fx(0x10000,ee?0x400:0,0);					//64K, 1K
+		}
+		else if(EQ("18F26K20")||EQ("18F46K20")){
+			Read18Fx(0x10000,ee?0x400:0,1);					//64K, 1K, 9V
 		}
 		else if(EQ("18F2682")||EQ("18F4682")){
-			Read18Fx(0x14000,ee?0x400:0);					//80K, 1K
+			Read18Fx(0x14000,ee?0x400:0,0);					//80K, 1K
 		}
 		else if(EQ("18F2685")||EQ("18F4685")){
-			Read18Fx(0x18000,ee?0x400:0);					//96K, 1K
+			Read18Fx(0x18000,ee?0x400:0,0);					//96K, 1K
+		}
+		else if(EQ("18F27J13")||EQ("18F27J53")||EQ("18F47J13")||EQ("18F47J53")){
+			Read18Fx(0x20000,0,2);							//128K, 0, LV
 		}
 		else if(EQ("18F8722")){
-			Read18Fx(0x20000,ee?0x400:0);					//128K, 1K
+			Read18Fx(0x20000,ee?0x400:0,0);					//128K, 1K
 		}
+		else{
+			PrintMessage(strings[S_nodev_r]); //"Dispositivo non supportato in lettura\r\n");
+		}
+	}
 //-------------PIC24---------------------------------------------------------
-		else if(EQ("24F04KA200")||EQ("24F04KA201")){
-			Read24Fx(0xB00,0,3,0x05BE,r?0x800:0,0xFE00);			//1.375KW, HV
+// options:
+//	bit [3:0]
+//     0 = low voltage ICSP entry
+//     1 = High voltage ICSP entry (6V)
+//     2 = High voltage ICSP entry (12V) + PIC30F sequence (additional NOPs)
+//	bit [7:4]
+//	   0 = config area in the last 2 program words
+//	   1 = config area in the last 3 program words
+//	   2 = config area in the last 4 program words
+//	   3 = 0xF80000 to 0xF80010 except 02 (24F)
+//     4 = 0xF80000 to 0xF80016 (24H-33F)
+//     5 = 0xF80000 to 0xF8000C (x16 bit, 30F)
+//     6 = 0xF80000 to 0xF8000E (30FSMPS)
+	else if(!strncmp(dev,"24F",3)||!strncmp(dev,"24H",3)||!strncmp(dev,"30F",3)||!strncmp(dev,"33F",3)){
+		if(EQ("24F04KA200")||EQ("24F04KA201")){
+			Read24Fx(0xB00,0,0x31,0x05BE,r?0x800:0);				//1.375KW, HV
 		}
 		else if(EQ("24F08KA101")||EQ("24F08KA102")){
-			Read24Fx(0x1600,ee?0x100:0,3,0x05BE,r?0x800:0,0xFE00);	//2.75KW, HV, 256W
+			Read24Fx(0x1600,ee?0x200:0,0x31,0x05BE,r?0x800:0);		//2.75KW, HV, 512
 		}
 		else if(EQ("24F16KA101")||EQ("24F16KA102")){
-			Read24Fx(0x2C00,ee?0x100:0,3,0x05BE,r?0x800:0,0xFE00);	//5.5KW, HV, 256W
+			Read24Fx(0x2C00,ee?0x200:0,0x31,0x05BE,r?0x800:0);		//5.5KW, HV, 512
 		}
 		else if(EQ("24FJ16GA002")||EQ("24FJ16GA004")){
-			Read24Fx(0x2C00,0,0,0x05BE,r?0x800:0,0);				//5.5KW
+			Read24Fx(0x2C00,0,0,0x05BE,r?0x800:0);					//5.5KW
 		}
 		else if(EQ("24FJ32GA002")||EQ("24FJ32GA004")){
-			Read24Fx(0x5800,0,0,0x05BE,r?0x800:0,0);				//11KW
+			Read24Fx(0x5800,0,0,0x05BE,r?0x800:0);					//11KW
 		}
 		else if(EQ("24FJ48GA002")||EQ("24FJ48GA004")){
-			Read24Fx(0x8400,0,0,0x05BE,r?0x800:0,0);				//16.5KW
+			Read24Fx(0x8400,0,0,0x05BE,r?0x800:0);					//16.5KW
 		}
 		else if(EQ("24FJ64GA002")||EQ("24FJ64GA004")||EQ("24FJ64GA006")||EQ("24FJ64GA008")||EQ("24FJ64GA010")){
-			Read24Fx(0xAC00,0,0,0x05BE,r?0x800:0,0);				//22KW
+			Read24Fx(0xAC00,0,0,0x05BE,r?0x800:0);					//22KW
+		}
+		else if(EQ("24FJ64GB106")||EQ("24FJ64GB108")||EQ("24FJ64GB110")){
+			Read24Fx(0xAC00,0,0x10,0x07F0,r?0x800:0);					//22KW
 		}
 		else if(EQ("24FJ96GA006")||EQ("24FJ96GA008")||EQ("24FJ96GA010")){
-			Read24Fx(0x10000,0,0,0x05BE,r?0x800:0,0);				//32KW
+			Read24Fx(0x10000,0,0,0x05BE,r?0x800:0);					//32KW
 		}
 		else if(EQ("24FJ128GA006")||EQ("24FJ128GA008")||EQ("24FJ128GA010")){
-			Read24Fx(0x15800,0,0,0x05BE,r?0x800:0,0);				//44KW
+			Read24Fx(0x15800,0,0,0x05BE,r?0x800:0);					//44KW
+		}
+		else if(EQ("24FJ128GA106")||EQ("24FJ128GA108")||EQ("24FJ128GA110")||EQ("24FJ128GB106")||EQ("24FJ128GB108")||EQ("24FJ128GB110")){
+			Read24Fx(0x15800,0,0x10,0x07F0,r?0x800:0);					//44KW
+		}
+		else if(EQ("24FJ192GA106")||EQ("24FJ192GA108")||EQ("24FJ192GA110")||EQ("24FJ192GB106")||EQ("24FJ192GB108")||EQ("24FJ192GB110")){
+			Read24Fx(0x20C00,0,0x10,0x07F0,r?0x800:0);					//68KW
+		}
+		else if(EQ("24FJ256GA106")||EQ("24FJ256GA108")||EQ("24FJ256GA110")||EQ("24FJ256GB106")||EQ("24FJ256GB108")||EQ("24FJ256GB110")){
+			Read24Fx(0x2AC00,0,0x10,0x07F0,r?0x800:0);					//88KW
+		}
+		else if(!strncmp(dev,"33FJ06",6)){
+			Read24Fx(0x1000,0,0x40,0x07F0,r?0x800:0);				//2KW
+		}
+		else if(!strncmp(dev,"24HJ12",6)||!strncmp(dev,"33FJ12",6)){
+			Read24Fx(0x2000,0,0x40,0x07F0,r?0x800:0);				//4KW
+		}
+		else if(!strncmp(dev,"24HJ16",6)||!strncmp(dev,"33FJ16",6)){
+			Read24Fx(0x2C00,0,0x40,0x07F0,r?0x800:0);				//5.5KW
+		}
+		else if(!strncmp(dev,"24HJ32",6)||!strncmp(dev,"33FJ32",6)){
+			Read24Fx(0x5800,0,0x40,0x07F0,r?0x1000:0);				//11KW
+		}
+		else if(!strncmp(dev,"24HJ64",6)||!strncmp(dev,"33FJ64",6)){
+			Read24Fx(0xAC00,0,0x40,0x07F0,r?0x1000:0);				//22KW
+		}
+		else if(!strncmp(dev,"24HJ128",7)||!strncmp(dev,"33FJ128",7)){
+			Read24Fx(0x15800,0,0x40,0x07F0,r?0x1000:0);				//44KW
+		}
+		else if(!strncmp(dev,"24HJ256",7)||!strncmp(dev,"33FJ256",7)){
+			Read24Fx(0x2AC00,0,0x40,0x07F0,r?0x1000:0);				//88KW
+		}
+		else if(EQ("30F2010")){
+			Read24Fx(0x2000,ee?0x400:0,0x52,0x05BE,r?0x600:0);		//4KW, 1K, HV12
+		}
+		else if(EQ("30F2011")||EQ("30F2012")){
+			Read24Fx(0x2000,0,0x52,0x05BE,r?0x600:0);				//4KW, HV12
+		}
+		else if(!strncmp(dev,"30F301",6)){
+			Read24Fx(0x4000,ee?0x400:0,0x52,0x05BE,r?0x600:0);		//8KW, 1K, HV12
+		}
+		else if(!strncmp(dev,"30F401",6)){
+			Read24Fx(0x8000,ee?0x400:0,0x52,0x05BE,r?0x600:0);		//16KW, 1K, HV12
+		}
+		else if(!strncmp(dev,"30F501",6)){
+			Read24Fx(0xB000,ee?0x400:0,0x52,0x05BE,r?0x600:0);		//22KW, 1K, HV12
+		}
+		else if(EQ("30F6011")||EQ("30F6013")){
+			Read24Fx(0x16000,ee?0x800:0,0x52,0x05BE,r?0x600:0);		//44KW, 2K, HV12
+		}
+		else if(EQ("30F6010")||EQ("30F6012")||EQ("30F6014")||EQ("30F6015")){
+			Read24Fx(0x18000,ee?0x1000:0,0x52,0x05BE,r?0x600:0);	//49KW, 4K, HV12
+		}
+		else{
+			PrintMessage(strings[S_nodev_r]); //"Dispositivo non supportato in lettura\r\n");
+		}
 		}
 //-------------ATMEL---------------------------------------------------------
-		else if(EQ("AT90S1200")){
+	else if(!strncmp(dev,"AT",2)){
+		if(EQ("AT90S1200")){
 			ReadAT(0x400,ee?0x40:0,0);							//1K, 64
 		}
 		else if(EQ("AT90S2313")){
 			ReadAT(0x800,ee?0x80:0,0);							//2K, 128
+		}
+		else if(EQ("ATtiny2313")){
+			ReadAT(0x800,ee?0x80:0,LOCK+FUSE+FUSE_H+FUSE_X+CAL+SLOW);//2K, 128
 		}
 		else if(EQ("AT90S8515")||EQ("AT90S8535")){
 			ReadAT(0x2000,ee?0x100:0,0);						//8K, 256
@@ -1088,8 +1389,13 @@ ATmega16, ATmega16A, ATmega32, ATmega32A, ATmega64, ATmega64A\n\
 		else if(EQ("ATmega64")||EQ("ATmega64A")){
 			ReadAT(0x10000,ee?0x800:0,LOCK+FUSE+FUSE_H+FUSE_X+CAL);	//64K, 2K
 		}
+		else{
+			PrintMessage(strings[S_nodev_r]); //"Dispositivo non supportato in lettura\r\n");
+		}
+	}
 //-------------I2C---------------------------------------------------------
-		else if(EQ("2400")){
+	else if(!strncmp(dev,"24",2)||!strncmp(dev,"25",2)||!strncmp(dev,"93",2)){
+		if(EQ("2400")){
 			ReadI2C(0x10,0);						//16, 1B addr.
 		}
 		else if(EQ("2401")){
@@ -1122,8 +1428,11 @@ ATmega16, ATmega16A, ATmega32, ATmega32A, ATmega64, ATmega64A\n\
 		else if(EQ("24512")){
 			ReadI2C(0x10000,1);					//64K, 2B addr.
 		}
+		else if(EQ("241024")){
+			ReadI2C(0x20000,0x201);				//128K, 2B addr.
+		}
 		else if(EQ("241025")){
-			ReadI2C(0x20000,1);					//128K, 2B addr.
+			ReadI2C(0x20000,0x841);				//128K, 2B addr.
 		}
 //-------------Microwire EEPROM---------------------------------------------------------
 		else if(EQ("93S46")||EQ("93x46")){
@@ -1190,6 +1499,10 @@ ATmega16, ATmega16A, ATmega32, ATmega32A, ATmega64, ATmega64A\n\
 		else if(EQ("251024")){
 			Read25xx(0x20000);						//128K
 		}
+		else{
+			PrintMessage(strings[S_nodev_r]); //"Dispositivo non supportato in lettura\r\n");
+		}
+	}
 //-------------Unsupported device---------------------------------------------------------
 		else{
 			PrintMessage(strings[S_nodev_r]); //"Dispositivo non supportato in lettura\r\n");
@@ -1212,605 +1525,7 @@ DWORD GetTickCount(){
 	return now.time*1000+now.millitm;
 }
 
-void PIC_ID(int id)
-{
-#define print(s,t) printf(s,t)
-	if(id>0x100000){				//ID 24F
-		switch(id&0xFFFF){
-			case 0x0405:
-				print("24FJ64GA006\r\n",0);
-				break;
-			case 0x0406:
-				print("24FJ96GA006\r\n",0);
-				break;
-			case 0x0407:
-				print("24FJ128GA006\r\n",0);
-				break;
-			case 0x0408:
-				print("24FJ64GA008\r\n",0);
-				break;
-			case 0x0409:
-				print("24FJ96GA008\r\n",0);
-				break;
-			case 0x040A:
-				print("24FJ128GA008\r\n",0);
-				break;
-			case 0x040B:
-				print("24FJ64GA010\r\n",0);
-				break;
-			case 0x040C:
-				print("24FJ96GA010\r\n",0);
-				break;
-			case 0x040D:
-				print("24FJ128GA010\r\n",0);
-				break;
-			case 0x0444:
-				print("24FJ16GA002\r\n",0);
-				break;
-			case 0x0445:
-				print("24FJ32GA002\r\n",0);
-				break;
-			case 0x0446:
-				print("24FJ48GA002\r\n",0);
-				break;
-			case 0x0447:
-				print("24FJ64GA002\r\n",0);
-				break;
-			case 0x044C:
-				print("24FJ16GA004\r\n",0);
-				break;
-			case 0x044D:
-				print("24FJ32GA004\r\n",0);
-				break;
-			case 0x044E:
-				print("24FJ48GA004\r\n",0);
-				break;
-			case 0x044F:
-				print("24FJ64GA004\r\n",0);
-				break;
-			case 0x0D00:
-				print("24F04KA201\r\n",0);
-				break;
-			case 0x0D01:
-				print("24F16KA101\r\n",0);
-				break;
-			case 0x0D02:
-				print("24F04KA200\r\n",0);
-				break;
-			case 0x0D03:
-				print("24F16KA102\r\n",0);
-				break;
-			case 0x0D08:
-				print("24F08KA101\r\n",0);
-				break;
-			case 0x0D0A:
-				print("24F08KA102\r\n",0);
-				break;
-			default:
-				print("%s",strings[S_nodev]); //"Dispositivo sconosciuto\r\n");
-		}
-	}
-	else if(id>0x10000){				//ID 18F
-		switch((id&0xFFFF)>>5){
-			case 0x040>>1:
-				print("18F252/2539 rev%d\r\n",id&0x1F);
-				break;
-			case 0x042>>1:
-				print("18F452/4539 rev%d\r\n",id&0x1F);
-				break;
-			case 0x048>>1:
-				print("18F242/2439 rev%d\r\n",id&0x1F);
-				break;
-			case 0x04A>>1:
-				print("18F442/4439 rev%d\r\n",id&0x1F);
-				break;
-			case 0x050>>1:
-				print("18F2320 rev%d\r\n",id&0x1F);
-				break;
-			case 0x052>>1:
-				print("18F4320 rev%d\r\n",id&0x1F);
-				break;
-			case 0x058>>1:
-				print("18F2220 rev%d\r\n",id&0x1F);
-				break;
-			case 0x05A>>1:
-				print("18F4220 rev%d\r\n",id&0x1F);
-				break;
-			case 0x07C>>1:
-				print("18F1320 rev%d\r\n",id&0x1F);
-				break;
-			case 0x07E>>1:
-				print("18F1220 rev%d\r\n",id&0x1F);
-				break;
-			case 0x080>>1:
-				print("18F248 rev%d\r\n",id&0x1F);
-				break;
-			case 0x082>>1:
-				print("18F448 rev%d\r\n",id&0x1F);
-				break;
-			case 0x084>>1:
-				print("18F258 rev%d\r\n",id&0x1F);
-				break;
-			case 0x086>>1:
-				print("18F458 rev%d\r\n",id&0x1F);
-				break;
-			case 0x088>>1:
-				print("18F4431 rev%d\r\n",id&0x1F);
-				break;
-			case 0x08A>>1:
-				print("18F4331 rev%d\r\n",id&0x1F);
-				break;
-			case 0x08C>>1:
-				print("18F2431 rev%d\r\n",id&0x1F);
-				break;
-			case 0x08E>>1:
-				print("18F2331 rev%d\r\n",id&0x1F);
-				break;
-			case 0x0C0>>1:
-				print("18F4620 rev%d\r\n",id&0x1F);
-				break;
-			case 0x0C2>>1:
-				print("18F4610 rev%d\r\n",id&0x1F);
-				break;
-			case 0x0C4>>1:
-				print("18F4525 rev%d\r\n",id&0x1F);
-				break;
-			case 0x0C6>>1:
-				print("18F4515 rev%d\r\n",id&0x1F);
-				break;
-			case 0x0C8>>1:
-				print("18F2620 rev%d\r\n",id&0x1F);
-				break;
-			case 0x0CA>>1:
-				print("18F2610 rev%d\r\n",id&0x1F);
-				break;
-			case 0x0CC>>1:
-				print("18F2525 rev%d\r\n",id&0x1F);
-				break;
-			case 0x0CE>>1:
-				print("18F2515 rev%d\r\n",id&0x1F);
-				break;
-			case 0x0E8>>1:
-				print("18F4680 rev%d\r\n",id&0x1F);
-				break;
-			case 0x0EA>>1:
-				print("18F4585 rev%d\r\n",id&0x1F);
-				break;
-			case 0x0EC>>1:
-				print("18F2680 rev%d\r\n",id&0x1F);
-				break;
-			case 0x0EE>>1:
-				print("18F2585 rev%d\r\n",id&0x1F);
-				break;
-			case 0x108>>1:
-				if(id&0x10) print("18F4523 rev%d\r\n",id&0x1F);
-				else print("18F4520 rev%d\r\n",id&0x1F);
-				break;
-			case 0x10A>>1:
-				print("18F4510 rev%d\r\n",id&0x1F);
-				break;
-			case 0x10C>>1:
-				if(id&0x10) print("18F4423 rev%d\r\n",id&0x1F);
-				else print("18F4420 rev%d\r\n",id&0x1F);
-				break;
-			case 0x10E>>1:
-				print("18F4410 rev%d\r\n",id&0x1F);
-				break;
-			case 0x110>>1:
-				if(id&0x10) print("18F2523 rev%d\r\n",id&0x1F);
-				else print("18F2520 rev%d\r\n",id&0x1F);
-				break;
-			case 0x112>>1:
-				print("18F2510 rev%d\r\n",id&0x1F);
-				break;
-			case 0x114>>1:
-				if(id&0x10) print("18F2423 rev%d\r\n",id&0x1F);
-				else print("18F2420 rev%d\r\n",id&0x1F);
-				break;
-			case 0x116>>1:
-				print("18F2410 rev%d\r\n",id&0x1F);
-				break;
-			case 0x120>>1:
-				print("18F4550 rev%d\r\n",id&0x1F);
-				break;
-			case 0x122>>1:
-				print("18F4455 rev%d\r\n",id&0x1F);
-				break;
-			case 0x124>>1:
-				print("18F2550 rev%d\r\n",id&0x1F);
-				break;
-			case 0x126>>1:
-				print("18F2455 rev%d\r\n",id&0x1F);
-				break;
-			case 0x134>>1:
-				print("18F6527 rev%d\r\n",id&0x1F);
-				break;
-			case 0x136>>1:
-				print("18F8527 rev%d\r\n",id&0x1F);
-				break;
-			case 0x138>>1:
-				print("18F6622 rev%d\r\n",id&0x1F);
-				break;
-			case 0x13A>>1:
-				print("18F8622 rev%d\r\n",id&0x1F);
-				break;
-			case 0x13C>>1:
-				print("18F6627 rev%d\r\n",id&0x1F);
-				break;
-			case 0x13E>>1:
-				print("18F8627 rev%d\r\n",id&0x1F);
-				break;
-			case 0x140>>1:
-				print("18F6722 rev%d\r\n",id&0x1F);
-				break;
-			case 0x142>>1:
-				print("18F8722 rev%d\r\n",id&0x1F);
-				break;
-			case 0x1A8>>1:
-				print("18F4580 rev%d\r\n",id&0x1F);
-				break;
-			case 0x1AA>>1:
-				print("18F4480 rev%d\r\n",id&0x1F);
-				break;
-			case 0x1AC>>1:
-				print("18F2580 rev%d\r\n",id&0x1F);
-				break;
-			case 0x1AE>>1:
-				print("18F2480 rev%d\r\n",id&0x1F);
-				break;
-			case 0x1E0>>1:
-				print("18F1230 rev%d\r\n",id&0x1F);
-				break;
-			case 0x1E2>>1:
-				print("18F1330 rev%d\r\n",id&0x1F);
-				break;
-			case 0x1FE>>1:
-				print("18F1330-ICD rev%d\r\n",id&0x1F);
-				break;
-			case 0x210>>1:
-				print("18F4321 rev%d\r\n",id&0x1F);
-				break;
-			case 0x212>>1:
-				print("18F2321 rev%d\r\n",id&0x1F);
-				break;
-			case 0x214>>1:
-				print("18F4221 rev%d\r\n",id&0x1F);
-				break;
-			case 0x216>>1:
-				print("18F2221 rev%d\r\n",id&0x1F);
-				break;
-			case 0x240>>1:
-				print("18F4450 rev%d\r\n",id&0x1F);
-				break;
-			case 0x242>>1:
-				print("18F2450 rev%d\r\n",id&0x1F);
-				break;
-			case 0x270>>1:
-				print("18F2682 rev%d\r\n",id&0x1F);
-				break;
-			case 0x272>>1:
-				print("18F2685 rev%d\r\n",id&0x1F);
-				break;
-			case 0x274>>1:
-				print("18F4682 rev%d\r\n",id&0x1F);
-				break;
-			case 0x276>>1:
-				print("18F4685 rev%d\r\n",id&0x1F);
-				break;
-			case 0x2A0>>1:
-				print("18F4553 rev%d\r\n",id&0x1F);
-				break;
-			case 0x2A2>>1:
-				print("18F4458 rev%d\r\n",id&0x1F);
-				break;
-			case 0x2A4>>1:
-				print("18F2553 rev%d\r\n",id&0x1F);
-				break;
-			case 0x2A6>>1:
-				print("18F2458 rev%d\r\n",id&0x1F);
-				break;
-			case 0x49C>>1:
-				print("18F6628 rev%d\r\n",id&0x1F);
-				break;
-			case 0x49E>>1:
-				print("18F8628 rev%d\r\n",id&0x1F);
-				break;
-			case 0x4A0>>1:
-				print("18F6723 rev%d\r\n",id&0x1F);
-				break;
-			case 0x4A2>>1:
-				print("18F8723 rev%d\r\n",id&0x1F);
-				break;
-			default:
-				print("%s",strings[S_nodev]); //"Dispositivo sconosciuto\r\n");
-		}
-	}
-	else{						//ID16F
-		switch(id>>5){
-			case 0x046>>1:		//00 0100 011x xxxx
-				print("12F683 rev%d\r\n",id&0x1F);
-				break;
-			case 0x04A>>1:		//00 0100 101x xxxx
-				print("16F685 rev%d\r\n",id&0x1F);
-				break;
-			case 0x04C>>1:		//00 0100 110x xxxx
-				print("16F818 rev%d\r\n",id&0x1F);
-				break;
-			case 0x04E>>1:		//00 0100 111x xxxx
-				print("16F819 rev%d\r\n",id&0x1F);
-				break;
-			case 0x056>>1:		//00 0101 011x xxxx
-				print("16F84A rev%d\r\n",id&0x1F);
-				break;
-			case 0x060>>1:		//00 0110 000x xxxx
-				print("16F73 rev%d\r\n",id&0x1F);
-				break;
-			case 0x062>>1:		//00 0110 001x xxxx
-				print("16F74 rev%d\r\n",id&0x1F);
-				break;
-			case 0x064>>1:		//00 0110 010x xxxx
-				print("16F76 rev%d\r\n",id&0x1F);
-				break;
-			case 0x066>>1:		//00 0110 011x xxxx
-				print("16F77 rev%d\r\n",id&0x1F);
-				break;
-			case 0x072>>1:		//00 0111 001x xxxx
-				print("16F87 rev%d\r\n",id&0x1F);
-				break;
-			case 0x076>>1:		//00 0111 011x xxxx
-				print("16F88 rev%d\r\n",id&0x1F);
-				break;
-			case 0x07A>>1:		//00 0111 101x xxxx
-				print("16F627 rev%d\r\n",id&0x1F);
-				break;
-			case 0x07C>>1:		//00 0111 110x xxxx
-				print("16F628 rev%d\r\n",id&0x1F);
-				break;
-			case 0x08E>>1:		//00 1000 111x xxxx
-				print("16F872 rev%d\r\n",id&0x1F);
-				break;
-			case 0x092>>1:		//00 1001 001x xxxx
-				print("16F874 rev%d\r\n",id&0x1F);
-				break;
-			case 0x096>>1:		//00 1001 011x xxxx
-				print("16F873 rev%d\r\n",id&0x1F);
-				break;
-			case 0x09A>>1:		//00 1001 101x xxxx
-				print("16F877 rev%d\r\n",id&0x1F);
-				break;
-			case 0x09E>>1:		//00 1001 111x xxxx
-				print("16F876 rev%d\r\n",id&0x1F);
-				break;
-			case 0x0BA>>1:		//00 1011 101x xxxx
-				print("16F737 rev%d\r\n",id&0x1F);
-				break;
-			case 0x0BE>>1:		//00 1011 111x xxxx
-				print("16F747 rev%d\r\n",id&0x1F);
-				break;
-			case 0x0DE>>1:		//00 1101 111x xxxx
-				print("16F777 rev%d\r\n",id&0x1F);
-				break;
-			case 0x0E0>>1:		//00 1110 0000 xxxx
-				print("16F876A rev%d\r\n",id&0xF);
-				break;
-			case 0x0E2>>1:		//00 1110 0010 xxxx
-				print("16F877A rev%d\r\n",id&0xF);
-				break;
-			case 0x0E4>>1:		//00 1110 0100 xxxx
-				print("16F873A rev%d\r\n",id&0xF);
-				break;
-			case 0x0E6>>1:		//00 1110 0110 xxxx
-				print("16F874A rev%d\r\n",id&0xF);
-				break;
-			case 0x0EA>>1:		//00 1110 101x xxxx
-				print("16F767 rev%d\r\n",id&0x1F);
-				break;
-			case 0x0F8>>1:		//00 1111 100x xxxx
-				print("12F629 rev%d\r\n",id&0x1F);
-				break;
-			case 0x0FA>>1:		//00 1111 101x xxxx
-				print("12F635 rev%d\r\n",id&0x1F);
-				break;
-			case 0x0FC>>1:		//00 1111 110x xxxx
-				print("12F675 rev%d\r\n",id&0x1F);
-				break;
-			case 0x104>>1:		//01 0000 010x xxxx
-				print("16F627A rev%d\r\n",id&0x1F);
-				break;
-			case 0x106>>1:		//01 0000 011x xxxx
-				print("16F628A rev%d\r\n",id&0x1F);
-				break;
-			case 0x108>>1:		//01 0000 100x xxxx
-				print("16F684 rev%d\r\n",id&0x1F);
-				break;
-			case 0x110>>1:		//01 0001 000x xxxx
-				print("16F648A rev%d\r\n",id&0x1F);
-				break;
-			case 0x10A>>1:		//01 0000 101x xxxx
-				print("16F636-639 rev%d\r\n",id&0x1F);
-				break;
-			case 0x10C>>1:		//01 0000 110x xxxx
-				print("16F630 rev%d\r\n",id&0x1F);
-				break;
-			case 0x10E>>1:		//01 0000 111x xxxx
-				print("16F676 rev%d\r\n",id&0x1F);
-				break;
-			case 0x114>>1:		//01 0001 010x xxxx
-				print("16F716 rev%d\r\n",id&0x1F);
-				break;
-			case 0x118>>1:		//01 0001 100x xxxx
-				print("16F688 rev%d\r\n",id&0x1F);
-				break;
-			case 0x120>>1:		//01 0010 000x xxxx
-				print("16F785 rev%d\r\n",id&0x1F);
-				break;
-			case 0x122>>1:		//01 0010 001x xxxx
-				print("16HV785 rev%d\r\n",id&0x1F);
-				break;
-			case 0x124>>1:		//01 0010 010x xxxx
-				print("16F616 rev%d\r\n",id&0x1F);
-				break;
-			case 0x126>>1:		//01 0010 011x xxxx
-				print("16HV616 rev%d\r\n",id&0x1F);
-				break;
-			case 0x132>>1:		//01 0011 001x xxxx
-				print("16F687 rev%d\r\n",id&0x1F);
-				break;
-			case 0x134>>1:		//01 0011 010x xxxx
-				print("16F689 rev%d\r\n",id&0x1F);
-				break;
-			case 0x138>>1:		//01 0011 1000 xxxx
-				print("16F917 rev%d\r\n",id&0xF);
-				break;
-			case 0x13A>>1:		//01 0011 1010 xxxx
-				print("16F916 rev%d\r\n",id&0xF);
-				break;
-			case 0x13C>>1:		//01 0011 1100 xxxx
-				print("16F914 rev%d\r\n",id&0xF);
-				break;
-			case 0x13E>>1:		//01 0011 1110 xxxx
-				print("16F913 rev%d\r\n",id&0xF);
-				break;
-			case 0x140>>1:		//01 0100 000x xxxx
-				print("16F690 rev%d\r\n",id&0x1F);
-				break;
-			case 0x142>>1:		//01 0100 001x xxxx
-				print("16F631 rev%d\r\n",id&0x1F);
-				break;
-			case 0x144>>1:		//01 0100 010x xxxx
-				print("16F677 rev%d\r\n",id&0x1F);
-				break;
-			case 0x146>>1:		//01 0100 0110 xxxx
-				print("16F946 rev%d\r\n",id&0xF);
-				break;
-			case 0x1D0>>1:		//00 1101 000x xxxx
-				print("16F870 rev%d\r\n",id&0x1F);
-				break;
-			case 0x1D2>>1:		//00 1101 001x xxxx
-				print("16F871 rev%d\r\n",id&0x1F);
-				break;
-			case 0x200>>1:		//10 0000 000x xxxx
-				print("16F882 rev%d\r\n",id&0x1F);
-				break;
-			case 0x202>>1:		//10 0000 001x xxxx
-				print("16F883 rev%d\r\n",id&0x1F);
-				break;
-			case 0x204>>1:		//10 0000 010x xxxx
-				print("16F884 rev%d\r\n",id&0x1F);
-				break;
-			case 0x206>>1:		//10 0000 011x xxxx
-				print("16F886 rev%d\r\n",id&0x1F);
-				break;
-			case 0x208>>1:		//10 0000 100x xxxx
-				print("16F887 rev%d\r\n",id&0x1F);
-				break;
-			case 0x218>>1:		//10 0001 100x xxxx
-				print("12F615 rev%d\r\n",id&0x1F);
-				break;
-			case 0x21A>>1:		//10 0001 101x xxxx
-				print("12HV615 rev%d\r\n",id&0x1F);
-				break;
-			case 0x224>>1:		//10 0010 010x xxxx
-				print("12F609 rev%d\r\n",id&0x1F);
-				break;
-			case 0x226>>1:		//10 0010 011x xxxx
-				print("16F610 rev%d\r\n",id&0x1F);
-				break;
-			case 0x228>>1:		//10 0010 100x xxxx
-				print("12HV609 rev%d\r\n",id&0x1F);
-				break;
-			case 0x22A>>1:		//10 0010 101x xxxx
-				print("16HV610 rev%d\r\n",id&0x1F);
-				break;
-			case 0x232>>1:		//10 0011 001x xxxx
-				print("16F1933 rev%d\r\n",id&0x1F);
-				break;
-			case 0x234>>1:		//10 0011 010x xxxx
-				print("16F1934 rev%d\r\n",id&0x1F);
-				break;
-			case 0x236>>1:		//10 0011 011x xxxx
-				print("16F1936 rev%d\r\n",id&0x1F);
-				break;
-			case 0x238>>1:		//10 0011 100x xxxx
-				print("16F1937 rev%d\r\n",id&0x1F);
-				break;
-			case 0x23A>>1:		//10 0011 101x xxxx
-				print("16F1938 rev%d\r\n",id&0x1F);
-				break;
-			case 0x23C>>1:		//10 0011 110x xxxx
-				print("16F1939 rev%d\r\n",id&0x1F);
-				break;
-			case 0x242>>1:		//10 0100 001x xxxx
-				print("16LF1933 rev%d\r\n",id&0x1F);
-				break;
-			case 0x244>>1:		//10 0100 010x xxxx
-				print("16LF1934 rev%d\r\n",id&0x1F);
-				break;
-			case 0x246>>1:		//10 0100 011x xxxx
-				print("16LF1936 rev%d\r\n",id&0x1F);
-				break;
-			case 0x248>>1:		//10 0100 100x xxxx
-				print("16LF1937 rev%d\r\n",id&0x1F);
-				break;
-			case 0x24A>>1:		//10 0100 101x xxxx
-				print("16LF1938 rev%d\r\n",id&0x1F);
-				break;
-			case 0x24C>>1:		//10 0100 110x xxxx
-				print("16LF1939 rev%d\r\n",id&0x1F);
-				break;
-			case 0x250>>1:		//10 0101 000x xxxx
-				print("16F1946 rev%d\r\n",id&0x1F);
-				break;
-			case 0x252>>1:		//10 0101 001x xxxx
-				print("16F1947 rev%d\r\n",id&0x1F);
-				break;
-			case 0x258>>1:		//10 0101 100x xxxx
-				print("16LF1946 rev%d\r\n",id&0x1F);
-				break;
-			case 0x25A>>1:		//10 0101 101x xxxx
-				print("16LF1947 rev%d\r\n",id&0x1F);
-				break;
-			case 0x270>>1:		//10 0111 000x xxxx
-				print("16F1822 rev%d\r\n",id&0x1F);
-				break;
-			case 0x272>>1:		//10 0111 001x xxxx
-				print("16F1823 rev%d\r\n",id&0x1F);
-				break;
-			case 0x274>>1:		//10 0111 010x xxxx
-				print("16F1824 rev%d\r\n",id&0x1F);
-				break;
-			case 0x276>>1:		//10 0111 011x xxxx
-				print("16F1825 rev%d\r\n",id&0x1F);
-				break;
-			case 0x278>>1:		//10 0111 100x xxxx
-				print("16F1826 rev%d\r\n",id&0x1F);
-				break;
-			case 0x27A>>1:		//10 0111 101x xxxx
-				print("16F1827 rev%d\r\n",id&0x1F);
-				break;
-			case 0x280>>1:		//10 1000 000x xxxx
-				print("16LF1822 rev%d\r\n",id&0x1F);
-				break;
-			case 0x282>>1:		//10 1000 001x xxxx
-				print("16LF1823 rev%d\r\n",id&0x1F);
-				break;
-			case 0x284>>1:		//10 1000 010x xxxx
-				print("16LF1824 rev%d\r\n",id&0x1F);
-				break;
-			case 0x286>>1:		//10 1000 011x xxxx
-				print("16LF1825 rev%d\r\n",id&0x1F);
-				break;
-			case 0x288>>1:		//10 1000 100x xxxx
-				print("16LF1826 rev%d\r\n",id&0x1F);
-				break;
-			case 0x28A>>1:		//10 1000 101x xxxx
-				print("16LF1827 rev%d\r\n",id&0x1F);
-				break;
-			default:
-				print("%s",strings[S_nodev]); //"Dispositivo sconosciuto\r\n");
-		}
-	}
-}
+
 
 void DisplayEE(){
 	char s[256],t[256],v[256];
@@ -1847,7 +1562,7 @@ int StartHVReg(double V){
 		bufferU[j++]=VREG_DIS;			//disable HV regulator
 		bufferU[j++]=FLUSH;
 		write();
-		msDelay(20);
+		msDelay(40);
 		read();
 		return -1;
 	}
@@ -1906,13 +1621,9 @@ int StartHVReg(double V){
 
 void ProgID()
 {
-	bufferU[0]=0;
 	int j=1;
-	bufferU[j++]=PROG_ID;
-	bufferU[j++]=SET_PARAMETER;
-	bufferU[j++]=SET_T3;
-	bufferU[j++]=2000>>8;
-	bufferU[j++]=2000&0xff;
+	bufferU[0]=0;
+	bufferU[j++]=PROG_RST;
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
 	write();
