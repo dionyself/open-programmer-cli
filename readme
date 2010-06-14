@@ -5,9 +5,13 @@ These sources are given free of charge under the GNU General Public License vers
 
 Changelog (to use new features the corresponding firmware is required):
 
+V 0.7.5	june 2010:		corrected write bug for 18Fx config (introduced in v.0.7.4),
+						added "goto ICD" write for 16Fx,
+						various minor fixes
+
 V 0.7.4	may 2010:		added PIC24H, dsPIC30, dsPIC33, 18FxxKxx, 18FxxJxx,
 						eliminated many MFC objects,
-						fixed: config word verify, 24F algorithm, various
+						fixed: config word verify, 24F and 18F algorithm, various
 
 V 0.7.3	april 2010:		can be compiled under windows, 
 						fixed EEPROM file load bug, 

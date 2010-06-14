@@ -1,4 +1,4 @@
-// Strings.h v0.7.2
+// Strings.h v0.7.5
 
 enum S {				//
 	S_noprog,			//
@@ -76,6 +76,7 @@ enum S {				//
 	S_ConfigWErr2,		//
 	S_ConfigWErr3,		//
 	S_IDErr,			//
+	S_ICDErr,			//
 	S_Calib1Err,		//
 	S_Calib2Err,		//
 	S_CodeVError,		//
@@ -197,6 +198,8 @@ enum S {				//
 	I_AT_FUSEX,
 	I_AT_LOCK,
 	I_W_LANGFILE,
+	I_ICD_ENABLE,
+	I_ICD_ADDRESS,
 //	command-line strings
 	L_HELP,				//
 	L_OPTERR,

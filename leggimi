@@ -3,12 +3,16 @@ programmatore USB per microcontrollori PIC, ATMEL, memorie I2C/SPI/MicroWire, di
 Sito web: http://openprog.altervista.org
 Questi sorgenti sono distribuiti gratuitamente sotto licenza GNU General Public License versione 2 
 
-Cambiamenti (per usare i dispositivi aggiunti Ã¨ richiesto un programmatore con firmware corrispondente):
+Cambiamenti (per usare i dispositivi aggiunti è richiesto un programmatore con firmware corrispondente):
 
+
+V 0.7.5	giugno 2010:	corretto baco in scrittura config 18Fx (introdotto nella v.0.7.4),
+						aggiunta scrittura goto ICD per i 16Fx, 
+						correzioni varie
 
 V 0.7.4	maggio 2010:	aggiunti PIC24H, dsPIC30, dsPIC33, 18FxxKxx, 18FxxJxx,
 						eliminati parecchi costrutti MFC,
-						correzioni: verifica config word, algoritmo 24F, vari
+						correzioni: verifica config word, algoritmo 24F e 18F, vari
 
 V 0.7.3	aprile 2010:	compilabile anche su windows, 
 						corretto baco nel caricamento di un file per EEPROM, 

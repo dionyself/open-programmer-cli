@@ -1,4 +1,4 @@
-// Strings.c v0.7.3
+// Strings.c v0.7.5
 
 char *STR_ID[DIM];
 
@@ -80,6 +80,7 @@ STR_ID[S_ConfigWErr]="S_ConfigWErr";
 STR_ID[S_ConfigWErr2]="S_ConfigWErr2";
 STR_ID[S_ConfigWErr3]="S_ConfigWErr3";
 STR_ID[S_IDErr]="S_IDErr";
+STR_ID[S_ICDErr]="S_ICDErr";
 STR_ID[S_Calib1Err]="S_Calib1Err";
 STR_ID[S_Calib2Err]="S_Calib2Err";
 STR_ID[S_CodeVError]="S_CodeVError";
@@ -207,6 +208,8 @@ STR_ID[I_AT_FUSEH]="I_AT_FUSEH";
 STR_ID[I_AT_FUSEX]="I_AT_FUSEX";
 STR_ID[I_AT_LOCK]="I_AT_LOCK";
 STR_ID[I_W_LANGFILE]="I_W_LANGFILE";
+STR_ID[I_ICD_ENABLE]="I_ICD_ENABLE";
+STR_ID[I_ICD_ADDRESS]="I_ICD_ADDRESS";
 						//
 STR_ID[L_HELP]="L_HELP";
 STR_ID[L_OPTERR]="L_OPTERR";
@@ -297,6 +300,7 @@ strings_it[S_ConfigWErr]="Errore in scrittura config: scritto %03X, letto %03X\r
 strings_it[S_ConfigWErr2]="Errore in scrittura CONFIG";
 strings_it[S_ConfigWErr3]="Errore in scrittura config: scritto %04X, letto %04X\r\n";
 strings_it[S_IDErr]="Errore in scrittura ID%d: scritto %04X, letto %04X\r\n";
+strings_it[S_ICDErr]="Errore in scrittura ICD (0x%X): scritto %04X, letto %04X\r\n";
 strings_it[S_Calib1Err]="Errore in scrittura Calib1: scritto %04X, letto %04X\r\n";
 strings_it[S_Calib2Err]="Errore in scrittura Calib2: scritto %04X, letto %04X\r\n";
 strings_it[S_CodeVError]="Errore in verifica, indirizzo %04X (%d), scritto %02X, letto %02X\r\n";
@@ -373,7 +377,7 @@ strings_it[S_ConfigWordX]="Configuration word %d: 0x%04X\r\n";
 strings_it[S_ConfigWordH]="CONFIG%dH: 0x%02X\t";
 strings_it[S_ConfigWordL]="CONFIG%dL: 0x%02X\r\n";
 strings_it[S_CalibWord1]="Calibration word1: 0x%04X\r\n";
-strings_it[S_Calib1_2]="Calibration word 1 o 2: 0x%04X\r\n";
+strings_it[S_Calib1_2]="Calibration word 1 or 2: 0x%04X\r\n";
 strings_it[S_CalibWord2]="Calibration word2: 0x%04X\r\n";
 strings_it[S_CalibWordX]="Calibration word %d: 0x%04X\r\n";
 strings_it[S_Protected]="Dispositivo protetto";
@@ -424,6 +428,8 @@ strings_it[I_AT_FUSEH]="Scrivi Fuse High";
 strings_it[I_AT_FUSEX]="Scrivi Extended Fuse";
 strings_it[I_AT_LOCK]="Scrivi Lock";
 strings_it[I_W_LANGFILE]="Scrivi file linguaggio";
+strings_it[I_ICD_ENABLE]="Abilita ICD";
+strings_it[I_ICD_ADDRESS]="Indirizzo routine ICD";
 					//
 strings_it[L_HELP]="op [opzioni]\n\
 	\n-BKosccal                   carica BKosccal da file\
@@ -438,6 +444,7 @@ strings_it[L_HELP]="op [opzioni]\n\
 	\n-h, help                    guida\
 	\n-HWtest                     test hardware\
 	\n-i, info                    informazioni programmatore\
+	\n-icd <val>                  abilita ICD (goto indirizzo)\
 	\n-i2c_r <N Ctr Ind>          leggi N byte dal bus I2C\
 	\n-i2c_r2 <N Ctr Ind(2)>      leggi N byte dal bus I2C (indirizzi 16b)\
 	\n-i2c_w <N Ctr Ind Dati>     scrivi N byte sul bus I2C\
@@ -551,6 +558,7 @@ strings_en[S_ConfigWErr]="Error writing config area: written %03X, read %03X\r\n
 strings_en[S_ConfigWErr2]="Error writing CONFIG";
 strings_en[S_ConfigWErr3]="Error writing config area: written %04X, read %04X\r\n";
 strings_en[S_IDErr]="Error writing ID%d: written %04X, read %04X\r\n";
+strings_en[S_ICDErr]="Error writing ICD (0x%X): written %04X, read %04X\r\n";
 strings_en[S_Calib1Err]="Error writing Calib1: written %04X, read %04X\r\n";
 strings_en[S_Calib2Err]="Error writing Calib2: written %04X, read %04X\r\n";
 strings_en[S_CodeVError]="Error verifying address %04X (%d), written %02X, read %02X\r\n";
@@ -678,6 +686,8 @@ strings_en[I_AT_FUSEH]="Write Fuse High";
 strings_en[I_AT_FUSEX]="Write Extended Fuse";
 strings_en[I_AT_LOCK]="Write Lock";
 strings_en[I_W_LANGFILE]="Write language file";
+strings_en[I_ICD_ENABLE]="Enable ICD";
+strings_en[I_ICD_ADDRESS]="ICD routine address";
 	//
 strings_en[L_HELP]="op [options]\n\
 	\n-BKosccal                   load BKosccal from file\
@@ -697,7 +707,8 @@ strings_en[L_HELP]="op [options]\n\
 	\n-i2c_r <N Ctr Addr Data>    write N bytes to I2C bus\
 	\n-i2c_r <N Ctr Addr(2) Data> write N bytes to I2C bus (16b address)\
 	\n-id                         use ID\
-	\n-l, log [=file]              save log\
+	\n-icd <val>                  enable ICD (goto address)\
+	\n-l, log [=file]             save log\
 	\n-lock <val>                 write lock byte (Atmel only)\
 	\n-mode <mode>                SPI mode: 00,01,10,11\
 	\n-osccal                     loads osccal from file instead of using the value saved before erase\

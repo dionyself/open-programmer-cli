@@ -1307,7 +1307,17 @@ void Write18Fx(int dim,int dim2,int wbuf,int eraseW1,int eraseW2,int options)
 				bufferU[j++]=memCONFIG[i];
 				bufferU[j++]=5000>>8;
 				bufferU[j++]=5000&0xFF;
-				bufferU[j++]=WAIT_T2;		//HV discharge time
+			}
+			bufferU[j++]=CORE_INS;
+			bufferU[j++]=0x2A;			//INCF
+			bufferU[j++]=0xF6;			//TBLPTRL
+			i++;
+			if(memCONFIG[i]<0xFF){
+				bufferU[j++]=TBLW_PROG;
+				bufferU[j++]=memCONFIG[i];
+				bufferU[j++]=0;
+				bufferU[j++]=5000>>8;
+				bufferU[j++]=5000&0xFF;
 			}
 			bufferU[j++]=CORE_INS;
 			bufferU[j++]=0x2A;			//INCF
@@ -1315,7 +1325,7 @@ void Write18Fx(int dim,int dim2,int wbuf,int eraseW1,int eraseW2,int options)
 			bufferU[j++]=FLUSH;
 			for(;j<DIMBUF;j++) bufferU[j]=0x0;
 			write();
-			msDelay(6);
+			msDelay(12);
 			read();
 			j=1;
 			if(saveLog){

@@ -50,7 +50,7 @@
 #include "instructions.h"
 
 #define COL 16
-#define VERSION "0.7.4"
+#define VERSION "0.7.5"
 #define G (12.0/34*1024/5)		//=72,2823529412
 #define  LOCK	1
 #define  FUSE	2
@@ -122,6 +122,7 @@ char** strings;
 int saveLog=0,programID=0,MinDly=1,load_osccal=0,load_BKosccal=0,usa_osccal=1,usa_BKosccal=0;
 int load_calibword=0,max_err=200;
 int lock=0x100,fuse=0x100,fuse_h=0x100,fuse_x=0x100;
+int ICDenable=0,ICDaddr=0x1FF0;
 int FWVersion=0;
 FILE* logfile=0;
 char LogFileName[256]="";
@@ -186,6 +187,7 @@ int main (int argc, char **argv) {
 		{"i2c_w",         no_argument,            &i2c, 3},
 		{"i2c_w2",        no_argument,            &i2c, 4},
 		{"id",            no_argument,      &programID, 1},
+		{"icd",           required_argument,       0, 'I'},
 		{"l",             optional_argument,       0, 'l'}, //bug di getopt: ci vuole -l=valore
 		{"log",           optional_argument,       0, 'l'},
 		{"lock",          required_argument,       0, 'L'},
@@ -243,6 +245,11 @@ int main (int argc, char **argv) {
 			case 'F':	//Atmel FUSE high
 				i=sscanf(optarg, "%x", &fuse_h);
 				if(i!=1||fuse_h<0||fuse_h>0xFF) fuse_h=0x100;
+				break;
+			case 'I':	//ICD routine address
+				i=sscanf(optarg, "%x", &ICDaddr);
+				if(i!=1||ICDaddr<0||ICDaddr>0xFFFF) ICDaddr=0x1FF0;
+				ICDenable=1;
 				break;
 			case 'l':	//save Log
 				saveLog=1;
