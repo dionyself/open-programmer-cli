@@ -50,7 +50,7 @@
 #include "instructions.h"
 
 #define COL 16
-#define VERSION "0.7.5"
+#define VERSION "0.7.6"
 #define G (12.0/34*1024/5)		//=72,2823529412
 #define  LOCK	1
 #define  FUSE	2
@@ -123,7 +123,7 @@ int saveLog=0,programID=0,MinDly=1,load_osccal=0,load_BKosccal=0,usa_osccal=1,us
 int load_calibword=0,max_err=200;
 int lock=0x100,fuse=0x100,fuse_h=0x100,fuse_x=0x100;
 int ICDenable=0,ICDaddr=0x1FF0;
-int FWVersion=0;
+int FWVersion=0,HwID=0;
 FILE* logfile=0;
 char LogFileName[256]="";
 char loadfile[256]="",savefile[256]="";
@@ -248,7 +248,7 @@ int main (int argc, char **argv) {
 				break;
 			case 'I':	//ICD routine address
 				i=sscanf(optarg, "%x", &ICDaddr);
-				if(i!=1||ICDaddr<0||ICDaddr>0xFFFF) ICDaddr=0x1FF0;
+				if(i!=1||ICDaddr<0||ICDaddr>0xFFFF) ICDaddr=0x1F00;
 				ICDenable=1;
 				break;
 			case 'l':	//save Log
@@ -1027,7 +1027,7 @@ ATmega16, ATmega16A, ATmega32, ATmega32A, ATmega64, ATmega64A, ATtiny2313\n\
 			Write25xx(0x20000,256,5);							//128K
 		}
 		else{
-			PrintMessage(strings[S_nodev_r]); //"Dispositivo non supportato in lettura\r\n");
+			PrintMessage(strings[S_nodev_w]); //"Dispositivo non supportato in scrittura\r\n");
 		}
 	}
 //-------------Unsupported device---------------------------------------------------------
@@ -1606,6 +1606,7 @@ int StartHVReg(double V){
 		read();
 		for(z=1;z<DIMBUF-2&&bufferI[z]!=READ_ADC;z++);
 		v=(bufferI[z+1]<<8)+bufferI[z+2];
+		if(HwID==3) v>>=2;		//if 12 bit ADC
 //		printf("v=%d=%fV\n",v,v/G);
 	}
 	if(v>(vreg/10.0+0.7)*G){
@@ -1639,8 +1640,10 @@ void ProgID()
 	printf(strings[S_progver],bufferI[2],bufferI[3],bufferI[4]); //"FW versione %d.%d.%d\r\n"
 	FWVersion=(bufferI[2]<<16)+(bufferI[3]<<8)+bufferI[4];
 	printf(strings[S_progid],bufferI[5],bufferI[6],bufferI[7]);	//"ID Hw: %d.%d.%d"
-	if(bufferI[7]==1) printf(" (18F2550)\r\n\r\n");
-	else if(bufferI[7]==2) printf(" (18F2450)\r\n\r\n");
+	HwID=bufferI[7];
+	if(HwID==1) printf(" (18F2550)\r\n\r\n");
+	else if(HwID==2) printf(" (18F2450)\r\n\r\n");
+	else if(HwID==3) printf(" (18F2458/2553)\r\n\r\n");
 	else printf(" (?)\r\n\r\n");
 }
 

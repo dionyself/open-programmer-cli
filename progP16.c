@@ -2460,6 +2460,19 @@ void Write16F87x (int dim,int dim2)
 			bufferU[j++]=CUST_CMD;
 			bufferU[j++]=0x07;
 		}
+		if(ICDenable||programID){			//back to addr 0
+			bufferU[j++]=EN_VPP_VCC;
+			bufferU[j++]=0x1;
+			bufferU[j++]=EN_VPP_VCC;
+			bufferU[j++]=0x0;
+			bufferU[j++]=SET_CK_D;
+			bufferU[j++]=0x0;
+			bufferU[j++]=WAIT_T3;			//delay after exiting prog mode
+			bufferU[j++]=EN_VPP_VCC;		//VDD
+			bufferU[j++]=0x1;
+			bufferU[j++]=EN_VPP_VCC;		//VDD+VPP
+			bufferU[j++]=0x5;
+		}
 	}
 	bufferU[j++]=SET_PARAMETER;
 	bufferU[j++]=SET_T3;

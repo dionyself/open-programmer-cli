@@ -259,7 +259,7 @@ void Read93x(int dim,int na,int options)
 // na=address bits
 // options=0: x16 organization     =1: x8 organization
 {
-	int k=0,z=0,i,j;
+	int k=0,z=0,i,j,x8;
 	if(dim>0x3000||dim<0){
 		PrintMessage(strings[S_EELim]);	//"EEPROM size out of limits\r\n"
 		return;
@@ -269,6 +269,7 @@ void Read93x(int dim,int na,int options)
 		OpenLogFile();	//"Log.txt"
 		fprintf(logfile,"Read93x(%d,%d,%d)    (0x%X,0x%X)\n",dim,na,options,dim,na);
 	}
+	x8=options&1;
 	sizeEE=dim;
 	memEE=malloc(dim);			//EEPROM
 	unsigned int start=GetTickCount();
@@ -279,11 +280,7 @@ void Read93x(int dim,int na,int options)
 	bufferU[j++]=EN_VPP_VCC;		//VDD
 	bufferU[j++]=0x1;
 	bufferU[j++]=EXT_PORT;
-	bufferU[j++]=options==0?S+ORG:S;
-	bufferU[j++]=0;
-	bufferU[j++]=uWTX;
-	bufferU[j++]=na+3;				//READ
-	bufferU[j++]=0xC0;				//110aaaaa aaax0000
+	bufferU[j++]=x8?S:S+ORG;
 	bufferU[j++]=0;
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
@@ -294,22 +291,41 @@ void Read93x(int dim,int na,int options)
 //****************** read ********************
 	PrintMessage(strings[S_ReadEE]);		//read EEPROM ...
 	PrintMessage("   ");
-	int n=(DIMBUF-2);
-	if(n>30) n=30;				//max 240 bit = 30 Byte
-	for(i=0,j=1;i<dim;i+=n){
-		bufferU[j++]=uWRX;
-		bufferU[j++]=i<(dim-n)?n*8:(dim-i)*8;
+	int dim2=x8?dim:dim/2;
+	for(i=0;i<dim2;){
+		for(j=1;j<DIMBUF-14&&i<dim2;){
+			bufferU[j++]=uWTX;
+			bufferU[j++]=na+3;				//READ
+			bufferU[j++]=0xC0+((i>>(na-5))&0x1F);				//110aaaaa aaax0000 
+			bufferU[j++]=(i<<(13-na))&0xFF;
+			bufferU[j++]=uWRX;
+			bufferU[j++]=x8?8:16;
+			bufferU[j++]=EXT_PORT;
+			bufferU[j++]=x8?0:ORG;
+			bufferU[j++]=0;
+			bufferU[j++]=EXT_PORT;
+			bufferU[j++]=x8?S:S+ORG;
+			bufferU[j++]=0;
+			i++;
+		}
 		bufferU[j++]=FLUSH;
 		for(;j<DIMBUF;j++) bufferU[j]=0x0;
 		write();
 		msDelay(2);
 		read();
-		if(bufferI[1]==uWRX){
-			for(j=3;j<bufferI[2]/8+3&&j<DIMBUF;j++){
-				memEE[k++]=bufferI[j];
+		for(z=1;z<DIMBUF-3;z++){
+			for(;bufferI[z]!=uWRX&&z<DIMBUF-3;z++);
+			if(bufferI[z]==uWRX){
+				if(x8) memEE[k++]=bufferI[z+2];
+				else{
+					memEE[k+1]=bufferI[z+2];
+					memEE[k]=bufferI[z+3];
+					k+=2;
+				}
+				z+=3;
 			}
 		}
-		PrintStatus(strings[S_CodeReading2],i*100/(dim),i);	//"Read: %d%%, addr. %05X"
+		PrintStatus(strings[S_CodeReading2],i*100/dim2,i);	//"Read: %d%%, addr. %05X"
 		j=1;
 		if(saveLog){
 			fprintf(logfile,strings[S_Log7],i,i,k,k);	//"i=%d(0x%X), k=%d(0x%X) \n"
@@ -323,13 +339,6 @@ void Read93x(int dim,int na,int options)
 		sizeEE=k;
 	}
 	else PrintMessage(strings[S_Compl]);
-	if(options==0){
-		for(i=0;i<dim;i+=2){		//swap bytes
-			k=memEE[i];
-			memEE[i]=memEE[i+1];
-			memEE[i+1]=k;
-		}
-	}
 //****************** exit ********************
 	bufferU[j++]=EXT_PORT;
 	bufferU[j++]=0;
@@ -621,6 +630,12 @@ void Write93Cx(int dim,int na, int options)
 	j=1;
 	for(i=0;i<dim;i+=options==0?2:1,addr+=0x10000>>na){
 		if(memEE[i]<0xFF||(options==0&&memEE[i+1]<0xFF)){
+			bufferU[j++]=EXT_PORT;
+			bufferU[j++]=options==0?ORG+PRE:PRE;
+			bufferU[j++]=0;
+			bufferU[j++]=EXT_PORT;
+			bufferU[j++]=options==0?S+ORG+PRE:S+PRE;
+			bufferU[j++]=0;
 			bufferU[j++]=uWTX;
 			bufferU[j++]=3;
 			bufferU[j++]=0xA0;			//101aaaaa aaa(a) write
@@ -651,7 +666,6 @@ void Write93Cx(int dim,int na, int options)
 			write();
 			msDelay(1.5);
 			read();
-			if(bufferI[1]!=uWTX||bufferI[2]>=0xFA) i=dim+10;
 			PrintStatus(strings[S_CodeWriting2],i*100/(dim),i);	//"Write: %d%%, addr. %04X"
 			j=1;
 			if(saveLog){
@@ -692,61 +706,58 @@ void Write93Cx(int dim,int na, int options)
 	write();
 	msDelay(1.5);
 	read();
-	if(saveLog)WriteLogIO();/**/
-	bufferU[0]=0;
-	j=1;
-	bufferU[j++]=EXT_PORT;
-	bufferU[j++]=options==0?S+ORG:S;
-	bufferU[j++]=0;
-	bufferU[j++]=uWTX;
-	bufferU[j++]=na+3;				//READ (16bit)
-	bufferU[j++]=0xC0;				//110aaaaa aaax0000
-	bufferU[j++]=0;
+	if(saveLog)WriteLogIO();
+	k=0;
+	int dim2=options==0?dim/2:dim;
+	for(i=0;i<dim2;){
+		for(j=1;j<DIMBUF-14&&i<dim2;){
+			bufferU[j++]=uWTX;
+			bufferU[j++]=na+3;				//READ
+			bufferU[j++]=0xC0+((i>>(na-5))&0x1F);				//110aaaaa aaax0000 
+			bufferU[j++]=(i<<(13-na))&0xFF;
+			bufferU[j++]=uWRX;
+			bufferU[j++]=options==0?16:8;
+			bufferU[j++]=EXT_PORT;
+			bufferU[j++]=options==0?ORG:0;
+			bufferU[j++]=0;
+			bufferU[j++]=EXT_PORT;
+			bufferU[j++]=options==0?S+ORG:S;
+			bufferU[j++]=0;
+			i++;
+		}
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
 	write();
 	msDelay(2);
 	read();
-	if(saveLog)WriteLogIO();
-	k=0;
-	int n=(DIMBUF-2);
-	if(n>30) n=30;	//max 240 bit = 30 Byte
-	for(i=0,j=1;i<dim;i+=n){
-		bufferU[j++]=uWRX;
-		bufferU[j++]=i<(dim-n)?n*8:(dim-i)*8;
-		bufferU[j++]=FLUSH;
-		for(;j<DIMBUF;j++) bufferU[j]=0x0;
-		write();
-		msDelay(2);
-		read();
-		if(options==0){		//x16
-			if(bufferI[1]==uWRX&&bufferI[2]<0xFA){
-				for(z=3;z<bufferI[2]/8+3&&z<DIMBUF;z+=2,k+=2){
-					if(memEE[k+1]!=bufferI[z]){
+		for(z=1;z<DIMBUF-3;z++){
+			for(;bufferI[z]!=uWRX&&z<DIMBUF-3;z++);
+			if(bufferI[z]==uWRX){
+				if(options==1){		//x8
+					if(memEE[k]!=bufferI[z+2]){
 						PrintMessage("\r\n");
-						PrintMessage4(strings[S_CodeVError],i+z-3,i+z-3,memEE[k+1],bufferI[z]);	//"Errore in verifica, indirizzo %04X (%d), scritto %02X, letto %02X\r\n"
+						PrintMessage4(strings[S_CodeVError],k,k,memEE[k],bufferI[z+2]);	//"Errore in verifica, indirizzo %04X (%d), scritto %02X, letto %02X\r\n"
 						err++;
 					}
-					if(memEE[k]!=bufferI[z+1]){
-						PrintMessage("\r\n");
-						PrintMessage4(strings[S_CodeVError],i+z-3,i+z-3,memEE[k],bufferI[z+1]);	//"Errore in verifica, indirizzo %04X (%d), scritto %02X, letto %02X\r\n"
-						err++;
-					}
+					k++;
 				}
+				else{				//x16
+					if(memEE[k]!=bufferI[z+3]){
+						PrintMessage("\r\n");
+						PrintMessage4(strings[S_CodeVError],k,k,memEE[k],bufferI[z+3]);	//"Errore in verifica, indirizzo %04X (%d), scritto %02X, letto %02X\r\n"
+						err++;
+					}
+					if(memEE[k+1]!=bufferI[z+2]){
+						PrintMessage("\r\n");
+						PrintMessage4(strings[S_CodeVError],k+1,k+1,memEE[k+1],bufferI[z+2]);	//"Errore in verifica, indirizzo %04X (%d), scritto %02X, letto %02X\r\n"
+						err++;
+					}
+					k+=2;
+				}
+				z+=3;
 			}
 		}
-		else{				//x8
-			if(bufferI[1]==uWRX&&bufferI[2]<0xFA){
-				for(z=3;z<bufferI[2]/8+3&&z<DIMBUF;z++,k++){
-					if(memEE[k]!=bufferI[z]){
-						PrintMessage("\r\n");
-						PrintMessage4(strings[S_CodeVError],i+z-3,i+z-3,memEE[k],bufferI[z]);	//"Errore in verifica, indirizzo %04X (%d), scritto %02X, letto %02X\r\n"
-						err++;
-					}
-				}
-			}
-		}
-		PrintStatus(strings[S_CodeV2],i*100/(dim),i);	//"Verify: %d%%, addr. %04X"
+		PrintStatus(strings[S_CodeV2],i*100/dim2,i);	//"Verify: %d%%, addr. %04X"
 		j=1;
 		if(saveLog){
 			fprintf(logfile,strings[S_Log8],i,i,k,k,err);	//"i=%d, k=%d, err=%d\n"
