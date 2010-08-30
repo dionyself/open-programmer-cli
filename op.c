@@ -50,7 +50,7 @@
 #include "instructions.h"
 
 #define COL 16
-#define VERSION "0.7.6"
+#define VERSION "0.7.7"
 #define G (12.0/34*1024/5)		//=72,2823529412
 #define  LOCK	1
 #define  FUSE	2
@@ -233,7 +233,7 @@ int main (int argc, char **argv) {
 				strncpy(dev,optarg,sizeof(dev)-1);
 				break;
 			case 'D':	//minimum delay
-				MinDly = atoi(optarg);
+				//MinDly = atoi(optarg);
 				break;
 			case 'e':	//max write errors
 				max_err = atoi(optarg);
@@ -317,7 +317,8 @@ Foundation; either version 2 of the License, or (at your option) any later versi
 12F508, 12F509, 12F510, 12F519, 12F609, 12F615, 12F629, 12F635, 12F675, 12F683, \
 16F505, 16F506, 16F526, 16F54, 16F610, 16F616, 16F627, 16F627A, 16F628, 16F628A, \
 16F630, 16F631, 16F636, 16F639, 16F648A, 16F676, 16F677, 16F684, 16F685, 16F687, \
-16F688, 16F689, 16F690, 16F716, 16F73, 16F737, 16F74, 16F747, 16F76, 16F767, 16F77, \
+16F688, 16F689, 16F690, 16F716, 16F722, 16F722A, 16F723, 16F723A, 16F724, 16F726, \
+16F727, 16F73, 16F737, 16F74, 16F747, 16F76, 16F767, 16F77, \
 16F777, 16F785, 16F818, 16F819, 16F83, 16F83A, 16C83, 16C83A, 16F84, 16C84, 16F84A, \
 16C84A, 16F87, 16F870, 16F871, 16F872, 16F873, 16F873A, 16F874, 16F874A, 16F876, \
 16F876A, 16F877, 16F877A, 16F88, 16F882, 16F883, 16F884, 16F886, 16F887, 16F913, \
@@ -391,7 +392,14 @@ ATmega16, ATmega16A, ATmega32, ATmega32A, ATmega64, ATmega64A, ATtiny2313\n\
 	DWORD t0,t;
 	t=t0=GetTickCount();
 	ProgID();
-	if(!strncmp(dev,"16F1",4));
+	if(!strncmp(dev,"16F72",5)){
+		if(!CheckV33Regulator()){
+			printf(strings[S_noV33reg]);	//Can't find 3.3V expansion board
+			return 0;
+		}
+		StartHVReg(8.5);
+	}
+	else if(!strncmp(dev,"16F1",4));
 	else if(!strncmp(dev,"10",2)||!strncmp(dev,"12",2)||!strncmp(dev,"16",2)||testhw) StartHVReg(13);
 	else StartHVReg(-1);
 	if(testhw){			//test hardware
@@ -565,6 +573,9 @@ ATmega16, ATmega16A, ATmega32, ATmega32A, ATmega64, ATmega64A, ATtiny2313\n\
 		else if(EQ("16F716")){
 			Write16F71x(0x800,1);							//2K, vdd
 		}
+		else if(EQ("16F722")||EQ("16F722A")){
+			Write16F72x(0x800);								//2K, vpp, 3.3V
+		}
 		else if(EQ("16F870")||EQ("16F871")||EQ("16F872")){
 			Write16F87x(0x800,ee?0x40:0);					//2K, 64
 		}
@@ -589,6 +600,9 @@ ATmega16, ATmega16A, ATmega32, ATmega32A, ATmega64, ATmega64A, ATtiny2313\n\
 		else if(EQ("16F73")||EQ("16F74")){
 			Write16F7x(0x1000,0);							//4K
 		}
+		else if(EQ("16F723")||EQ("16F723A")||EQ("16F724")){
+			Write16F72x(0x1000);							//4K, vpp, 3.3V
+		}
 		else if(EQ("16F737")||EQ("16F747")){
 			Write16F7x(0x1000,1);							//4K, vdd no delay
 		}
@@ -612,6 +626,9 @@ ATmega16, ATmega16A, ATmega32, ATmega32A, ATmega64, ATmega64A, ATtiny2313\n\
 		}
 		else if(EQ("16F76")||EQ("16F77")){
 			Write16F7x(0x2000,0);							//8K
+		}
+		else if(EQ("16F726")||EQ("16F727")){
+			Write16F72x(0x2000);							//8K, vpp, 3.3V
 		}
 		else if(EQ("16F767")||EQ("16F777")){
 			Write16F7x(0x2000,1);							//8K, vdd no delay
@@ -1092,6 +1109,9 @@ ATmega16, ATmega16A, ATmega32, ATmega32A, ATmega64, ATmega64A, ATtiny2313\n\
 		else if(EQ("16F57")||EQ("16F59")){
 			Read12F5xx(0x800,r?0x40:4);						//2K
 		}
+		else if(EQ("16F722")||EQ("16F722A")){
+			Read16Fxxx(0x800,0,r?0x100:11,0);				//2K, vpp, config1-2 + cal1-2, 3.3V
+		}
 		else if(EQ("12C672")||EQ("12CE674")){
 			Read16Fxxx(0x800,0,r?0x100:0,0);				//2K, vpp
 		}
@@ -1134,6 +1154,9 @@ ATmega16, ATmega16A, ATmega32, ATmega32A, ATmega64, ATmega64A, ATtiny2313\n\
 		else if(EQ("16F737")||EQ("16F747")){
 			Read16Fxxx(0x1000,0,r?0x40:9,2);				//4K, vdd short delay
 		}
+		else if(EQ("16F723")||EQ("16F723A")||EQ("16F724")){
+			Read16Fxxx(0x1000,0,r?0x100:11,0);				//4K, vpp, config1-2 + cal1-2, 3.3V
+		}
 		else if(EQ("16F873A")||EQ("16F874A")){
 			Read16Fxxx(0x1000,ee?0x80:0,r?0x100:8,1);		//4K, 128, vdd
 		}
@@ -1166,6 +1189,9 @@ ATmega16, ATmega16A, ATmega32, ATmega32A, ATmega64, ATmega64A, ATtiny2313\n\
 		}
 		else if(EQ("16F767")||EQ("16F777")){
 			Read16Fxxx(0x2000,0,r?0x40:9,2);				//8K, vdd short delay
+		}
+		else if(EQ("16F726")||EQ("16F727")){
+			Read16Fxxx(0x2000,0,r?0x100:11,0);				//8K, vpp, config1-2 + cal1-2, 3.3V
 		}
 		else if(EQ("16F876A")||EQ("16F877A")){
 			Read16Fxxx(0x2000,ee?0x100:0,r?0x100:8,1);		//8K, 256, vdd

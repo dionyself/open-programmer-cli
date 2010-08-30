@@ -5,6 +5,9 @@ These sources are given free of charge under the GNU General Public License vers
 
 Changelog (to use new features the corresponding firmware is required):
 
+V 0.7.7	august 2010:	added 16F72x,
+						better compatibility with non standard hex files
+
 V 0.7.6	july 2010:		modified 93xxx algorithms with byte by byte read for better compatibility,
 						added support for programmers with 12 bit ADC (18F2553 etc.) 
 

@@ -5,6 +5,9 @@ Questi sorgenti sono distribuiti gratuitamente sotto licenza GNU General Public 
 
 Cambiamenti (per usare i dispositivi aggiunti è richiesto un programmatore con firmware corrispondente):
 
+V 0.7.7	agosto 2010:	aggiunti 16F72x,
+						migliorata compatibilità con hex non standard
+
 V 0.7.6	luglio 2010:	modifica algoritmi 93xxx con lettura byte a byte per maggiore compatibilità,
 						supporto programmatore con ADC a 12 bit (18F2553 ecc.)
 

@@ -746,7 +746,7 @@ void Write18Fx(int dim,int dim2,int wbuf,int eraseW1,int eraseW2,int options)
 		PrintMessage(strings[S_WbufLim]);	//"Write buffer size out of limits\r\n"
 		return;
 	}
-	if(entry==2&&!CheckV33Regulator()){
+	if(entry>0&&!CheckV33Regulator()){
 		PrintMessage(strings[S_noV33reg]);	//Can't find 3.3V expansion board
 		return;
 	}
