@@ -1,4 +1,4 @@
-// Strings.h v0.7.5
+// Strings.h v0.7.8
 
 enum S {				//
 	S_noprog,			//
@@ -166,6 +166,7 @@ enum S {				//
 	S_NoConfigW2,		//
 	S_NoConfigW3,		//
 	S_NoConfigW4,		//
+	S_NoConfigW5,		//
 	S_Empty,			//
 // GUI strings
 	I_Data,				//

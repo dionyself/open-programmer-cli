@@ -18,9 +18,24 @@
  * or see <http://www.gnu.org/licenses/>
  */
 
-#include "common.h"
+//This cannot be executed conditionally on MSVC
+//#include "stdafx.h"
 
-void PIC16_ID(int id)
+
+//configure for GUI or command-line
+#ifdef _MSC_VER 
+	#define _GUI
+	#include "msvc_common.h"
+#else 
+	#define _CMD
+	#include "common.h"
+#endif
+
+#ifdef _MSC_VER
+	void COpenProgDlg::PIC16_ID(int id)
+#else
+	void PIC16_ID(int id)
+#endif
 {
 	char s[64];
 	switch(id>>5){
@@ -180,6 +195,48 @@ void PIC16_ID(int id)
 		case 0x146>>1:		//01 0100 0110 xxxx
 			sprintf(s,"16F946 rev%d\r\n",id&0xF);
 			break;
+		case 0x148>>1:		//01 0100 100x xxxx
+			sprintf(s,"16F1847 rev%d\r\n",id&0x1F);
+			break;
+		case 0x14A>>1:		//01 0100 101x xxxx
+			sprintf(s,"16LF1847 rev%d\r\n",id&0x1F);
+			break;
+		case 0x158>>1:		//01 0101 100x xxxx
+			sprintf(s,"16F1526 rev%d\r\n",id&0x1F);
+			break;
+		case 0x15A>>1:		//01 0101 101x xxxx
+			sprintf(s,"16F1527 rev%d\r\n",id&0x1F);
+			break;
+		case 0x15C>>1:		//01 0101 110x xxxx
+			sprintf(s,"16LF1526 rev%d\r\n",id&0x1F);
+			break;
+		case 0x15E>>1:		//01 0101 111x xxxx
+			sprintf(s,"16LF1527 rev%d\r\n",id&0x1F);
+			break;
+		case 0x168>>1:		//01 0110 100x xxxx
+			sprintf(s,"16F1516 rev%d\r\n",id&0x1F);
+			break;
+		case 0x16A>>1:		//01 0110 101x xxxx
+			sprintf(s,"16F1517 rev%d\r\n",id&0x1F);
+			break;
+		case 0x16C>>1:		//01 0110 110x xxxx
+			sprintf(s,"16F1518 rev%d\r\n",id&0x1F);
+			break;
+		case 0x16E>>1:		//01 0110 111x xxxx
+			sprintf(s,"16F1519 rev%d\r\n",id&0x1F);
+			break;
+		case 0x178>>1:		//01 0111 100x xxxx
+			sprintf(s,"16LF1516 rev%d\r\n",id&0x1F);
+			break;
+		case 0x17A>>1:		//01 0111 101x xxxx
+			sprintf(s,"16LF1517 rev%d\r\n",id&0x1F);
+			break;
+		case 0x17C>>1:		//01 0111 110x xxxx
+			sprintf(s,"16LF1518 rev%d\r\n",id&0x1F);
+			break;
+		case 0x17E>>1:		//01 0111 111x xxxx
+			sprintf(s,"16LF1519 rev%d\r\n",id&0x1F);
+			break;
 		case 0x180>>1:		//01 1000 000x xxxx
 			sprintf(s,"16F727 rev%d\r\n",id&0x1F);
 			break;
@@ -221,6 +278,12 @@ void PIC16_ID(int id)
 			break;
 		case 0x1B6>>1:		//01 1011 011x xxxx
 			sprintf(s,"16LF722A rev%d\r\n",id&0x1F);
+			break;
+		case 0x1B8>>1:		//01 1011 100x xxxx
+			sprintf(s,"12F1840 rev%d\r\n",id&0x1F);
+			break;
+		case 0x1BA>>1:		//01 1011 101x xxxx
+			sprintf(s,"12LF1840 rev%d\r\n",id&0x1F);
 			break;
 		case 0x1D0>>1:		//00 1101 000x xxxx
 			sprintf(s,"16F870 rev%d\r\n",id&0x1F);
@@ -351,7 +414,11 @@ void PIC16_ID(int id)
 	PrintMessage(s);
 }
 
+#ifdef _MSC_VER
+void COpenProgDlg::Read16Fxxx(int dim,int dim2,int dim3,int vdd){
+#else
 void Read16Fxxx(int dim,int dim2,int dim3,int vdd){
+#endif
 // read 14 bit PIC
 // dim=program size 	dim2=eeprom size   dim3=config size
 // dim2<0 -> eeprom @ 0x2200
@@ -363,6 +430,10 @@ void Read16Fxxx(int dim,int dim2,int dim3,int vdd){
 // Calib1/Config2@0x2008
 // Calib2/Calib1@0x2009
 // eeprom@0x2100
+#ifdef _MSC_VER
+	CString str,aux;
+	int size;
+#endif
 	int k=0,k2=0,z=0,i,j,ee2200=0;
 	char s[512],t[256],v[256];
 	if(dim2<0){
@@ -387,7 +458,12 @@ void Read16Fxxx(int dim,int dim2,int dim3,int vdd){
 		fprintf(logfile,"Read12F6xx(%d,%d,%d,%d)\n",dim,dim2,dim3,vdd);
 	}
 	size=0x2100+dim2;
+#ifdef _MSC_VER
+	dati_hex.RemoveAll();
+	dati_hex.SetSize(size);
+#else
 	dati_hex=malloc(sizeof(WORD)*size);
+#endif
 	unsigned int start=GetTickCount();
 	bufferU[0]=0;
 	j=1;
@@ -441,7 +517,9 @@ void Read16Fxxx(int dim,int dim2,int dim3,int vdd){
 	if(saveLog)WriteLogIO();
 //****************** read code ********************
 	PrintMessage(strings[S_CodeReading1]);		//read code ...
-	PrintMessage("   ");
+#ifdef _CMD
+	PrintMessage("   "); 
+#endif
 	for(i=0,j=1;i<dim;i++){
 		bufferU[j++]=READ_DATA_PROG;
 		bufferU[j++]=INC_ADDR;
@@ -465,7 +543,9 @@ void Read16Fxxx(int dim,int dim2,int dim3,int vdd){
 			}
 		}
 	}
-	PrintMessage("\b\b\b");
+#ifdef _CMD
+	PrintMessage("\b\b\b\b");
+#endif
 	if(k!=dim){
 		PrintMessage("\r\n");
 		PrintMessage2(strings[S_ReadCodeErr],dim,k);	//"Error reading code area, requested %d words, read %d\r\n"
@@ -492,6 +572,9 @@ void Read16Fxxx(int dim,int dim2,int dim3,int vdd){
 					z+=2;
 				}
 			}
+#ifdef _GUI
+			PrintStatus(strings[S_CodeReading],(i-0x2000+dim)*100/(dim+dim2+dim3),i);	//"Read: %d%%, addr. %03X"
+#endif
 			j=1;
 			if(saveLog){
 				fprintf(logfile,strings[S_Log7],i,i,k2,k2);	//"i=%d(0x%X), k=%d(0x%X)\n"
@@ -508,7 +591,9 @@ void Read16Fxxx(int dim,int dim2,int dim3,int vdd){
 //****************** read eeprom ********************
 	if(dim2){
 		PrintMessage(strings[S_ReadEE]);		//Read EEPROM ...
-		PrintMessage("   ");
+#ifdef _CMD
+		PrintMessage("   "); 
+#endif
 		if(ee2200){		//eeprom a 0x2200
 			bufferU[j++]=INC_ADDR_N;
 			bufferU[j++]=0xFF;
@@ -539,7 +624,9 @@ void Read16Fxxx(int dim,int dim2,int dim3,int vdd){
 				}
 			}
 		}
-		PrintMessage("\b\b\b");
+#ifdef _CMD
+		PrintMessage("\b\b\b\b");
+#endif
 		if(k2!=dim2){
 			PrintMessage("\r\n");
 			PrintMessage2(strings[S_ReadEEErr],dim2,k2);	//"Error reading EE area, ..."
@@ -560,6 +647,9 @@ void Read16Fxxx(int dim,int dim2,int dim3,int vdd){
 	msDelay(1);
 	read();
 	unsigned int stop=GetTickCount();
+#ifdef _GUI
+	StatusBar.SetWindowText("");
+#endif
 //****************** visualize ********************
 	for(i=0;i<4;i+=2){
 		PrintMessage4("ID%d: 0x%04X\tID%d: 0x%04X\r\n",i,dati_hex[0x2000+i],i+1,dati_hex[0x2000+i+1]);
@@ -584,12 +674,22 @@ void Read16Fxxx(int dim,int dim2,int dim3,int vdd){
 			if(dati_hex[j]<0x3fff) valid=1;
 		}
 		if(valid){
+#ifdef _GUI
+			sprintf(t,"%04X: %s\r\n",i,s);
+			empty=0;
+			aux+=t;
+#else
 			PrintMessage("%04X: %s\r\n",i,s);
 			empty=0;
+#endif
 		}
 		s[0]=0;
 	}
 	if(empty) PrintMessage(strings[S_Empty]);	//empty
+#ifdef _GUI
+	else PrintMessage(aux);
+	aux.Empty();
+#endif
 	if(dim3>8){
 		empty=1;
 		PrintMessage(strings[S_ConfigResMem]);	//"\r\nConfig and reserved memory:\r\n"
@@ -601,12 +701,22 @@ void Read16Fxxx(int dim,int dim2,int dim3,int vdd){
 				if(dati_hex[j]<0x3fff) valid=1;
 			}
 			if(valid){
+#ifdef _GUI
+				sprintf(t,"%04X: %s\r\n",i,s);
+				empty=0;
+				aux+=t;
+#else
 				PrintMessage("%04X: %s\r\n",i,s);
 				empty=0;
+#endif
 			}
 			s[0]=0;
 		}
 		if(empty) PrintMessage(strings[S_Empty]);	//empty
+#ifdef _GUI
+		else PrintMessage(aux);
+		aux.Empty();
+#endif
 	}
 	if(dim2){
 		empty=1;
@@ -622,19 +732,36 @@ void Read16Fxxx(int dim,int dim2,int dim3,int vdd){
 				if(dati_hex[j]<0xff) valid=1;
 			}
 			if(valid){
+#ifdef _GUI
+				sprintf(t,"%04X: %s %s\r\n",i,s,v);
+				empty=0;
+				aux+=t;
+#else
 				PrintMessage("%04X: %s %s\r\n",i,s,v);
 				empty=0;
+#endif
 			}
 			s[0]=0;
 			v[0]=0;
 		}
 		if(empty) PrintMessage(strings[S_Empty]);	//empty
+#ifdef _GUI
+		else PrintMessage(aux);
+		aux.Empty();
+#endif
 	}
 	PrintMessage1(strings[S_End],(stop-start)/1000.0);	//"\r\nEnd (%.2f s)\r\n"
 	if(saveLog) CloseLogFile();
+#ifdef _GUI
+	StatusBar.SetWindowText("");
+#endif
 }
 
+#ifdef _MSC_VER
+void COpenProgDlg::Read16F1xxx(int dim,int dim2,int dim3,int options){
+#else
 void Read16F1xxx(int dim,int dim2,int dim3,int options){
+#endif
 // read 14 bit enhanced PIC
 // dim=program size 	dim2=eeprom size   dim3=config size
 // options:
@@ -647,6 +774,10 @@ void Read16F1xxx(int dim,int dim2,int dim3,int options){
 // Calib1@0x8009
 // Calib2@0x800A
 // eeprom@0x0
+#ifdef _MSC_VER
+	CString str,aux;
+	int size,sizeEE;
+#endif
 	int k=0,k2=0,z=0,i,j;
 	if(!CheckV33Regulator()){
 		PrintMessage(strings[S_noV33reg]);	//Can't find 3.3V expansion board
@@ -679,8 +810,14 @@ void Read16F1xxx(int dim,int dim2,int dim3,int options){
 	else StartHVReg(-1);			//LVP mode, turn off HV
 	size=0x8000+dim3;
 	sizeEE=dim2;
+#ifdef _MSC_VER
+	dati_hex.RemoveAll();
+	dati_hex.SetSize(size);
+	memEE.SetSize(dim2);
+#else
 	dati_hex=malloc(sizeof(WORD)*size);
 	memEE=malloc(dim2);			//EEPROM
+#endif
 	for(i=0;i<sizeEE;i++) memEE[i]=0xFF;
 	unsigned int start=GetTickCount();
 	bufferU[0]=0;
@@ -734,7 +871,9 @@ void Read16F1xxx(int dim,int dim2,int dim3,int options){
 	if(saveLog)WriteLogIO();
 //****************** read code ********************
 	PrintMessage(strings[S_CodeReading1]);		//read code ...
-	PrintMessage("   ");
+#ifdef _CMD
+	PrintMessage("   "); 
+#endif
 	for(i=0,j=1;i<dim;i++){
 		bufferU[j++]=READ_DATA_PROG;
 		bufferU[j++]=INC_ADDR;
@@ -758,7 +897,9 @@ void Read16F1xxx(int dim,int dim2,int dim3,int options){
 			}
 		}
 	}
-	PrintMessage("\b\b\b");
+#ifdef _CMD
+	PrintMessage("\b\b\b\b");
+#endif
 	if(k!=dim){
 		PrintMessage("\r\n");
 		PrintMessage2(strings[S_ReadCodeErr],dim,k);	//"Error reading code area, requested %d words, read %d\r\n"
@@ -785,6 +926,9 @@ void Read16F1xxx(int dim,int dim2,int dim3,int options){
 					z+=2;
 				}
 			}
+#ifdef _MSC_VER
+			PrintStatus(strings[S_CodeReading],(i-0x8000+dim)*100/(dim+dim2+dim3),i);	//"Read: %d%%, ind. %03X"
+#endif
 			j=1;
 			if(saveLog){
 				fprintf(logfile,strings[S_Log7],i,i,k2,k2);	//"i=%d(0x%X), k=%d(0x%X)\n"
@@ -826,7 +970,9 @@ void Read16F1xxx(int dim,int dim2,int dim3,int options){
 				}
 			}
 		}
-		PrintMessage("\b\b\b");
+#ifdef _CMD
+		PrintMessage("\b\b\b\b");
+#endif
 		if(i!=dim2){
 			PrintMessage("\r\n");
 			PrintMessage2(strings[S_ReadEEErr],dim2,i);	//"Error reading EE area, ..."
@@ -847,6 +993,9 @@ void Read16F1xxx(int dim,int dim2,int dim3,int options){
 	msDelay(1);
 	read();
 	unsigned int stop=GetTickCount();
+#ifdef _GUI
+	StatusBar.SetWindowText("");
+#endif
 //****************** visualize ********************
 	for(i=0;i<4;i+=2){
 		PrintMessage4("ID%d: 0x%04X\tID%d: 0x%04X\r\n",i,dati_hex[0x8000+i],i+1,dati_hex[0x8000+i+1]);
@@ -868,12 +1017,22 @@ void Read16F1xxx(int dim,int dim2,int dim3,int options){
 			if(dati_hex[j]<0x3fff) valid=1;
 		}
 		if(valid){
+#ifdef _GUI
+			sprintf(t,"%04X: %s\r\n",i,s);
+			empty=0;
+			aux+=t;
+#else
 			PrintMessage("%04X: %s\r\n",i,s);
 			empty=0;
+#endif
 		}
 		s[0]=0;
 	}
 	if(empty) PrintMessage(strings[S_Empty]);	//empty
+#ifdef _GUI
+	else PrintMessage(aux);
+	aux.Empty();
+#endif
 	if(dim3>11){
 		empty=1;
 		PrintMessage(strings[S_ConfigResMem]);	//"\r\nConfig and reserved memory:\r\n"
@@ -885,19 +1044,36 @@ void Read16F1xxx(int dim,int dim2,int dim3,int options){
 				if(dati_hex[j]<0x3fff) valid=1;
 			}
 			if(valid){
+#ifdef _GUI
+				sprintf(t,"%04X: %s\r\n",i,s);
+				empty=0;
+				aux+=t;
+#else
 				PrintMessage("%04X: %s\r\n",i,s);
 				empty=0;
+#endif
 			}
 			s[0]=0;
 		}
 		if(empty) PrintMessage(strings[S_Empty]);	//empty
+#ifdef _GUI
+		else PrintMessage(aux);
+		aux.Empty();
+#endif
 	}
 	if(dim2) DisplayEE();	//visualize
 	PrintMessage1(strings[S_End],(stop-start)/1000.0);	//"\r\nEnd (%.2f s)\r\n"
 	if(saveLog) CloseLogFile();
+#ifdef _GUI
+	StatusBar.SetWindowText("");
+#endif
 }
 
+#ifdef _MSC_VER
+void COpenProgDlg::Write12F6xx(int dim,int dim2)
+#else
 void Write12F6xx(int dim,int dim2)
+#endif
 // write 14 bit PIC
 // dim=program size 	dim2=eeprom size
 // vpp before vdd
@@ -912,6 +1088,10 @@ void Write12F6xx(int dim,int dim2)
 //			LOAD_DATA_DATA (0011) + BEGIN_PROG (1000) + 8ms
 // verify during write
 {
+#ifdef _MSC_VER
+	CString str;
+	int size=dati_hex.GetSize();
+#endif
 	int err=0;
 	WORD devID=0x3fff,calib1=0x3fff,calib2=0x3fff;
 	int k=0,z=0,i,j,w;
@@ -1000,16 +1180,13 @@ void Write12F6xx(int dim,int dim2)
 //****************** erase memory ********************
 	PrintMessage(strings[S_StartErase]);	//"Erase ... "
 	j=1;
-	bufferU[j++]=EN_VPP_VCC;		//enter program mode
-	bufferU[j++]=0x0;
-	bufferU[j++]=SET_CK_D;
-	bufferU[j++]=0x0;
 	bufferU[j++]=EN_VPP_VCC;		//VPP
 	bufferU[j++]=0x4;
 	bufferU[j++]=NOP;
 	bufferU[j++]=EN_VPP_VCC;		//VDD+VPP
 	bufferU[j++]=0x5;
-	bufferU[j++]=NOP;
+	bufferU[j++]=WAIT_T3;		//necessary when erasing fully written 16F62xA
+								//not mentioned in the prog spec!
 	if(programID||load_calibword||ICDenable){
 		bufferU[j++]=LOAD_CONF;			//counter at 0x2000
 		bufferU[j++]=0xFF;				//fake config
@@ -1020,6 +1197,9 @@ void Write12F6xx(int dim,int dim2)
 			else bufferU[j++]=0x08;
 		}
 	}
+	bufferU[j++]=LOAD_DATA_PROG;
+	bufferU[j++]=0xFF;
+	bufferU[j++]=0xFF;
 	bufferU[j++]=BULK_ERASE_PROG;
 	bufferU[j++]=WAIT_T3;			// delay T3=10ms
 	if(dim2){
@@ -1043,13 +1223,15 @@ void Write12F6xx(int dim,int dim2)
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
 	write();
-	msDelay(40);
+	msDelay(50);
 	read();
 	if(saveLog)WriteLogIO();
 	PrintMessage(strings[S_Compl]);	//"completed\r\n"
 //****************** write code ********************
 	PrintMessage(strings[S_StartCodeProg]);	//"Write code ... "
-	PrintMessage("   ");
+#ifdef _CMD
+	PrintMessage("   "); 
+#endif
 	for(w=i=k=0,j=1;i<dim;i++){
 		if(dati_hex[i]<0x3fff){
 			bufferU[j++]=LOAD_DATA_PROG;
@@ -1095,13 +1277,17 @@ void Write12F6xx(int dim,int dim2)
 		}
 	}
 	err+=i-k;
-	PrintMessage("\b\b\b");
+#ifdef _CMD
+	PrintMessage("\b\b\b\b");
+#endif
 	PrintMessage1(strings[S_ComplErr],err);	//"completed, %d errors\r\n"
 //****************** write eeprom ********************
 	if(dim2){
 		int err_e=0;
 		PrintMessage(strings[S_EEAreaW]);	//"Writing EEPROM ... "
-		PrintMessage("   ");
+#ifdef _CMD
+		PrintMessage("   "); 
+#endif
 		j=1;
 		bufferU[j++]=SET_PARAMETER;
 		bufferU[j++]=SET_T3;
@@ -1161,7 +1347,9 @@ void Write12F6xx(int dim,int dim2)
 		}
 		err_e+=i-k;
 		err+=err_e;
-		PrintMessage("\b\b\b");
+#ifdef _CMD
+		PrintMessage("\b\b\b\b");
+#endif
 		PrintMessage1(strings[S_ComplErr],err_e);	//"completed, %d errors\r\n"
 	}
 //****************** write ID, CONFIG, CALIB ********************
@@ -1293,9 +1481,16 @@ void Write12F6xx(int dim,int dim2)
 	unsigned int stop=GetTickCount();
 	PrintMessage3(strings[S_EndErr],(stop-start)/1000.0,err,err!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nEnd (%.2f s) %d %s\r\n\r\n"
 	if(saveLog)CloseLogFile();
+#ifdef _GUI
+	StatusBar.SetWindowText("");
+#endif
 }
 
+#ifdef _MSC_VER
+void COpenProgDlg::Write16F8x (int dim,int dim2)
+#else
 void Write16F8x (int dim,int dim2)
+#endif
 // write 14 bit PIC
 // dim=program size 	dim2=eeprom size
 // vdd + 50ms + vdd&vpp
@@ -1318,6 +1513,10 @@ void Write16F8x (int dim,int dim2)
 // write eeprom: LOAD_DATA_DATA (0011) + BEGIN_PROG (1000) + 20ms o 8ms(16F84A)
 // verify during write
 {
+#ifdef _MSC_VER
+	CString str;
+	int size=dati_hex.GetSize();
+#endif
 	int err=0;
 	WORD devID,config;
 	int k=0,z=0,i,j,w,r;
@@ -1499,7 +1698,9 @@ void Write16F8x (int dim,int dim2)
 	PrintMessage(strings[S_Compl]);	//"completed\r\n"
 //****************** write code ********************
 	PrintMessage(strings[S_StartCodeProg]);	//"Write code ... "
-	PrintMessage("   ");
+#ifdef _CMD
+	PrintMessage("   "); 
+#endif
 	for(w=i=k=0,j=1;i<dim;i++){
 		if(dati_hex[i]<0x3fff){
 			bufferU[j++]=LOAD_DATA_PROG;
@@ -1545,7 +1746,9 @@ void Write16F8x (int dim,int dim2)
 		}
 	}
 	err+=i-k;
-	PrintMessage("\b\b\b");
+#ifdef _CMD
+	PrintMessage("\b\b\b\b");
+#endif
 	PrintMessage1(strings[S_ComplErr],err);	//"completed, %d errors\r\n"
 //****************** write ID, CONFIG ********************
 	PrintMessage(strings[S_ConfigAreaW]);	//"Writing CONFIG area ... "
@@ -1607,7 +1810,9 @@ void Write16F8x (int dim,int dim2)
 //****************** write eeprom ********************
 	if(dim2){
 		PrintMessage(strings[S_EEAreaW]);	//"Writing EEPROM ... "
-		PrintMessage("   ");
+#ifdef _CMD
+		PrintMessage("   "); 
+#endif
 		j=1;
 		bufferU[j++]=INC_ADDR_N;
 		bufferU[j++]=0x2100-0x2008;		//clear EEPROM counter
@@ -1655,7 +1860,9 @@ void Write16F8x (int dim,int dim2)
 			}
 		}
 		err+=i-k;
-		PrintMessage("\b\b\b");
+#ifdef _CMD
+		PrintMessage("\b\b\b\b");
+#endif
 		PrintMessage1(strings[S_ComplErr],i-k);	//"completed, %d errors\r\n"
 	}
 //****************** exit ********************
@@ -1679,9 +1886,16 @@ void Write16F8x (int dim,int dim2)
 	unsigned int stop=GetTickCount();
 	PrintMessage3(strings[S_EndErr],(stop-start)/1000.0,err,err!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nEnd (%.2f s) %d %s\r\n\r\n"
 	if(saveLog)CloseLogFile();
+#ifdef _GUI
+	StatusBar.SetWindowText("");
+#endif
 }
 
+#ifdef _MSC_VER
+void COpenProgDlg::Write16F62x (int dim,int dim2)
+#else
 void Write16F62x (int dim,int dim2)
+#endif
 // write 14 bit PIC
 // dim=program size 	dim2=eeprom size
 // vpp before vdd
@@ -1700,6 +1914,10 @@ void Write16F62x (int dim,int dim2)
 // eeprom: LOAD_DATA_DATA (0011) + BEGIN_PROG2 (11000) + 8ms
 // verify during write
 {
+#ifdef _MSC_VER
+	CString str;
+	int size=dati_hex.GetSize();
+#endif
 	int err=0;
 	WORD devID,config;
 	int k=0,z=0,i,j,w;
@@ -1836,7 +2054,9 @@ void Write16F62x (int dim,int dim2)
 	PrintMessage(strings[S_Compl]);	//"completed\r\n"
 //****************** write code ********************
 	PrintMessage(strings[S_StartCodeProg]);	//"Write code ... "
-	PrintMessage("   ");
+#ifdef _CMD
+	PrintMessage("   "); 
+#endif
 	for(w=i=k=0,j=1;i<dim;i++){
 		if(dati_hex[i]<0x3fff){
 			bufferU[j++]=LOAD_DATA_PROG;
@@ -1882,7 +2102,9 @@ void Write16F62x (int dim,int dim2)
 		}
 	}
 	err+=i-k;
-	PrintMessage("\b\b\b");
+#ifdef _CMD
+	PrintMessage("\b\b\b\b");
+#endif
 	PrintMessage1(strings[S_ComplErr],err);	//"completed, %d errors\r\n"
 //****************** write ID, CONFIG ********************
 	PrintMessage(strings[S_ConfigAreaW]);	//"Writing CONFIG area ... "
@@ -1943,7 +2165,9 @@ void Write16F62x (int dim,int dim2)
 //****************** write eeprom ********************
 	if(dim2){
 		PrintMessage(strings[S_EEAreaW]);	//"Writing EEPROM ... "
-		PrintMessage("   ");
+#ifdef _CMD
+		PrintMessage("   "); 
+#endif
 		j=1;
 		bufferU[j++]=INC_ADDR_N;
 		bufferU[j++]=0x2102-0x2008;		//clear EEPROM counter
@@ -1993,7 +2217,9 @@ void Write16F62x (int dim,int dim2)
 			}
 		}
 		err+=i-k;
-		PrintMessage("\b\b\b");
+#ifdef _CMD
+		PrintMessage("\b\b\b\b");
+#endif
 		PrintMessage1(strings[S_ComplErr],i-k);	//"completed, %d errors\r\n"
 	}
 //****************** exit ********************
@@ -2017,9 +2243,16 @@ void Write16F62x (int dim,int dim2)
 	unsigned int stop=GetTickCount();
 	PrintMessage3(strings[S_EndErr],(stop-start)/1000.0,err,err!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nEnd (%.2f s) %d %s\r\n\r\n"
 	if(saveLog)CloseLogFile();
+#ifdef _GUI
+	StatusBar.SetWindowText("");
+#endif
 }
 
+#ifdef _MSC_VER
+void COpenProgDlg::Write12F62x(int dim,int dim2)
+#else
 void Write12F62x(int dim,int dim2)
+#endif
 // write 14 bit PIC
 // dim=program size 	dim2=eeprom size
 // vpp before vdd
@@ -2033,6 +2266,10 @@ void Write12F62x(int dim,int dim2)
 // LOAD_DATA_DATA (0011) + BEGIN_PROG (1000) + 6ms
 // verify during write
 {
+#ifdef _MSC_VER
+	CString str;
+	int size=dati_hex.GetSize();
+#endif
 	int err=0;
 	WORD devID,config,osccal;
 	int k=0,z=0,i,j,w;
@@ -2153,7 +2390,9 @@ void Write12F62x(int dim,int dim2)
 	PrintMessage(strings[S_Compl]);	//"completed\r\n"
 //****************** write code ********************
 	PrintMessage(strings[S_StartCodeProg]);	//"Write code ... "
-	PrintMessage("   ");
+#ifdef _CMD
+	PrintMessage("   "); 
+#endif
 	if(!load_osccal) dati_hex[dim-1]=osccal;	//backup osccal
 	for(w=i=k=0,j=1;i<dim;i++){
 		if(dati_hex[i]<0x3fff){
@@ -2199,7 +2438,9 @@ void Write12F62x(int dim,int dim2)
 			}
 		}
 	}
-	PrintMessage("\b\b\b");
+#ifdef _CMD
+	PrintMessage("\b\b\b\b");
+#endif
 	err+=i-k;
 	PrintMessage1(strings[S_ComplErr],err);	//"completed, %d errors\r\n"
 //****************** write ID, CONFIG, CALIB ********************
@@ -2259,7 +2500,9 @@ void Write12F62x(int dim,int dim2)
 //****************** write eeprom ********************
 	if(dim2){
 		PrintMessage(strings[S_EEAreaW]);	//"Writing EEPROM ... "
-		PrintMessage("   ");
+#ifdef _CMD
+		PrintMessage("   "); 
+#endif
 		j=1;
 		bufferU[j++]=SET_PARAMETER;
 		bufferU[j++]=SET_T3;
@@ -2314,7 +2557,9 @@ void Write12F62x(int dim,int dim2)
 			}
 		}
 		err+=i-k;
-		PrintMessage("\b\b\b");
+#ifdef _CMD
+		PrintMessage("\b\b\b\b");
+#endif
 		PrintMessage1(strings[S_ComplErr],i-k);	//"completed, %d errors\r\n"
 	}
 //****************** exit ********************
@@ -2337,9 +2582,16 @@ void Write12F62x(int dim,int dim2)
 	unsigned int stop=GetTickCount();
 	PrintMessage3(strings[S_EndErr],(stop-start)/1000.0,err,err!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nEnd (%.2f s) %d %s\r\n\r\n"
 	if(saveLog)CloseLogFile();
+#ifdef _GUI
+	StatusBar.SetWindowText("");
+#endif
 }
 
+#ifdef _MSC_VER
+void COpenProgDlg::Write16F87x (int dim,int dim2)
+#else
 void Write16F87x (int dim,int dim2)
+#endif
 // write 14 bit PIC
 // dim=program size 	dim2=eeprom size
 // dim2<0 -> eeprom @ 0x2200
@@ -2360,6 +2612,10 @@ void Write16F87x (int dim,int dim2)
 // write eeprom: LOAD_DATA_DATA (0011) + BEGIN_PROG (1000) + 8ms
 // verify during write
 {
+#ifdef _MSC_VER
+	CString str;
+	int size=dati_hex.GetSize();
+#endif
 	int err=0;
 	WORD devID,config;
 	int k=0,z=0,i,j,w,ee2200=0;
@@ -2529,7 +2785,9 @@ void Write16F87x (int dim,int dim2)
 	PrintMessage(strings[S_Compl]);	//"completed\r\n"
 //****************** write code ********************
 	PrintMessage(strings[S_StartCodeProg]);	//"Write code ... "
-	PrintMessage("   ");
+#ifdef _CMD
+	PrintMessage("   "); 
+#endif
 	for(w=i=k=0,j=1;i<dim;i++){
 		if(dati_hex[i]<0x3fff){
 			bufferU[j++]=LOAD_DATA_PROG;
@@ -2575,7 +2833,9 @@ void Write16F87x (int dim,int dim2)
 		}
 	}
 	err+=i-k;
-	PrintMessage("\b\b\b");
+#ifdef _CMD
+	PrintMessage("\b\b\b\b");
+#endif
 	PrintMessage1(strings[S_ComplErr],err);	//"completed, %d errors\r\n"
 //****************** write ID, CONFIG, CALIB ********************
 	PrintMessage(strings[S_ConfigAreaW]);	//"Writing CONFIG area ... "
@@ -2656,7 +2916,9 @@ void Write16F87x (int dim,int dim2)
 	if(dim2){
 		int err_e=0;
 		PrintMessage(strings[S_EEAreaW]);	//"Writing EEPROM ... "
-		PrintMessage("   ");
+#ifdef _CMD
+		PrintMessage("   "); 
+#endif
 		j=1;
 		if(ee2200){		//eeprom a 0x2200
 			bufferU[j++]=INC_ADDR_N;
@@ -2711,7 +2973,9 @@ void Write16F87x (int dim,int dim2)
 		}
 		err_e+=i-k;
 		err+=err_e;
-		PrintMessage("\b\b\b");
+#ifdef _CMD
+		PrintMessage("\b\b\b\b");
+#endif
 		PrintMessage1(strings[S_ComplErr],err_e);	//"completed, %d errors\r\n"
 	}
 //****************** exit ********************
@@ -2734,9 +2998,16 @@ void Write16F87x (int dim,int dim2)
 	unsigned int stop=GetTickCount();
 	PrintMessage3(strings[S_EndErr],(stop-start)/1000.0,err,err!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nEnd (%.2f s) %d %s\r\n\r\n"
 	if(saveLog)CloseLogFile();
+#ifdef _GUI
+	StatusBar.SetWindowText("");
+#endif
 }
 
+#ifdef _MSC_VER
+void COpenProgDlg::Write16F87xA (int dim,int dim2,int seq)
+#else
 void Write16F87xA (int dim,int dim2,int seq)
+#endif
 // write 14 bit PIC
 // dim=program size 	dim2=eeprom size
 // seq=0: vdd + (50ms) + vdd&vpp
@@ -2746,11 +3017,15 @@ void Write16F87xA (int dim,int dim2,int seq)
 // write CONFIG2@0x2008 if different from 3FFF
 // eeprom@0x2100
 // erase:
-// CHIP ERASE (11111) + 8ms
+// CHIP ERASE (11111) + 15ms
 // write: LOAD_DATA_PROG (0010) + BEGIN_PROG2 (11000) + 1.2ms + END_PROGX (10111)
-// write eeprom: LOAD_DATA_DATA (0011) + BEGIN_PROG (1000) + 8ms
+// write eeprom: LOAD_DATA_DATA (0011) + BEGIN_PROG (1000) + 12ms
 // verify during write
 {
+#ifdef _MSC_VER
+	CString str;
+	int size=dati_hex.GetSize();
+#endif
 	int err=0;
 	WORD devID,config;
 	int k=0,z=0,i,j,w;
@@ -2802,12 +3077,9 @@ void Write16F87xA (int dim,int dim2,int seq)
 	bufferU[j++]=READ_DATA_PROG;	//DevID
 	bufferU[j++]=INC_ADDR;
 	bufferU[j++]=READ_DATA_PROG;	//Config
-	bufferU[j++]=NOP;				//exit program mode
-	bufferU[j++]=EN_VPP_VCC;
+	bufferU[j++]=EN_VPP_VCC;		//exit program mode
 	bufferU[j++]=0x1;
 	bufferU[j++]=EN_VPP_VCC;
-	bufferU[j++]=0x0;
-	bufferU[j++]=SET_CK_D;
 	bufferU[j++]=0x0;
 	bufferU[j++]=WAIT_T3;			//delay after exiting prog mode
 	bufferU[j++]=EN_VPP_VCC;		//VDD
@@ -2833,8 +3105,8 @@ void Write16F87xA (int dim,int dim2,int seq)
 	j=1;
 	bufferU[j++]=SET_PARAMETER;
 	bufferU[j++]=SET_T3;
-	bufferU[j++]=8000>>8;
-	bufferU[j++]=8000&0xff;
+	bufferU[j++]=15000>>8;
+	bufferU[j++]=15000&0xff;
 	if(ICDenable||programID){			//erase 0x2000-2004 also
 		bufferU[j++]=LOAD_CONF;			//counter at 0x2000
 		bufferU[j++]=0x3F;				//fake config
@@ -2843,12 +3115,9 @@ void Write16F87xA (int dim,int dim2,int seq)
 	bufferU[j++]=CUST_CMD;
 	bufferU[j++]=0x1F;					// CHIP_ERASE (11111)
 	bufferU[j++]=WAIT_T3;
-	bufferU[j++]=NOP;				//exit program mode
-	bufferU[j++]=EN_VPP_VCC;
+	bufferU[j++]=EN_VPP_VCC;		//exit program mode
 	bufferU[j++]=0x1;
 	bufferU[j++]=EN_VPP_VCC;
-	bufferU[j++]=0x0;
-	bufferU[j++]=SET_CK_D;
 	bufferU[j++]=0x0;
 	bufferU[j++]=WAIT_T3;			//delay after exiting prog mode
 	bufferU[j++]=EN_VPP_VCC;		//VDD
@@ -2868,7 +3137,9 @@ void Write16F87xA (int dim,int dim2,int seq)
 	PrintMessage(strings[S_Compl]);	//"completed\r\n"
 //****************** write code ********************
 	PrintMessage(strings[S_StartCodeProg]);	//"Write code ... "
-	PrintMessage("   ");
+#ifdef _CMD
+	PrintMessage("   "); 
+#endif
 	for(w=i=k=0,j=1;i<dim;i++){
 		if(dati_hex[i]<0x3fff){
 			bufferU[j++]=LOAD_DATA_PROG;
@@ -2916,18 +3187,22 @@ void Write16F87xA (int dim,int dim2,int seq)
 		}
 	}
 	err+=i-k;
-	PrintMessage("\b\b\b");
+#ifdef _CMD
+	PrintMessage("\b\b\b\b");
+#endif
 	PrintMessage1(strings[S_ComplErr],err);	//"completed, %d errors\r\n"
 //****************** write eeprom ********************
 	if(dim2){
 		int err_e=0;
 		PrintMessage(strings[S_EEAreaW]);	//"Writing EEPROM ... "
-		PrintMessage("   ");
+#ifdef _CMD
+		PrintMessage("   "); 
+#endif
 		j=1;
 		bufferU[j++]=SET_PARAMETER;
 		bufferU[j++]=SET_T3;
-		bufferU[j++]=8000>>8;
-		bufferU[j++]=8000&0xff;
+		bufferU[j++]=12000>>8;
+		bufferU[j++]=12000&0xff;
 		bufferU[j++]=LOAD_CONF;			//counter at 0x2000
 		bufferU[j++]=0xFF;				//fake config
 		bufferU[j++]=0xFF;				//fake config
@@ -2950,7 +3225,7 @@ void Write16F87xA (int dim,int dim2,int seq)
 				bufferU[j++]=FLUSH;
 				for(;j<DIMBUF;j++) bufferU[j]=0x0;
 				write();
-				msDelay(w*9+5);
+				msDelay(w*12.5+5);
 				w=0;
 				read();
 				for(z=1;z<DIMBUF-4;z++){
@@ -2980,7 +3255,9 @@ void Write16F87xA (int dim,int dim2,int seq)
 		}
 		err_e+=i-k;
 		err+=err_e;
-		PrintMessage("\b\b\b");
+#ifdef _CMD
+		PrintMessage("\b\b\b\b");
+#endif
 		PrintMessage1(strings[S_ComplErr],err_e);	//"completed, %d errors\r\n"
 	}
 //****************** write ID, CONFIG, CALIB ********************
@@ -2989,8 +3266,8 @@ void Write16F87xA (int dim,int dim2,int seq)
 	int ICDgoto=0x2800+(ICDaddr&0x7FF);		//GOTO ICD routine (0x28xx)
 	bufferU[j++]=SET_PARAMETER;
 	bufferU[j++]=SET_T3;
-	bufferU[j++]=8000>>8;
-	bufferU[j++]=8000&0xff;
+	bufferU[j++]=12000>>8;
+	bufferU[j++]=12000&0xff;
 	bufferU[j++]=LOAD_CONF;			//counter at 0x2000
 	bufferU[j++]=0xFF;				//fake config
 	bufferU[j++]=0xFF;				//fake config
@@ -3037,9 +3314,9 @@ void Write16F87xA (int dim,int dim2,int seq)
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
 	write();
-	if(programID) msDelay(33);
-	if(ICDenable) msDelay(9);
-	msDelay(18);
+	if(programID) msDelay(50);
+	if(ICDenable) msDelay(13);
+	msDelay(28);
 	read();
 	for(i=0,z=0;programID&&i<4;i++){
 		for(;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
@@ -3095,9 +3372,16 @@ void Write16F87xA (int dim,int dim2,int seq)
 	unsigned int stop=GetTickCount();
 	PrintMessage3(strings[S_EndErr],(stop-start)/1000.0,err,err!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nEnd (%.2f s) %d %s\r\n\r\n"
 	if(saveLog)CloseLogFile();
+#ifdef _GUI
+	StatusBar.SetWindowText("");
+#endif
 }
 
+#ifdef _MSC_VER
+void COpenProgDlg::Write16F81x (int dim,int dim2)
+#else
 void Write16F81x (int dim,int dim2)
+#endif
 // write 14 bit PIC
 // dim=program size 	dim2=eeprom size
 // seq=0: vdd + (50ms) + vdd&vpp
@@ -3113,6 +3397,10 @@ void Write16F81x (int dim,int dim2)
 // write eeprom: LOAD_DATA_DATA (0011) + BEGIN_PROG2 (11000) + 1.5ms + END_PROGX (10111)
 // verify during write
 {
+#ifdef _MSC_VER
+	CString str;
+	int size=dati_hex.GetSize();
+#endif
 	int err=0;
 	WORD devID,config;
 	int k=0,z=0,i,j,w;
@@ -3234,7 +3522,9 @@ void Write16F81x (int dim,int dim2)
 	PrintMessage(strings[S_Compl]);	//"completed\r\n"
 //****************** write code ********************
 	PrintMessage(strings[S_StartCodeProg]);	//"Write code ... "
-	PrintMessage("   ");
+#ifdef _CMD
+	PrintMessage("   "); 
+#endif
 	for(w=i=k=0,j=1;i<dim;i++){
 		if(dati_hex[i]<0x3fff){
 			bufferU[j++]=LOAD_DATA_PROG;
@@ -3282,13 +3572,17 @@ void Write16F81x (int dim,int dim2)
 		}
 	}
 	err+=i-k;
-	PrintMessage("\b\b\b");
+#ifdef _CMD
+	PrintMessage("\b\b\b\b");
+#endif
 	PrintMessage1(strings[S_ComplErr],err);	//"completed, %d errors\r\n"
 //****************** write eeprom ********************
 	if(dim2){
 		int err_e=0;
 		PrintMessage(strings[S_EEAreaW]);	//"Writing EEPROM ... "
-		PrintMessage("   ");
+#ifdef _CMD
+		PrintMessage("   "); 
+#endif
 		j=1;
 		bufferU[j++]=EN_VPP_VCC;
 		bufferU[j++]=0x1;
@@ -3362,7 +3656,9 @@ void Write16F81x (int dim,int dim2)
 		}
 		err_e+=i-k;
 		err+=err_e;
-		PrintMessage("\b\b\b");
+#ifdef _CMD
+		PrintMessage("\b\b\b\b");
+#endif
 		PrintMessage1(strings[S_ComplErr],err_e);	//"completed, %d errors\r\n"
 	}
 //****************** write ID, CONFIG, CALIB ********************
@@ -3479,9 +3775,16 @@ void Write16F81x (int dim,int dim2)
 	unsigned int stop=GetTickCount();
 	PrintMessage3(strings[S_EndErr],(stop-start)/1000.0,err,err!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nEnd (%.2f s) %d %s\r\n\r\n"
 	if(saveLog)CloseLogFile();
+#ifdef _GUI
+	StatusBar.SetWindowText("");
+#endif
 }
 
+#ifdef _MSC_VER
+void COpenProgDlg::Write12F61x(int dim)
+#else
 void Write12F61x(int dim)
+#endif
 // write 14 bit PIC
 // dim=program size
 // vpp before vdd
@@ -3492,6 +3795,10 @@ void Write12F61x(int dim)
 // write: LOAD_DATA_PROG (0010) + BEGIN_PROG2 (11000) + 4ms + END_PROG (1010)
 // verify during write
 {
+#ifdef _MSC_VER
+	CString str;
+	int size=dati_hex.GetSize();
+#endif
 	int err=0;
 	WORD devID=0x3fff,calib1=0x3fff;
 	int k=0,z=0,i,j,w;
@@ -3613,7 +3920,9 @@ void Write12F61x(int dim)
 	PrintMessage(strings[S_Compl]);	//"completed\r\n"
 //****************** write code ********************
 	PrintMessage(strings[S_StartCodeProg]);	//"Write code ... "
-	PrintMessage("   ");
+#ifdef _CMD
+	PrintMessage("   "); 
+#endif
 	for(w=i=k=0,j=1;i<dim;i++){
 		if(dati_hex[i]<0x3fff){
 			bufferU[j++]=LOAD_DATA_PROG;
@@ -3661,7 +3970,9 @@ void Write12F61x(int dim)
 		}
 	}
 	err+=i-k;
-	PrintMessage("\b\b\b");
+#ifdef _CMD
+	PrintMessage("\b\b\b\b");
+#endif
 	PrintMessage1(strings[S_ComplErr],err);	//"completed, %d errors\r\n"
 //****************** write ID, CONFIG, CALIB ********************
 	PrintMessage(strings[S_ConfigAreaW]);	//"Writing CONFIG area ... "
@@ -3762,9 +4073,16 @@ void Write12F61x(int dim)
 	unsigned int stop=GetTickCount();
 	PrintMessage3(strings[S_EndErr],(stop-start)/1000.0,err,err!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nEnd (%.2f s) %d %s\r\n\r\n"
 	if(saveLog)CloseLogFile();
+#ifdef _GUI
+	StatusBar.SetWindowText("");
+#endif
 }
 
+#ifdef _MSC_VER
+void COpenProgDlg::Write16F88x(int dim,int dim2)
+#else
 void Write16F88x(int dim,int dim2)
+#endif
 // write 14 bit PIC
 // dim=program size 	dim2=eeprom size
 // vpp before vdd
@@ -3779,6 +4097,10 @@ void Write16F88x(int dim,int dim2)
 //			LOAD_DATA_DATA (0011) + BEGIN_PROG (1000) + 6ms
 // verify during write
 {
+#ifdef _MSC_VER
+	CString str;
+	int size=dati_hex.GetSize();
+#endif
 	int err=0;
 	WORD devID=0x3fff,calib1=0x3fff;
 	int k=0,z=0,i,j,w;
@@ -3904,7 +4226,9 @@ void Write16F88x(int dim,int dim2)
 	PrintMessage(strings[S_Compl]);	//"completed\r\n"
 //****************** write code ********************
 	PrintMessage(strings[S_StartCodeProg]);	//"Write code ... "
-	PrintMessage("   ");
+#ifdef _CMD
+	PrintMessage("   "); 
+#endif
 	for(w=i=k=0,j=1;i<dim;i++){
 		if(dati_hex[i]<0x3fff){
 			bufferU[j++]=LOAD_DATA_PROG;
@@ -3950,12 +4274,16 @@ void Write16F88x(int dim,int dim2)
 		}
 	}
 	err+=i-k;
-	PrintMessage("\b\b\b");
+#ifdef _CMD
+	PrintMessage("\b\b\b\b");
+#endif
 	PrintMessage1(strings[S_ComplErr],err);	//"completed, %d errors\r\n"
 //****************** write eeprom ********************
 	if(dim2){
 		PrintMessage(strings[S_EEAreaW]);	//"Writing EEPROM ... "
-		PrintMessage("   ");
+#ifdef _CMD
+		PrintMessage("   "); 
+#endif
 		j=1;
 		bufferU[j++]=SET_PARAMETER;
 		bufferU[j++]=SET_T3;
@@ -4014,7 +4342,9 @@ void Write16F88x(int dim,int dim2)
 			}
 		}
 		err+=i-k;
-		PrintMessage("\b\b\b");
+#ifdef _CMD
+		PrintMessage("\b\b\b\b");
+#endif
 		PrintMessage1(strings[S_ComplErr],i-k);	//"completed, %d errors\r\n"
 	}
 //****************** write ID, CONFIG, CALIB ********************
@@ -4141,9 +4471,16 @@ void Write16F88x(int dim,int dim2)
 	unsigned int stop=GetTickCount();
 	PrintMessage3(strings[S_EndErr],(stop-start)/1000.0,err,err!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nEnd (%.2f s) %d %s\r\n\r\n"
 	if(saveLog)CloseLogFile();
+#ifdef _GUI
+	StatusBar.SetWindowText("");
+#endif
 }
 
+#ifdef _MSC_VER
+void COpenProgDlg::Write16F7x(int dim,int vdd)
+#else
 void Write16F7x(int dim,int vdd)
+#endif
 // dim=program size
 // write 14 bit PIC
 // vdd=0  vdd +50ms before vpp
@@ -4155,6 +4492,10 @@ void Write16F7x(int dim,int vdd)
 // write:LOAD_DATA_PROG (0010) + BEGIN_PROG (1000) + 1ms + END_PROG2(1110)
 // verify during write
 {
+#ifdef _MSC_VER
+	CString str;
+	int size=dati_hex.GetSize();
+#endif
 	int err=0;
 	WORD devID=0x3fff,calib1=0x3fff;
 	int k=0,z=0,i,j,w;
@@ -4252,7 +4593,9 @@ void Write16F7x(int dim,int vdd)
 	PrintMessage(strings[S_Compl]);	//"completed\r\n"
 //****************** write code ********************
 	PrintMessage(strings[S_StartCodeProg]);	//"Write code ... "
-	PrintMessage("   ");
+#ifdef _CMD
+	PrintMessage("   "); 
+#endif
 	for(w=i=k=0,j=1;i<dim;i++){
 		if(dati_hex[i]<0x3fff){
 			bufferU[j++]=LOAD_DATA_PROG;
@@ -4299,7 +4642,9 @@ void Write16F7x(int dim,int vdd)
 		}
 	}
 	err+=i-k;
-	PrintMessage("\b\b\b");
+#ifdef _CMD
+	PrintMessage("\b\b\b\b");
+#endif
 	PrintMessage1(strings[S_ComplErr],err);	//"completed, %d errors\r\n"
 //****************** write ID, CONFIG, CALIB ********************
 	PrintMessage(strings[S_ConfigAreaW]);	//"Writing CONFIG area ... "
@@ -4397,9 +4742,16 @@ void Write16F7x(int dim,int vdd)
 	unsigned int stop=GetTickCount();
 	PrintMessage3(strings[S_EndErr],(stop-start)/1000.0,err,err!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nEnd (%.2f s) %d %s\r\n\r\n"
 	if(saveLog)CloseLogFile();
+#ifdef _GUI
+	StatusBar.SetWindowText("");
+#endif
 }
 
+#ifdef _MSC_VER
+void COpenProgDlg::Write16F71x(int dim,int vdd)
+#else
 void Write16F71x(int dim,int vdd)
+#endif
 // write 14 bit PIC
 // dim=program size
 // vdd=0  vdd +50ms before vpp
@@ -4410,6 +4762,10 @@ void Write16F71x(int dim,int vdd)
 // write:LOAD_DATA_PROG (0010) + BEGIN_PROG2 (11000) + 2ms + END_PROG2(1110)
 // verify during write
 {
+#ifdef _MSC_VER
+	CString str;
+	int size=dati_hex.GetSize();
+#endif
 	int err=0;
 	WORD devID=0x3fff,calib1=0x3fff;
 	int k=0,z=0,i,j,w;
@@ -4529,7 +4885,9 @@ void Write16F71x(int dim,int vdd)
 	PrintMessage(strings[S_Compl]);	//"completed\r\n"
 //****************** write code ********************
 	PrintMessage(strings[S_StartCodeProg]);	//"Write code ... "
-	PrintMessage("   ");
+#ifdef _CMD
+	PrintMessage("   "); 
+#endif
 	for(w=i=k=0,j=1;i<dim;i++){
 		if(dati_hex[i]<0x3fff){
 			bufferU[j++]=LOAD_DATA_PROG;
@@ -4577,7 +4935,9 @@ void Write16F71x(int dim,int vdd)
 		}
 	}
 	err+=i-k;
-	PrintMessage("\b\b\b");
+#ifdef _CMD
+	PrintMessage("\b\b\b\b");
+#endif
 	PrintMessage1(strings[S_ComplErr],err);	//"completed, %d errors\r\n"
 //****************** write ID, CONFIG, CALIB ********************
 	PrintMessage(strings[S_ConfigAreaW]);	//"Writing CONFIG area ... "
@@ -4678,9 +5038,16 @@ void Write16F71x(int dim,int vdd)
 	unsigned int stop=GetTickCount();
 	PrintMessage3(strings[S_EndErr],(stop-start)/1000.0,err,err!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nEnd (%.2f s) %d %s\r\n\r\n"
 	if(saveLog)CloseLogFile();
+#ifdef _GUI
+	StatusBar.SetWindowText("");
+#endif
 }
 
+#ifdef _MSC_VER
+void COpenProgDlg::Write16F72x(int dim)
+#else
 void Write16F72x(int dim)
+#endif
 // write 14 bit PIC
 // dim=program size
 // vpp before vdd
@@ -4691,6 +5058,10 @@ void Write16F72x(int dim)
 // write:LOAD_DATA_PROG (0010) + BEGIN_PROG (1000) + 2.5ms
 // verify during write
 {
+#ifdef _MSC_VER
+	CString str;
+	int size=dati_hex.GetSize();
+#endif
 	int err=0;
 	WORD devID=0x3fff,calib1=0x3fff;
 	int k=0,z=0,i,j,w;
@@ -4778,7 +5149,9 @@ void Write16F72x(int dim)
 	PrintMessage(strings[S_Compl]);	//"completed\r\n"
 //****************** write code ********************
 	PrintMessage(strings[S_StartCodeProg]);	//"Write code ... "
-	PrintMessage("   ");
+#ifdef _CMD
+	PrintMessage("   "); 
+#endif
 	for(w=i=k=0,j=1;i<dim;i++){
 		if(dati_hex[i]<0x3fff){
 			bufferU[j++]=LOAD_DATA_PROG;
@@ -4824,7 +5197,9 @@ void Write16F72x(int dim)
 		}
 	}
 	err+=i-k;
-	PrintMessage("\b\b\b");
+#ifdef _CMD
+	PrintMessage("\b\b\b\b");
+#endif
 	PrintMessage1(strings[S_ComplErr],err);	//"completed, %d errors\r\n"
 //****************** write ID, CONFIG, CALIB ********************
 	PrintMessage(strings[S_ConfigAreaW]);	//"Writing CONFIG area ... "
@@ -4933,9 +5308,16 @@ void Write16F72x(int dim)
 	unsigned int stop=GetTickCount();
 	PrintMessage3(strings[S_EndErr],(stop-start)/1000.0,err,err!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nEnd (%.2f s) %d %s\r\n\r\n"
 	if(saveLog)CloseLogFile();
+#ifdef _GUI
+	StatusBar.SetWindowText("");
+#endif
 }
 
+#ifdef _MSC_VER
+void COpenProgDlg::Write16F1xxx(int dim,int dim2,int options)
+#else
 void Write16F1xxx(int dim,int dim2,int options)
+#endif
 // write 14 bit enhanced PIC
 // dim=program size 	dim2=eeprom size   dim3=config size
 // options:
@@ -4954,6 +5336,11 @@ void Write16F1xxx(int dim,int dim2,int options)
 //			LOAD_DATA_DATA (0011) + BEGIN_PROG (1000) + 2.5ms
 // verify after write
 {
+#ifdef _MSC_VER
+	CString str;
+	int size=dati_hex.GetSize();
+	int sizeEE=memEE.GetSize();
+#endif
 	int err=0,load_calibword=0;
 	WORD devID=0x3fff,calib1=0x3fff,calib2=0x3fff;
 	int k=0,k2=0,z=0,i,j,w;
@@ -4962,7 +5349,7 @@ void Write16F1xxx(int dim,int dim2,int options)
 		return;
 	}
 	if(size<0x8009){
-		PrintMessage(strings[S_NoConfigW4]);	//"Can't find CONFIG (0x2007-0x2008)\r\n"
+		PrintMessage(strings[S_NoConfigW5]);	//"Can't find CONFIG (0x8007-0x8008)\r\n"
 		PrintMessage(strings[S_End]);
 		return;
 	}
@@ -5087,7 +5474,9 @@ void Write16F1xxx(int dim,int dim2,int options)
 	PrintMessage(strings[S_Compl]);	//"completed\r\n"
 //****************** write code ********************
 	PrintMessage(strings[S_StartCodeProg]);	//"Write code ... "
-	PrintMessage("   ");
+#ifdef _CMD
+	PrintMessage("   "); 
+#endif
 	for(;dim>0&&dati_hex[dim]>=0x3fff;dim--); //skip empty space at end
 	dim+=dim%8;		//grow to 8 word multiple
 	int valid,inc;
@@ -5143,11 +5532,15 @@ void Write16F1xxx(int dim,int dim2,int options)
 			PrintStatus(strings[S_CodeWriting],i*100/dim,i);	//"Writing: %d%%, addr. %03X"
 		}
 	}
-	PrintMessage("\b\b\b");
+#ifdef _CMD
+	PrintMessage("\b\b\b\b");
+#endif
 	PrintMessage(strings[S_Compl]);	//"completed\r\n"
 //****************** verify code ********************
 	PrintMessage(strings[S_CodeV]);	//"Verifying code ... "
-	PrintMessage("   ");
+#ifdef _CMD
+	PrintMessage("   "); 
+#endif
 	if(saveLog)	fprintf(logfile,"VERIFY CODE\n");
 	j=1;
 	bufferU[j++]=CUST_CMD;
@@ -5208,7 +5601,9 @@ void Write16F1xxx(int dim,int dim2,int options)
 			if(err>=max_err) i=dim;
 		}
 	}
-	PrintMessage("\b\b\b");
+#ifdef _CMD
+	PrintMessage("\b\b\b\b");
+#endif
 	if(k<dim){
 		PrintMessage2(strings[S_CodeVError3],dim,k);	//"Error verifying code area, requested %d words, read %d\r\n"
 	}
@@ -5220,7 +5615,9 @@ void Write16F1xxx(int dim,int dim2,int options)
 	if(dim2&&err<max_err){
 		int errEE=0;
 		PrintMessage(strings[S_EEAreaW]);	//"Writing EEPROM ... "
-		PrintMessage("   ");
+#ifdef _CMD
+		PrintMessage("   "); 
+#endif
 		j=1;
 		bufferU[j++]=SET_PARAMETER;
 		bufferU[j++]=SET_T3;
@@ -5281,7 +5678,9 @@ void Write16F1xxx(int dim,int dim2,int options)
 			}
 		}
 		errEE+=i-k;
-		PrintMessage("\b\b\b");
+#ifdef _CMD
+		PrintMessage("\b\b\b\b");
+#endif
 		PrintMessage1(strings[S_ComplErr],errEE);	//"completed, %d errors\r\n"
 		err+=errEE;
 	}
@@ -5382,4 +5781,7 @@ void Write16F1xxx(int dim,int dim2,int options)
 	unsigned int stop=GetTickCount();
 	PrintMessage3(strings[S_EndErr],(stop-start)/1000.0,err,err!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nEnd (%.2f s) %d %s\r\n\r\n"
 	if(saveLog)CloseLogFile();
+#ifdef _GUI
+	StatusBar.SetWindowText("");
+#endif
 }

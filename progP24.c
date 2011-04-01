@@ -18,7 +18,6 @@
  * or see <http://www.gnu.org/licenses/>
  */
 
-#include "common.h"
 /*
                 ICSP  Code(KWord) EE(B) Config     Code_er Row Row_wr EE_er EE_wr Conf_wr wr_seq
 24F0xKAxxx      HV-LV  1.375-5.5   512  00-10(8b)   4064   32  4004   4050  4004   4004    NO
@@ -27,17 +26,43 @@
 24FJxxGB1x      LV     22-87       NO   Code-3(16b) 404F   64  4001   -     -      4003    NO
 24HJ-33FJ       LV      2-88       NO  00-12/16(8b) 404F   64  4001   -     -      4000    NO
 30Fxx10-16      HV2     4-48      0-4K  00-0C(16b)  407F   32  4001   seq.  4004   4008   55-AA
-30Fxx20-23      HV2     2-4        NO   00-0E(16b)  407F   32  4001   -     -      4008   55-AA
+30F2020-23      LV5V    2-4        NO   00-0E(16b)  407F   32  4001   -     -      4008   55-AA
 
 */
-void CheckData(int a,int b,int addr,int *err){
+
+//This cannot be executed conditionally on MSVC
+//#include "stdafx.h"
+
+
+//configure for GUI or command-line
+#ifdef _MSC_VER 
+	#define _GUI
+	#include "msvc_common.h"
+#else 
+	#define _CMD
+	#include "common.h"
+#endif
+
+#ifdef _MSC_VER
+void COpenProgDlg::CheckData(int a,int b,int addr,int *err)
+#else
+void CheckData(int a,int b,int addr,int *err)
+#endif
+{
 	if(a!=b){
+#ifdef _MSC_VER
+		CString str;
+#endif
 		PrintMessage4(strings[S_CodeVError],addr,addr,a,b);	//"Errore in verifica, indirizzo %04X (%d), scritto %02X, letto %02X\r\n"
 		(*err)++;
 	}
 }
 
+#ifdef _MSC_VER
+void COpenProgDlg::PIC24_ID(int id)
+#else
 void PIC24_ID(int id)
+#endif
 {
 	char s[64];
 	switch(id){
@@ -611,7 +636,11 @@ void PIC24_ID(int id)
 	PrintMessage(s);
 }
 
+#ifdef _MSC_VER
+void COpenProgDlg::Read24Fx(int dim,int dim2,int options,int appIDaddr,int executiveArea){
+#else
 void Read24Fx(int dim,int dim2,int options,int appIDaddr,int executiveArea){
+#endif
 // read 16 bit PIC 24Fxxxx
 // deviceID @ 0xFF0000
 // dim=program size (16 bit words)
@@ -621,6 +650,7 @@ void Read24Fx(int dim,int dim2,int options,int appIDaddr,int executiveArea){
 //     0 = low voltage ICSP entry
 //     1 = High voltage ICSP entry (6V)
 //     2 = High voltage ICSP entry (12V) + PIC30F sequence (additional NOPs)
+//     3 = low voltage ICSP entry (5V power supply)
 //	bit [7:4]
 //	   0 = config area in the last 2 program words
 //	   1 = config area in the last 3 program words
@@ -631,6 +661,9 @@ void Read24Fx(int dim,int dim2,int options,int appIDaddr,int executiveArea){
 //     6 = 0xF80000 to 0xF8000E (30FSMPS)
 // appIDaddr = application ID word lower address (high is 0x80)
 // executiveArea = size of executive area (16 bit words, starting at 0x800000)
+#ifdef _MSC_VER
+	CString str,aux;
+#endif
 	int k=0,k2=0,z=0,i,j;
 	int entry=options&0xF;
 	int config=(options>>4)&0xF;
@@ -639,7 +672,7 @@ void Read24Fx(int dim,int dim2,int options,int appIDaddr,int executiveArea){
 		PrintMessage1(strings[S_FWver2old],"0.7.0");	//"This firmware is too old. Version %s is required\r\n"
 		return;
 	}
-	if(entry!=2&&!CheckV33Regulator()){		//except 30Fxx which is on 5V
+	if(entry<2&&!CheckV33Regulator()){		//except 30Fxx which is on 5V
 		PrintMessage(strings[S_noV33reg]);	//Can't find 3.3V expansion board
 		return;
 	}
@@ -662,15 +695,22 @@ void Read24Fx(int dim,int dim2,int options,int appIDaddr,int executiveArea){
 	for(i=0;i<executiveArea;i++) memExec[i]=0xFF;
 	size=dim;
 	sizeEE=0x1000;
+#ifdef _MSC_VER
+	memCODE.SetSize(dim);		//CODE
+	memEE.SetSize(0x1000);		//EEPROM
+	memset(memCODE.GetData(),0xFF,dim);
+	memset(memEE.GetData(),0xFF,0x1000);
+#else
 	memCODE=malloc(dim);		//CODE
 	memEE=malloc(0x1000);		//EEPROM
 	memset(memCODE,0xFF,dim);
 	memset(memEE,0xFF,0x1000);
+#endif
 	if(config>2){					//only if separate config area
 		sizeCONFIG=48;
 		for(i=0;i<48;i++) memCONFIG[i]=0xFF;
 	}
-	if(entry>0){				//High voltage programming: 3.3V + 1.5V + R drop + margin
+	if((entry==1)||(entry==2)){			//High voltage programming: 3.3V + 1.5V + R drop + margin
 		if(!StartHVReg(entry==2?12:6)){	//12V only for 30Fxx !!!
 			PrintMessage(strings[S_HVregErr]); //"HV regulator error\r\n"
 			return;
@@ -693,7 +733,7 @@ void Read24Fx(int dim,int dim2,int options,int appIDaddr,int executiveArea){
 	bufferU[j++]=0x1;
 	bufferU[j++]=EN_VPP_VCC;		//VDD + VPP
 	bufferU[j++]=0x5;
-	if(entry==0){				//LVP: pulse on MCLR
+	if((entry==0)||(entry==3)){		//LVP: pulse on MCLR
 		bufferU[j++]=EN_VPP_VCC;	//VDD
 		bufferU[j++]=0x1;
 	}
@@ -859,7 +899,9 @@ void Read24Fx(int dim,int dim2,int options,int appIDaddr,int executiveArea){
 	PrintMessage2("ApplicationID @ 0x80%04X:  0x%04X\r\n",appIDaddr,w0);
 //****************** read code ********************
 	PrintMessage(strings[S_CodeReading1]);		//code read ...
+#ifdef _CMD
 	PrintMessage("   ");
+#endif
 //Read 6 24 bit words packed in 9 16 bit words
 //memory address advances by 24 bytes because of alignment
 	int High=0;
@@ -1013,7 +1055,9 @@ void Read24Fx(int dim,int dim2,int options,int appIDaddr,int executiveArea){
 			WriteLogIO();
 		}
 	}
+#ifdef _CMD
 	PrintMessage("\b\b\b");
+#endif
 	if(k!=dim){
 		PrintMessage("\r\n");
 		PrintMessage2(strings[S_ReadCodeErr2],dim,k);	//"Error reading code area, requested %d bytes, read %d\r\n"
@@ -1131,12 +1175,17 @@ void Read24Fx(int dim,int dim2,int options,int appIDaddr,int executiveArea){
 			memCONFIG[i*4+1]=bufferI[z+1];	//High byte
 			z+=3;
 		}
+#ifdef _GUI
+		StatusBar.SetWindowText("");
+#endif
 	}
 //****************** read eeprom ********************
 	if(dim2){
 		if(saveLog)	fprintf(logfile,"\nEEPROM:\n");
 		PrintMessage(strings[S_ReadEE]);		//read eeprom ...
+#ifdef _CMD
 		PrintMessage("   ");
+#endif
 		bufferU[j++]=SIX_N;
 		bufferU[j++]=0x45;				//append 1 NOP
 		bufferU[j++]=0x20;				//MOV #0x7F,W0
@@ -1182,7 +1231,9 @@ void Read24Fx(int dim,int dim2,int options,int appIDaddr,int executiveArea){
 				}
 			}
 		}
+#ifdef _CMD
 		PrintMessage("\b\b\b");
+#endif
 		if(k2!=dim2){
 			PrintMessage("\r\n");
 			PrintMessage2(strings[S_ReadEEErr],dim2,k2);	//"Error reading EEPROM area, requested %d bytes, read %d\r\n"
@@ -1193,7 +1244,9 @@ void Read24Fx(int dim,int dim2,int options,int appIDaddr,int executiveArea){
 	if(executiveArea){
 		j=1;
 		PrintMessage(strings[S_Read_EXE_A]);		//read executive area ...
+#ifdef _CMD
 		PrintMessage("   ");
+#endif
 		if(saveLog)	fprintf(logfile,"\nExecutive area:\n");
 		bufferU[j++]=SIX_N;
 		bufferU[j++]=0x45;				//append 1 NOP
@@ -1304,7 +1357,9 @@ void Read24Fx(int dim,int dim2,int options,int appIDaddr,int executiveArea){
 				WriteLogIO();
 			}
 		}
+#ifdef _CMD
 		PrintMessage("\b\b\b");
+#endif
 		if(k!=executiveArea){
 			PrintMessage("\r\n");
 			PrintMessage2(strings[S_ReadCodeErr2],executiveArea,k);	//"Error reading code area, requested %d bytes, read %d\r\n"
@@ -1328,6 +1383,9 @@ void Read24Fx(int dim,int dim2,int options,int appIDaddr,int executiveArea){
 	read();
 	if(saveLog)	WriteLogIO();
 	unsigned int stop=GetTickCount();
+#ifdef _GUI
+	StatusBar.SetWindowText("");
+#endif
 //****************** visualize ********************
 	if(config>2){					//only if separate config area
 		PrintMessage(strings[S_ConfigMem]);				//"\r\nConfig Memory:\r\n"
@@ -1386,12 +1444,22 @@ void Read24Fx(int dim,int dim2,int options,int appIDaddr,int executiveArea){
 			if(d!=0xffffffff) valid=1;
 		}
 		if(valid){
+#ifdef _GUI
+			sprintf(t,"%06X: %s\r\n",i/2,s);
+			empty=0;
+			aux+=t;
+#else
 			PrintMessage("%06X: %s\r\n",i/2,s);
 			empty=0;
+#endif
 		}
 		s[0]=0;
 	}
 	if(empty) PrintMessage(strings[S_Empty]);	//empty
+#ifdef _GUI
+	else PrintMessage(aux);
+	aux.Empty();
+#endif
 	if(dim2){
 		v[0]=0;
 		empty=1;
@@ -1409,13 +1477,23 @@ void Read24Fx(int dim,int dim2,int options,int appIDaddr,int executiveArea){
 				if(memEE[j+1]<0xff) valid=1;
 			}
 			if(valid){
+#ifdef _GUI
+				sprintf(t,"%04X: %s %s\r\n",i+0xF000,s,v);		//back to the device address
+				empty=0;
+				aux+=t;
+#else
 				PrintMessage("%04X: %s %s\r\n",i/2,s,v);
 				empty=0;
+#endif
 			}
 			s[0]=0;
 			v[0]=0;
 		}
 		if(empty) PrintMessage(strings[S_Empty]);	//empty
+#ifdef _GUI
+		else PrintMessage(aux);
+		aux.Empty();
+#endif
 	}
 	if(executiveArea){
 		PrintMessage(strings[S_ExeMem]);	//"\r\nExecutive memory:\r\n"
@@ -1430,18 +1508,31 @@ void Read24Fx(int dim,int dim2,int options,int appIDaddr,int executiveArea){
 				if(d!=0xffffffff) valid=1;
 			}
 			if(valid){
+#ifdef _GUI
+				sprintf(t,"%06X: %s\r\n",0x800000+i/2,s);
+				empty=0;
+				aux+=t;
+#else
 				PrintMessage("%06X: %s\r\n",0x800000+i/2,s);
 				empty=0;
+#endif
 			}
 			s[0]=0;
 		}
 		if(empty) PrintMessage(strings[S_Empty]);	//empty
+#ifdef _GUI
+		else PrintMessage(aux);
+#endif
 	}
 	PrintMessage1(strings[S_End],(stop-start)/1000.0);	//"\r\nEnd (%.2f s)\r\n"
 	if(saveLog) CloseLogFile();
 }
 
+#ifdef _MSC_VER
+void COpenProgDlg::Write24Fx(int dim,int dim2,int options,int appIDaddr,int rowSize, double wait){
+#else
 void Write24Fx(int dim,int dim2,int options,int appIDaddr,int rowSize, double wait){
+#endif
 // write 16 bit PIC 24Fxxxx
 // deviceID @ 0xFF0000
 // dim=program size (16 bit words)
@@ -1451,6 +1542,7 @@ void Write24Fx(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 //     0 = low voltage ICSP entry
 //     1 = High voltage ICSP entry (6V)
 //     2 = High voltage ICSP entry (12V) + PIC30F sequence (additional NOPs)
+//     3 = low voltage ICSP entry (5V power supply)
 //	bit [7:4]
 //	   0 = config area in the last 2 program words
 //	   1 = config area in the last 3 program words
@@ -1476,6 +1568,11 @@ void Write24Fx(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 // appIDaddr = application ID word lower address (high is 0x80)
 // rowSize = row size in instruction words (a row is written altogether)
 // wait = write delay in ms
+#ifdef _MSC_VER
+	CString str;
+	size=memCODE.GetSize();
+	sizeEE=memEE.GetSize();
+#endif
 	int k=0,k2=0,z=0,i,j;
 	int entry=options&0xF;
 	int config=(options>>4)&0xF;
@@ -1485,7 +1582,7 @@ void Write24Fx(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 		PrintMessage1(strings[S_FWver2old],"0.7.0");	//"This firmware is too old. Version %s is required\r\n"
 		return;
 	}
-	if(entry!=2&&!CheckV33Regulator()){		//except 30Fxx which is on 5V
+	if(entry<2&&!CheckV33Regulator()){		//except 30Fxx which is on 5V
 		PrintMessage(strings[S_noV33reg]);	//Can't find 3.3V expansion board
 		return;
 	}
@@ -1507,7 +1604,11 @@ void Write24Fx(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 	j=size;
 	if(j%(rowSize*4)){			//grow to an integer number of rows
 		size=(j/(rowSize*4)+1)*rowSize*4;
+#ifdef _MSC_VER
+		memCODE.SetSize(size);
+#else
 		memCODE=realloc(memCODE,size);
+#endif
 		for(;j<size;j++) memCODE[j]=0xFF;
 	}
 	int writeConfig=config<3&&dim>size;	//separate config write
@@ -1517,7 +1618,7 @@ void Write24Fx(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 		PrintMessage(strings[S_NoCode]);	//"Empty code area\r\n"
 		return;
 	}
-	if(entry>0){				//High voltage programming: 3.3V + 1.5V + R drop + margin
+	if((entry==1)||(entry==2)){			//High voltage programming: 3.3V + 1.5V + R drop + margin
 		if(!StartHVReg(entry==2?12:6)){	//12V only for 30Fxx !!!
 			PrintMessage(strings[S_HVregErr]); //"HV regulator error\r\n"
 			return;
@@ -1584,7 +1685,7 @@ void Write24Fx(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 	bufferU[j++]=0x1;
 	bufferU[j++]=EN_VPP_VCC;		//VDD + VPP
 	bufferU[j++]=0x5;
-	if(entry==0){				//LVP: pulse on MCLR
+	if((entry==0)||(entry==3)){		//LVP: pulse on MCLR
 		bufferU[j++]=EN_VPP_VCC;	//VDD
 		bufferU[j++]=0x1;
 	}
@@ -1889,7 +1990,9 @@ void Write24Fx(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 //****************** write code ********************
 	PrintMessage(strings[S_StartCodeProg]);	//"Write code ... "
 	if(saveLog)	fprintf(logfile,"\nWRITE CODE:\n");
+#ifdef _CMD
 	PrintMessage("   ");
+#endif
 //	instruction words are stored in code memory array as follows:
 //	L0 M0 H0 FF L1 M1 H1 FF
 	int valid,High=0;
@@ -2052,12 +2155,16 @@ void Write24Fx(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 			WriteLogIO();
 		}
 	}
+#ifdef _CMD
 	PrintMessage("\b\b\b");
+#endif
 	PrintMessage(strings[S_Compl]);	//"completed\r\n"
 //****************** verify code ********************
 	PrintMessage(strings[S_CodeV]);	//"Verify code ... "
 	if(saveLog)	fprintf(logfile,"\nVERIFY CODE:\n");
+#ifdef _CMD
 	PrintMessage("   ");
+#endif
 //Read 4 24 bit words packed in 6 16 bit words
 //memory address advances by 16 bytes because of alignment
 	High=0xE0000000;
@@ -2190,7 +2297,9 @@ void Write24Fx(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 		}
 		if(err>=max_err) break;
 	}
+#ifdef _CMD
 	PrintMessage("\b\b\b");
+#endif
 	PrintMessage1(strings[S_ComplErr],err);	//"completed: %d errors\r\n"
 	if(err>=max_err){
 		PrintMessage1(strings[S_MaxErr],err);	//"Exceeded maximum number of errors (%d), write interrupted\r\n"
@@ -2199,7 +2308,9 @@ void Write24Fx(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 	if(dim2&&err<max_err){
 		//EEPROM @ 0x7F(EEbaseAddr)
 		PrintMessage(strings[S_EEAreaW]);	//"Write EEPROM ... "
+#ifdef _CMD
 		PrintMessage("   ");
+#endif
 		if(saveLog)	fprintf(logfile,"\nWRITE EEPROM:\n");
 		int eewrite=(options&0xf000)>>12;
 		if(eewrite==0){		//24FxxKAxx
@@ -2482,9 +2593,14 @@ void Write24Fx(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 				}
 			}
 		}
+#ifdef _CMD
 		PrintMessage("\b\b\b");
+#endif
 		PrintMessage1(strings[S_ComplErr],errE);	//"completed: %d errors \r\n"
 		err+=errE;
+#ifdef _GUI
+		StatusBar.SetWindowText("");
+#endif
 	}
 //****************** write CONFIG ********************
 	int written, read;
@@ -2653,7 +2769,9 @@ void Write24Fx(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 			z+=3;
 		}
 		PrintMessage1(strings[S_ComplErr],errC);	//"completed: %d errors \r\n"
-
+#ifdef _GUI
+		StatusBar.SetWindowText("");
+#endif
 		err+=errC;
 	}
 	else if(config>=5&&err<max_err){	//16 bit config area (30Fxxxx)
@@ -2852,7 +2970,9 @@ void Write24Fx(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 			z+=3;
 		}
 		PrintMessage1(strings[S_ComplErr],errC);	//"completed: %d errors \r\n"
-
+#ifdef _GUI
+		StatusBar.SetWindowText("");
+#endif
 		err+=errC;
 	}
 //****************** exit ********************
@@ -2868,6 +2988,9 @@ void Write24Fx(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 	if(saveLog)WriteLogIO();
 	j=1;
 	unsigned int stop=GetTickCount();
+#ifdef _GUI
+	StatusBar.SetWindowText("");
+#endif
 	PrintMessage3(strings[S_EndErr],(stop-start)/1000.0,err,err!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nEnd (%.2f s) %d %s\r\n\r\n"
 	if(saveLog) CloseLogFile();
 }

@@ -18,9 +18,24 @@
  * or see <http://www.gnu.org/licenses/>
  */
 
-#include "common.h"
+//This cannot be executed conditionally on MSVC
+//#include "stdafx.h"
 
+
+//configure for GUI or command-line
+#ifdef _MSC_VER 
+	#define _GUI
+	#include "msvc_common.h"
+#else 
+	#define _CMD
+#include "common.h"
+#endif
+
+#ifdef _MSC_VER
+void COpenProgDlg::ReadI2C(int dim,int addr=0)
+#else
 void ReadI2C(int dim,int addr)
+#endif
 // read I2C memories
 // dim=size in bytes
 // addr:
@@ -28,6 +43,10 @@ void ReadI2C(int dim,int addr)
 //      [7:4]  A2:A0 value
 //      [11:8] 17th address bit location (added to control byte)
 {
+#ifdef _MSC_VER
+	CString str;
+	hvreg=0;
+#endif
 	int k=0,z=0,i,j;
 	int AX=(addr>>4)&7;
 	int addr17=(addr>>8)&0xF;
@@ -41,7 +60,12 @@ void ReadI2C(int dim,int addr)
 		fprintf(logfile,"ReadI2C(%d,%d)    (0x%X,0x%X)\n",dim,addr,dim,addr);
 	}
 	sizeEE=dim;
+#ifdef _MSC_VER
+	memEE.RemoveAll();
+	memEE.SetSize(dim);			//EEPROM
+#else
 	memEE=malloc(dim);			//EEPROM
+#endif
 	unsigned int start=GetTickCount();
 	bufferU[0]=0;
 	j=1;
@@ -58,7 +82,9 @@ void ReadI2C(int dim,int addr)
 	if(saveLog)WriteLogIO();
 //****************** read ********************
 	PrintMessage(strings[S_ReadEE]);		//read EEPROM ...
-	PrintMessage("   ");
+#ifdef _CMD
+	PrintMessage("   "); 
+#endif	
 	for(i=0,j=1;i<dim;i+=DIMBUF-4){
 		if(!addr){									//1 byte address
 			bufferU[j++]=I2C_READ;
@@ -88,11 +114,16 @@ void ReadI2C(int dim,int addr)
 			WriteLogIO();
 		}
 	}
+#ifdef _CMD
 	PrintMessage("\b\b\b");
+#endif
 	if(k!=dim){
 		PrintMessage("\r\n");
 		PrintMessage2(strings[S_ReadEEErr],dim,k);	//"Error reading EEPROM area, requested %d bytes, read %d\r\n"
 		sizeEE=k;
+#ifdef _MSC_VER
+		memEE.SetSize(k);
+#endif
 	}
 	else PrintMessage(strings[S_Compl]);
 //****************** exit ********************
@@ -104,12 +135,19 @@ void ReadI2C(int dim,int addr)
 	msDelay(2);
 	read();
 	unsigned int stop=GetTickCount();
+#ifdef _GUI
+	StatusBar.SetWindowText("");
+#endif
 	DisplayEE();	//visualize
 	PrintMessage1(strings[S_End],(stop-start)/1000.0);	//"\r\nEnd (%.2f s)\r\n"
 	if(saveLog) CloseLogFile();
 }
 
+#ifdef _MSC_VER
+void COpenProgDlg::WriteI2C(int dim,int addr=0,int page=16, float wait=5.0)
+#else
 void WriteI2C(int dim,int addr,int page, float wait)
+#endif
 // write I2C memories
 // dim=size in bytes
 // addr:
@@ -119,6 +157,11 @@ void WriteI2C(int dim,int addr,int page, float wait)
 // page=page size
 // wait=write delay (ms)
 {
+#ifdef _MSC_VER
+	CString str;
+	sizeEE=memEE.GetSize();
+	hvreg=0;
+#endif
 	int k=0,z=0,i,j;
 	int err=0;
 	int AX=(addr>>4)&7;
@@ -134,7 +177,11 @@ void WriteI2C(int dim,int addr,int page, float wait)
 	}
 	if(dim>sizeEE){
 		i=sizeEE;
+#ifdef _MSC_VER
+		memEE.SetSize(dim);
+#else
 		memEE=realloc(memEE,dim);
+#endif
 		for(;i<dim;i++) memEE[i]=0xFF;
 		sizeEE=dim;
 	}
@@ -158,7 +205,9 @@ void WriteI2C(int dim,int addr,int page, float wait)
 	if(saveLog)WriteLogIO();
 //****************** write ********************
 	PrintMessage(strings[S_EEAreaW]);	//"Write EEPROM ... "
-	PrintMessage("   ");
+#ifdef _CMD
+	PrintMessage("   "); 
+#endif	
 	for(;page>=DIMBUF-6;page>>=1);
 	for(i=0,j=1;i<dim;i+=page){
 		bufferU[j++]=I2C_WRITE;
@@ -187,11 +236,15 @@ void WriteI2C(int dim,int addr,int page, float wait)
 			WriteLogIO();
 		}
 	}
+#ifdef _CMD
 	PrintMessage("\b\b\b");
+#endif
 	PrintMessage(strings[S_Compl]);	//"completed\r\n"
 //****************** verify EEPROM ********************
 	PrintMessage(strings[S_EEV]);	//"Verify EEPROM ... "
-	PrintMessage("   ");
+#ifdef _CMD
+	PrintMessage("   "); 
+#endif	
 	k=0;
 	for(i=0,j=1;i<dim;i+=DIMBUF-4){
 		if(!addr){									//1 byte address
@@ -229,7 +282,9 @@ void WriteI2C(int dim,int addr,int page, float wait)
 		}
 		if(err>=max_err) break;
 	}
+#ifdef _CMD
 	PrintMessage("\b\b\b");
+#endif
 	if(k!=dim){
 		PrintMessage("\r\n");
 		PrintMessage2(strings[S_ReadEEErr],dim,k);	//"Error reading EEPROM area, requested %d bytes, read %d\r\n"
@@ -244,6 +299,9 @@ void WriteI2C(int dim,int addr,int page, float wait)
 	msDelay(2);
 	read();
 	unsigned int stop=GetTickCount();
+#ifdef _GUI
+	StatusBar.SetWindowText("");
+#endif
 	PrintMessage3(strings[S_EndErr],(stop-start)/1000.0,err,err!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nEnd (%.2f s) %d %s\r\n\r\n"
 	if(saveLog) CloseLogFile();
 }
@@ -253,12 +311,20 @@ void WriteI2C(int dim,int addr,int page, float wait)
 #define W 0x20		//RB5
 #define ORG 0x20	//RB5
 
+#ifdef _MSC_VER
+void COpenProgDlg::Read93x(int dim,int na=8,int options=0)
+#else
 void Read93x(int dim,int na,int options)
+#endif
 // read 93Sx6 uW memories
 // dim=size in bytes
 // na=address bits
 // options=0: x16 organization     =1: x8 organization
 {
+#ifdef _MSC_VER
+	CString str;
+	hvreg=0;
+#endif
 	int k=0,z=0,i,j,x8;
 	if(dim>0x3000||dim<0){
 		PrintMessage(strings[S_EELim]);	//"EEPROM size out of limits\r\n"
@@ -271,7 +337,12 @@ void Read93x(int dim,int na,int options)
 	}
 	x8=options&1;
 	sizeEE=dim;
+#ifdef _MSC_VER
+	memEE.RemoveAll();
+	memEE.SetSize(dim);			//EEPROM
+#else
 	memEE=malloc(dim);			//EEPROM
+#endif
 	unsigned int start=GetTickCount();
 	bufferU[0]=0;
 	j=1;
@@ -290,7 +361,9 @@ void Read93x(int dim,int na,int options)
 	if(saveLog)WriteLogIO();
 //****************** read ********************
 	PrintMessage(strings[S_ReadEE]);		//read EEPROM ...
-	PrintMessage("   ");
+#ifdef _CMD
+	PrintMessage("   "); 
+#endif	
 	int dim2=x8?dim:dim/2;
 	for(i=0;i<dim2;){
 		for(j=1;j<DIMBUF-14&&i<dim2;){
@@ -332,11 +405,16 @@ void Read93x(int dim,int na,int options)
 			WriteLogIO();
 		}
 	}
+#ifdef _CMD
 	PrintMessage("\b\b\b");
+#endif
 	if(k!=dim){
 		PrintMessage("\r\n");
 		PrintMessage2(strings[S_ReadEEErr],dim,k);	//"Error reading EEPROM area, requested %d bytes, read %d\r\n"
 		sizeEE=k;
+#ifdef _MSC_VER
+		memEE.SetSize(k);
+#endif
 	}
 	else PrintMessage(strings[S_Compl]);
 //****************** exit ********************
@@ -351,18 +429,30 @@ void Read93x(int dim,int na,int options)
 	msDelay(2);
 	read();
 	unsigned int stop=GetTickCount();
+#ifdef _GUI
+	StatusBar.SetWindowText("");
+#endif
 	DisplayEE();	//visualize
 	PrintMessage1(strings[S_End],(stop-start)/1000.0);	//"\r\nEnd (%.2f s)\r\n"
 	if(saveLog) CloseLogFile();
 }
 
+#ifdef _MSC_VER
+void COpenProgDlg::Write93Sx(int dim,int na=8,int page=8, double wait=5.0)
+#else
 void Write93Sx(int dim,int na,int page, double wait)
+#endif
 // write 93Sx6 uW memories
 // dim=size in bytes
 // na=address bits
 // page=page size (bytes)
 // wait=write delay
 {
+#ifdef _MSC_VER
+	CString str;
+	sizeEE=memEE.GetSize();
+	hvreg=0;
+#endif
 	int k=0,z=0,i,j;
 	int err=0;
 	if(dim>0x1000||dim<0){
@@ -376,7 +466,11 @@ void Write93Sx(int dim,int na,int page, double wait)
 	}
 	if(dim>sizeEE){
 		i=sizeEE;
+#ifdef _MSC_VER
+		memEE.SetSize(dim);
+#else
 		memEE=realloc(memEE,dim);
+#endif
 		for(;i<dim;i++) memEE[i]=0xFF;
 		sizeEE=dim;
 	}
@@ -432,7 +526,9 @@ void Write93Sx(int dim,int na,int page, double wait)
 	if(saveLog)WriteLogIO();
 //****************** write ********************
 	PrintMessage(strings[S_EEAreaW]);	//"Write EEPROM ... "
-	PrintMessage("   ");
+#ifdef _CMD
+	PrintMessage("   "); 
+#endif	
 	int addr=0;
 	for(i=0,j=1;i<dim;i+=page,addr+=(0x10000>>na)*page/2){
 		bufferU[j++]=EXT_PORT;
@@ -468,11 +564,15 @@ void Write93Sx(int dim,int na,int page, double wait)
 		}
 	}
 	msDelay(wait+1);
+#ifdef _CMD
 	PrintMessage("\b\b\b");
+#endif
 	PrintMessage(strings[S_Compl]);	//"completed\r\n"
 //****************** verify EEPROM ********************
 	PrintMessage(strings[S_EEV]);	//"Verify EEPROM ... "
-	PrintMessage("   ");
+#ifdef _CMD
+	PrintMessage("   "); 
+#endif	
 	bufferU[0]=0;
 	j=1;
 	bufferU[j++]=EXT_PORT;
@@ -521,7 +621,9 @@ void Write93Sx(int dim,int na,int page, double wait)
 		}
 		if(err>=max_err) break;
 	}
+#ifdef _CMD
 	PrintMessage("\b\b\b");
+#endif
 	if(k!=dim){
 		PrintMessage("\r\n");
 		PrintMessage2(strings[S_ReadEEErr],dim,k);	//"Error reading EEPROM area, requested %d bytes, read %d\r\n"
@@ -539,16 +641,28 @@ void Write93Sx(int dim,int na,int page, double wait)
 	msDelay(2);
 	read();
 	unsigned int stop=GetTickCount();
+#ifdef _GUI
+	StatusBar.SetWindowText("");
+#endif
 	PrintMessage3(strings[S_EndErr],(stop-start)/1000.0,err,err!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nEnd (%.2f s) %d %s\r\n\r\n"
 	if(saveLog) CloseLogFile();
 }
 
+#ifdef _MSC_VER
+void COpenProgDlg::Write93Cx(int dim,int na=8,int options=0)
+#else
 void Write93Cx(int dim,int na, int options)
+#endif
 // write 93Cx6 uW memories
 // dim=size in bytes
 // na=address bits
 // options=0: x16 organization     =1: x8 organization
 {
+#ifdef _MSC_VER
+	CString str;
+	sizeEE=memEE.GetSize();
+	hvreg=0;
+#endif
 	int k=0,z=0,i,j;
 	int err=0;
 	if(dim>0x1000||dim<0){
@@ -562,7 +676,11 @@ void Write93Cx(int dim,int na, int options)
 	}
 	if(dim>sizeEE){
 		i=sizeEE;
+#ifdef _MSC_VER
+		memEE.SetSize(dim);
+#else
 		memEE=realloc(memEE,dim);
+#endif
 		for(;i<dim;i++) memEE[i]=0xFF;
 		sizeEE=dim;
 	}
@@ -625,7 +743,9 @@ void Write93Cx(int dim,int na, int options)
 	}
 //****************** write ********************
 	PrintMessage(strings[S_EEAreaW]);	//"Write EEPROM ... "
-	PrintMessage("   ");
+#ifdef _CMD
+	PrintMessage("   "); 
+#endif	
 	int addr=0;
 	j=1;
 	for(i=0;i<dim;i+=options==0?2:1,addr+=0x10000>>na){
@@ -687,14 +807,18 @@ void Write93Cx(int dim,int na, int options)
 		}
 	}
 	msDelay(1);
+#ifdef _CMD
 	PrintMessage("\b\b\b");
+#endif
 	if(i!=dim){
 		PrintMessage2(strings[S_CodeWError4],i,dim);	//"Error writing code area, requested %d bytes, read %d\r\n"
 	}
 	else PrintMessage(strings[S_Compl]);	//"completed\r\n"
 //****************** verify EEPROM ********************
 	PrintMessage(strings[S_EEV]);	//"Verify EEPROM ... "
-	PrintMessage("   ");
+#ifdef _CMD
+	PrintMessage("   "); 
+#endif	
 	j=1;
 	bufferU[j++]=EXT_PORT;
 	bufferU[j++]=options==0?ORG+PRE:PRE;
@@ -765,7 +889,9 @@ void Write93Cx(int dim,int na, int options)
 		}
 		if(err>=max_err) break;
 	}
+#ifdef _CMD
 	PrintMessage("\b\b\b");
+#endif
 	if(k!=dim){
 		PrintMessage("\r\n");
 		PrintMessage2(strings[S_ReadEEErr],dim,k);	//"Error reading EEPROM area, requested %d bytes, read %d\r\n"
@@ -783,6 +909,9 @@ void Write93Cx(int dim,int na, int options)
 	msDelay(2);
 	read();
 	unsigned int stop=GetTickCount();
+#ifdef _GUI
+	StatusBar.SetWindowText("");
+#endif
 	PrintMessage3(strings[S_EndErr],(stop-start)/1000.0,err,err!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nEnd (%.2f s) %d %s\r\n\r\n"
 	if(saveLog) CloseLogFile();
 }
@@ -791,10 +920,18 @@ void Write93Cx(int dim,int na, int options)
 #define HLD 16		//Hold
 #define WP 0x40		//Write protect
 
+#ifdef _MSC_VER
+void COpenProgDlg::Read25xx(int dim)
+#else
 void Read25xx(int dim)
+#endif
 // read 25xx SPI memories
 // dim=size in bytes
 {
+#ifdef _MSC_VER
+	CString str;
+	hvreg=0;
+#endif
 	int k=0,z=0,i,j;
 	if(dim>0x1000000||dim<0){
 		PrintMessage(strings[S_EELim]);	//"EEPROM size out of limits\r\n"
@@ -805,7 +942,12 @@ void Read25xx(int dim)
 		fprintf(logfile,"Read25xx(%d)    (0x%X)\n",dim,dim);
 	}
 	sizeEE=dim;
+#ifdef _MSC_VER
+	memEE.RemoveAll();
+	memEE.SetSize(dim);			//EEPROM
+#else
 	memEE=malloc(dim);			//EEPROM
+#endif
 	unsigned int start=GetTickCount();
 	bufferU[0]=0;
 	j=1;
@@ -847,7 +989,9 @@ void Read25xx(int dim)
 	if(saveLog)WriteLogIO();
 //****************** read ********************
 	PrintMessage(strings[S_ReadEE]);		//read EEPROM ...
-	PrintMessage("   ");
+#ifdef _CMD
+	PrintMessage("   "); 
+#endif	
 	for(i=0,j=1;i<dim;i+=DIMBUF-4){
 		bufferU[j++]=SPI_READ;
 		bufferU[j++]=i<dim-(DIMBUF-4)?DIMBUF-4:dim-i;
@@ -866,11 +1010,16 @@ void Read25xx(int dim)
 			WriteLogIO();
 		}
 	}
+#ifdef _CMD
 	PrintMessage("\b\b\b");
+#endif
 	if(k!=dim){
 		PrintMessage("\r\n");
 		PrintMessage2(strings[S_ReadEEErr],dim,k);	//"Error reading EEPROM area, requested %d bytes, read %d\r\n"
 		sizeEE=k;
+#ifdef _MSC_VER
+		memEE.SetSize(k);
+#endif
 	}
 	else PrintMessage(strings[S_Compl]);
 //****************** exit ********************
@@ -885,16 +1034,28 @@ void Read25xx(int dim)
 	msDelay(2);
 	read();
 	unsigned int stop=GetTickCount();
+#ifdef _GUI
+	StatusBar.SetWindowText("");
+#endif
 	DisplayEE();	//visualize
 	PrintMessage1(strings[S_End],(stop-start)/1000.0);	//"\r\nEnd (%.2f s)\r\n"
 	if(saveLog) CloseLogFile();
 }
 
+#ifdef _MSC_VER
+void COpenProgDlg::Write25xx(int dim,int page=16,float wait=5.0)
+#else
 void Write25xx(int dim,int page,float wait)
+#endif
 // write SPI memories
 // dim=size in bytes
 // page=page size		wait=write delay
 {
+#ifdef _MSC_VER
+	CString str;
+	sizeEE=memEE.GetSize();
+	hvreg=0;
+#endif
 	int k=0,z=0,i,j;
 	int err=0;
 	if(dim>0x1000000||dim<0){
@@ -907,7 +1068,11 @@ void Write25xx(int dim,int page,float wait)
 	}
 	if(dim>sizeEE){
 		i=sizeEE;
+#ifdef _MSC_VER
+		memEE.SetSize(dim);
+#else
 		memEE=realloc(memEE,dim);
+#endif
 		for(;i<dim;i++) memEE[i]=0xFF;
 		sizeEE=dim;
 	}
@@ -995,11 +1160,15 @@ void Write25xx(int dim,int page,float wait)
 			WriteLogIO();
 		}
 	}
+#ifdef _CMD
 	PrintMessage("\b\b\b");
+#endif
 	PrintMessage(strings[S_Compl]);	//"completed\r\n"
 //****************** verify EEPROM ********************
 	PrintMessage(strings[S_EEV]);	//"Verify EEPROM ... "
-	PrintMessage("   ");
+#ifdef _CMD
+	PrintMessage("   "); 
+#endif	
 	j=1;
 	bufferU[j++]=EXT_PORT;	//CS=0, HLD=1, WP=0
 	bufferU[j++]=HLD;
@@ -1055,11 +1224,16 @@ void Write25xx(int dim,int page,float wait)
 		}
 		if(err>=max_err) break;
 	}
+#ifdef _CMD
 	PrintMessage("\b\b\b");
+#endif
 	if(k!=dim){
 		PrintMessage("\r\n");
 		PrintMessage2(strings[S_ReadEEErr],dim,k);	//"Error reading EEPROM area, requested %d bytes, read %d\r\n"
 		sizeEE=k;
+#ifdef _MSC_VER
+		memEE.SetSize(k);
+#endif
 	}
 	PrintMessage1(strings[S_ComplErr],err);	//"completed: %d errors\r\n"
 //****************** exit ********************
@@ -1071,6 +1245,9 @@ void Write25xx(int dim,int page,float wait)
 	msDelay(2);
 	read();
 	unsigned int stop=GetTickCount();
+#ifdef _GUI
+	StatusBar.SetWindowText("");
+#endif
 	PrintMessage3(strings[S_EndErr],(stop-start)/1000.0,err,err!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nEnd (%.2f s) %d %s\r\n\r\n"
 	if(saveLog) CloseLogFile();
 }

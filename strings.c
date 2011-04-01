@@ -1,4 +1,4 @@
-// Strings.c v0.7.5
+// Strings.c v0.7.8
 
 char *STR_ID[DIM];
 
@@ -176,6 +176,7 @@ STR_ID[S_NoConfigW]="S_NoConfigW";
 STR_ID[S_NoConfigW2]="S_NoConfigW2";
 STR_ID[S_NoConfigW3]="S_NoConfigW3";
 STR_ID[S_NoConfigW4]="S_NoConfigW4";
+STR_ID[S_NoConfigW5]="S_NoConfigW5";
 STR_ID[S_Empty]="S_Empty";
 						//
 STR_ID[I_Data]="I_Data";
@@ -253,8 +254,8 @@ strings_it[S_HVICSP]="ICSP ad alta tensione\r\n";
 strings_it[S_StartRead]="Inizio lettura...\r\n";
 strings_it[S_Read]="Lettura ... ";
 strings_it[S_CodeReading1]="Lettura codice ... ";
-strings_it[S_CodeReading]="Lettura: %d%%, ind. %03X";
-strings_it[S_CodeReading2]="Lettura: %d%%, ind. %05X";
+strings_it[S_CodeReading]="Lettura: %3d%%, ind. %03X";
+strings_it[S_CodeReading2]="Lettura: %3d%%, ind. %05X";
 strings_it[S_ReadEnd]="Lettura completata: %d word\r\n";
 strings_it[S_ReadID_CONFIG]="Lettura ID e CONFIG";
 strings_it[S_Read_CONFIG_A]="Lettura area CONFIG ... ";
@@ -263,8 +264,8 @@ strings_it[S_ReadEE]="Lettura area EEPROM ... ";
 strings_it[S_StartErase]="Cancellazione ... ";
 strings_it[S_Writing]="Inizio scrittura...\r\n";
 strings_it[S_StartCodeProg]="Scrittura codice ... ";
-strings_it[S_CodeWriting]="Scrittura: %d%%, ind. %03X";
-strings_it[S_CodeWriting2]="Scrittura: %d%%, ind. %04X";
+strings_it[S_CodeWriting]="Scrittura: %3d%%, ind. %03X";
+strings_it[S_CodeWriting2]="Scrittura: %3d%%, ind. %04X";
 strings_it[S_IDW]="Scrittura ID ... ";
 strings_it[S_ConfigW]="Scrittura CONFIG ... ";
 strings_it[S_ConfigAreaW]="Scrittura area CONFIG ... ";
@@ -396,6 +397,7 @@ strings_it[S_NoConfigW]="Impossibile leggere la config word\r\n";
 strings_it[S_NoConfigW2]="Impossibile trovare la locazione CONFIG (0xFFF)\r\n";
 strings_it[S_NoConfigW3]="Impossibile trovare la locazione CONFIG (0x2007)\r\nFine\r\n";
 strings_it[S_NoConfigW4]="Impossibile trovare la locazione CONFIG (0x2008)\r\nFine\r\n";
+strings_it[S_NoConfigW5]="Impossibile trovare la locazione CONFIG (0x8007-0x8008)\r\nFine\r\n";
 strings_it[S_Empty]="(vuoto)\r\n";
 					//
 strings_it[I_Data]="Dati";
@@ -511,8 +513,8 @@ strings_en[S_HVICSP]="High Voltage ICSP\r\n";
 strings_en[S_StartRead]="Reading ...\r\n";
 strings_en[S_Read]="Reading ... ";
 strings_en[S_CodeReading1]="Reading code ... ";
-strings_en[S_CodeReading]="Reading: %d%%, add. %03X";
-strings_en[S_CodeReading2]="Reading: %d%%, add. %05X";
+strings_en[S_CodeReading]="Reading: %3d%%, add. %03X";
+strings_en[S_CodeReading2]="Reading: %3d%%, add. %05X";
 strings_en[S_ReadEnd]="Reading completed: %d words\r\n";
 strings_en[S_ReadID_CONFIG]="Reading ID and CONFIG";
 strings_en[S_Read_CONFIG_A]="Reading CONFIG area ... ";
@@ -521,8 +523,8 @@ strings_en[S_ReadEE]="Reading EEPROM ... ";
 strings_en[S_StartErase]="Erasing ... ";
 strings_en[S_Writing]="Writing ...\r\n";
 strings_en[S_StartCodeProg]="Writing code ... ";
-strings_en[S_CodeWriting]="Writing: %d%%, add. %03X";
-strings_en[S_CodeWriting2]="Writing: %d%%, add. %04X";
+strings_en[S_CodeWriting]="Writing: %3d%%, add. %03X";
+strings_en[S_CodeWriting2]="Writing: %3d%%, add. %04X";
 strings_en[S_IDW]="Writing ID ... ";
 strings_en[S_ConfigW]="Writing CONFIG ... ";
 strings_en[S_ConfigAreaW]="Writing CONFIG area ... ";
@@ -654,6 +656,7 @@ strings_en[S_NoConfigW]="Impossibile leggere la config word\r\n";
 strings_en[S_NoConfigW2]="Can't find CONFIG location (0xFFF)\r\n";
 strings_en[S_NoConfigW3]="Can't find CONFIG location (0x2007)\r\nEnd\r\n";
 strings_en[S_NoConfigW4]="Can't find CONFIG location (0x2008)\r\nEnd\r\n";
+strings_en[S_NoConfigW5]="Can't find CONFIG location (0x8007-0x8008)\r\nEnd\r\n";
 strings_en[S_Empty]="(empty)\r\n";
 	//
 strings_en[I_Data]="Data";

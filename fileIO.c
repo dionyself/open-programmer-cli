@@ -18,10 +18,28 @@
  * or see <http://www.gnu.org/licenses/>
  */
 
-#include "common.h"
+//This cannot be executed conditionally on MSVC
+//#include "stdafx.h"
 
+
+//configure for GUI or command-line
+#ifdef _MSC_VER 
+	#define _GUI
+	#include "msvc_common.h"
+#else 
+	#define _CMD
+#include "common.h"
+#endif
+
+#ifdef _MSC_VER
+	unsigned int COpenProgDlg::htoi(const char *hex, int length)
+#else
 unsigned int htoi(const char *hex, int length)
+#endif
 {
+#ifdef _MSC_VER
+	CString str;
+#endif
 	int i;
 	unsigned int v = 0;
 	for (i = 0; i < length; i++) {
@@ -34,13 +52,25 @@ unsigned int htoi(const char *hex, int length)
 	return v;
 }
 
-void Save(char* dev,char* savefile){
+#ifdef _MSC_VER
+void COpenProgDlg::Save(char* dev,char* savefile)
+#else
+void Save(char* dev,char* savefile)
+#endif
+{
+#ifdef _MSC_VER
+		int size=memCODE.GetSize();
+		int sizeEE=memEE.GetSize();
+#endif
 	FILE* f=fopen(savefile,"w");
 	if(!f) return;
 	char str[512],str1[512]="";
 	int i,sum=0,count=0,ext=0,s,base;
 //**************** 10-16F *******************************************
 	if(!strncmp(dev,"10",2)||!strncmp(dev,"12",2)||!strncmp(dev,"16",2)){
+#ifdef _MSC_VER
+			size=dati_hex.GetSize();
+#endif
 		int x=0xfff,addr;
 		if(!strncmp(dev,"16",2)||!strncmp(dev,"12F6",4)) x=0x3fff;
 		fprintf(f,":020000040000FA\n");			//extended address=0
@@ -221,7 +251,7 @@ void Save(char* dev,char* savefile){
 		}
 		if(sizeCONFIG){
 			fprintf(f,":0200000401F009\n");
-			for(i=0,count=sum=0;i<sizeCONFIG&&i<34;i++){
+			for(i=0,count=sum=0;i<sizeCONFIG&&i<48;i++){
 				sum+=memCONFIG[i];
 				sprintf(str,"%02X",memCONFIG[i]);
 				strcat(str1,str);
@@ -293,7 +323,7 @@ void Save(char* dev,char* savefile){
 	}
 //**************** 24xxx / 93xxx / 25xxx *******************************************
 	else if(!strncmp(dev,"24",2)||!strncmp(dev,"93",2)||!strncmp(dev,"25",2)){
-		if(strstr(savefile,".bin")||strstr(loadfile,".BIN")){
+		if(strstr(savefile,".bin")||strstr(savefile,".BIN")){
 			fwrite(memEE,1,sizeEE,f);
 		}
 		else{			//HEX
@@ -327,7 +357,12 @@ void Save(char* dev,char* savefile){
 	if(f) fclose(f);
 }
 
+#ifdef _MSC_VER
+void COpenProgDlg::SaveEE(char* dev,char* savefile){
+	int sizeEE=memEE.GetSize();
+#else
 void SaveEE(char* dev,char* savefile){
+#endif
 	FILE* f=fopen(savefile,"w");
 	if(!f) return;
 //**************** ATMEL *******************************************
@@ -361,14 +396,19 @@ void SaveEE(char* dev,char* savefile){
 	if(f) fclose(f);
 }
 
+#ifdef _MSC_VER
+int COpenProgDlg::Load(char*dev,char*loadfile){
+	CString aux,err,str;
+	int	sizeEE=0;
+#else
 int Load(char*dev,char*loadfile){
+#endif
 	int i,j;
 	int input_address=0,ext_addr=0,sum,valid;
 	char s[256]="",t[256]="",v[256]="",line[256];
-
 	FILE* f=fopen(loadfile,"r");
 	if(!f) return -1;
-	PrintMessage("%s :\n\n",loadfile);
+	PrintMessage1("%s :\r\n\r\n",loadfile);
 //**************** 10-16F *******************************************
 	if(!strncmp(dev,"10",2)||!strncmp(dev,"12",2)||!strncmp(dev,"16",2)){
 		unsigned char buffer[0x20000],bufferEE[0x1000];
@@ -463,7 +503,7 @@ int Load(char*dev,char*loadfile){
 //**************** 18F *******************************************
 	else if(!strncmp(dev,"18F",3)){
 		unsigned char buffer[0x30000],bufferEE[0x1000];
-		int end_address=0,aa;
+		int end_address=0;
 		memset(buffer,0xFF,sizeof(buffer));
 		memset(bufferEE,0xFF,sizeof(bufferEE));
 		memset(memID,0xFF,sizeof(memID));
@@ -776,9 +816,13 @@ int Load(char*dev,char*loadfile){
 	return 0;
 }
 
+#ifdef _MSC_VER
+void COpenProgDlg::LoadEE(char*dev,char*loadfile){
+	CString str;
+#else
 void LoadEE(char*dev,char*loadfile){
+#endif
 	FILE* f=fopen(loadfile,"r");
-
 	if(!f) return;
 	int i,sizeEE;
 //**************** ATMEL *******************************************
@@ -786,7 +830,7 @@ void LoadEE(char*dev,char*loadfile){
 		char line[256];
 		int input_address=0,ext_addr=0;
 		unsigned char bufferEE[0x1000];
-		PrintMessage1("%s :\n\n",loadfile);
+		PrintMessage1("%s :\r\n\r\n",loadfile);
 		memset(bufferEE,0xFF,sizeof(bufferEE));
 		for(;fgets(line,256,f);){
 			if(strlen(line)>9&&line[0]==':'){
@@ -829,7 +873,12 @@ void LoadEE(char*dev,char*loadfile){
 	}
 }
 
-void OpenLogFile(){
+#ifdef _MSC_VER
+void COpenProgDlg::OpenLogFile()
+#else
+void OpenLogFile()
+#endif
+{
 	logfile=fopen(LogFileName,"w");
 	if(!logfile) return;
 	fprintf(logfile,"OP version %s\n",VERSION);
@@ -841,9 +890,22 @@ void OpenLogFile(){
 	fprintf(logfile,"%s\n", asctime (timeinfo) );
 }
 
-#define CloseLogFile() if(logfile)fclose(logfile);
+#ifdef _MSC_VER
+void COpenProgDlg::CloseLogFile()
+#else
+void CloseLogFile()
+#endif
+{
+	if(logfile)fclose(logfile);
+	logfile=0;
+}
 
-void WriteLogIO(){
+#ifdef _MSC_VER
+void COpenProgDlg::WriteLogIO()
+#else
+void WriteLogIO()
+#endif
+{
 	int i;
 	fprintf(logfile,"bufferU=[%02X\n",bufferU[0]);
 	for(i=1;i<DIMBUF;i++){

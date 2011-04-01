@@ -1,7 +1,7 @@
 CC = gcc
 #CFLAGS = -w -O3 -s
 CFLAGS = -w
-OBJECTS = op.o progP12.o progP16.o progP18.o progP24.o progEEPROM.o progAVR.o fileIO.o
+OBJECTS = op.o progP12.o progP16.o progP18.o progP24.o progEEPROM.o progAVR.o fileIO.o deviceRW.o I2CSPI.o
 
 all: op
 

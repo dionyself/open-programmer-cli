@@ -5,6 +5,12 @@ Questi sorgenti sono distribuiti gratuitamente sotto licenza GNU General Public 
 
 Cambiamenti (per usare i dispositivi aggiunti è richiesto un programmatore con firmware corrispondente):
 
+V 0.7.8	aprile 2011:	aggiornati algoritmi 16F87xA e 16F62xA,
+						16F1822 diventa 12F1822, aggiunti 30F1010, 30F2020, 30F2023, 16F1847, 12F1840
+						16F1516, 16F1517, 16F1518, 16F1519, 16F1526, 16F1527
+						maggiore modularità del codice, corretti alcuni bachi;						
+						auto-ricerca programmatore su hiddevX
+
 V 0.7.7	agosto 2010:	aggiunti 16F72x,
 						migliorata compatibilità con hex non standard
 

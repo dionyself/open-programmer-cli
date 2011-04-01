@@ -18,9 +18,24 @@
  * or see <http://www.gnu.org/licenses/>
  */
 
-#include "common.h"
+//This cannot be executed conditionally on MSVC
+//#include "stdafx.h"
 
+
+//configure for GUI or command-line
+#ifdef _MSC_VER 
+	#define _GUI
+	#include "msvc_common.h"
+#else 
+	#define _CMD
+#include "common.h"
+#endif
+
+#ifdef _MSC_VER
+void COpenProgDlg::Read12F5xx(int dim, int dim2)
+#else
 void Read12F5xx(int dim,int dim2)
+#endif
 // read 12 bit PIC
 // dim=program size 	dim2=config size
 // vdd before vpp
@@ -28,11 +43,20 @@ void Read12F5xx(int dim,int dim2)
 // OSCCAL in last memory location
 // 4 ID + reserved area beyond code memory
 {
+#ifdef _MSC_VER
+	CString str,aux;
+	int size;
+#endif
 	int k=0,z=0,i,j;
 	char s[256],t[256];
 	if(dim2<4) dim2=4;
 	size=0x1000;
+#ifdef _MSC_VER
+	dati_hex.RemoveAll();
+	dati_hex.SetSize(size);
+#else
 	dati_hex=malloc(sizeof(WORD)*size);
+#endif
 	if(saveLog){
 		OpenLogFile();	//"Log.txt"
 		fprintf(logfile,"Read12F5xx(%d,%d)\n",dim,dim2);
@@ -91,14 +115,16 @@ void Read12F5xx(int dim,int dim2)
 		if(dati_hex[0xfff]&0x10) PrintMessage(strings[S_MCLRON]);	//"Master clear ON\r\n"
 		else PrintMessage(strings[S_MCLROFF]);	//"Master clear OFF\r\n"
 	}
-	else PrintMessage(strings[S_NoConfigW]);	//"Impossibile leggere la config word\r\n"
+	else PrintMessage(strings[S_NoConfigW]);	//"Impossible to read config word\r\n"
 //****************** read code ********************
-	PrintMessage(strings[S_CodeReading1]);		//lettura codice ...
-	PrintMessage("   ");
+	PrintMessage(strings[S_CodeReading1]);		//reading code ...
+#ifdef _CMD
+	PrintMessage("   "); 
+#endif	
 	for(i=0,j=1;i<dim+dim2;i++){
 		bufferU[j++]=READ_DATA_PROG;
 		bufferU[j++]=INC_ADDR;
-		if(j>DIMBUF*2/4-2||i==dim+dim2-1){		//2 istruzioni -> 4 risposte
+		if(j>DIMBUF*2/4-2||i==dim+dim2-1){		//2 ins -> 4 ans
 			bufferU[j++]=FLUSH;
 			for(;j<DIMBUF;j++) bufferU[j]=0x0;
 			write();
@@ -118,8 +144,10 @@ void Read12F5xx(int dim,int dim2)
 			}
 		}
 	}
+#ifdef _CMD
 	PrintMessage("\b\b\b");
-	bufferU[j++]=NOP;				//uscita program mode
+#endif
+	bufferU[j++]=NOP;				//exit program mode
 	bufferU[j++]=EN_VPP_VCC;
 	bufferU[j++]=0x1;
 	bufferU[j++]=EN_VPP_VCC;
@@ -136,8 +164,10 @@ void Read12F5xx(int dim,int dim2)
 	if(saveLog)CloseLogFile();
 	for(i=k;i<0xfff;i++) dati_hex[i]=0xfff;
 	if(k!=dim+dim2){
+#ifdef _CMD
 		PrintMessage("\n");
-		PrintMessage2(strings[S_ReadErr],dim+dim2,k);	//"Errore in lettura: word richieste=%d, lette=%d\r\n"
+#endif
+		PrintMessage2(strings[S_ReadErr],dim+dim2,k);	//"Error reading, requested %d words, read %d\r\n"
 	}
 	else PrintMessage1(strings[S_Compl],k);	//"completed\n"
 //****************** visualize ********************
@@ -148,7 +178,7 @@ void Read12F5xx(int dim,int dim2)
 		PrintMessage1(strings[S_BKOsccal],dati_hex[dim+4]);	//"Backup OSCCAL: 0x%03X\r\n"
 	}
 	PrintMessage("\r\n");
-	PrintMessage(strings[S_CodeMem]);	//"\r\nMemoria programma:\r\n"
+	PrintMessage(strings[S_CodeMem]);	//"\r\nCode memory\r\n"
 	s[0]=0;
 	int valid=0,empty=1;
 	for(i=0;i<dim;i+=COL){
@@ -159,14 +189,24 @@ void Read12F5xx(int dim,int dim2)
 			if(dati_hex[j]<0xfff) valid=1;
 		}
 		if(valid){
+#ifdef _GUI
+			sprintf(t,"%04X: %s\r\n",i,s);
+			empty=0;
+			aux+=t;
+#else
 			PrintMessage("%04X: %s\r\n",i,s);
 			empty=0;
+#endif
 		}
 		s[0]=0;
 	}
 	if(empty) PrintMessage(strings[S_Empty]);	//empty
+#ifdef _GUI
+	else PrintMessage(aux);
+	aux.Empty();
+#endif
 	if(dim2>5){
-		PrintMessage(strings[S_ConfigResMem]);	//"\r\nMemoria configurazione e riservata:\r\n"
+		PrintMessage(strings[S_ConfigResMem]);	//"\r\nConfig and reserved memory:\r\n"
 		empty=1;
 		for(i=dim;i<dim+dim2;i+=COL){
 			valid=0;
@@ -176,19 +216,35 @@ void Read12F5xx(int dim,int dim2)
 				if(dati_hex[j]<0xfff) valid=1;
 			}
 			if(valid){
+#ifdef _GUI
+				sprintf(t,"%04X: %s\r\n",i,s);
+				empty=0;
+				aux+=t;
+#else
 				PrintMessage("%04X: %s\r\n",i,s);
 				empty=0;
+#endif
 			}
 			s[0]=0;
 		}
 		if(empty) PrintMessage(strings[S_Empty]);	//empty
+#ifdef _GUI
+		else PrintMessage(aux);
+#endif
 	}
+#ifdef _GUI
+	StatusBar.SetWindowText("");
+#endif
 	PrintMessage("\r\n");
 	PrintMessage1(strings[S_End],(stop-start)/1000.0);	//"\r\nEnd (%.2f s)\r\n"
 
 }
 
+#ifdef _MSC_VER
+void COpenProgDlg::Write12F5xx(int dim,int OscAddr)
+#else
 void Write12F5xx(int dim,int OscAddr)
+#endif
 {
 // write 12 bit PIC
 // dim=program size     max~4300=10CC
@@ -198,13 +254,17 @@ void Write12F5xx(int dim,int OscAddr)
 // BACKUP OSCCAL @ dim+5 (saved at the beginning)
 // erase: BULK_ERASE_PROG (1001) +10ms
 // write: BEGIN_PROG (1000) + Tprogram 2ms + END_PROG2 (1110);
+#ifdef _MSC_VER
+	CString str;
+	size=dati_hex.GetSize();
+#endif
 	int k=0,z=0,i,j,w;
 	int err=0;
 	WORD osccal=-1,BKosccal=-1;
 	if(OscAddr>dim) OscAddr=dim-1;
-	if(OscAddr==-1) usa_BKosccal=usa_osccal=0;
+	if(OscAddr==-1) use_BKosccal=use_osccal=0;
 	if(size<0x1000){
-		PrintMessage(strings[S_NoConfigW2]);	//"Impossibile trovare la locazione CONFIG (0xFFF)\r\n"
+		PrintMessage(strings[S_NoConfigW2]);	//"Can't find CONFIG (0xFFF)\r\n"
 		return;
 	}
 	if(saveLog){
@@ -245,7 +305,7 @@ void Write12F5xx(int dim,int OscAddr)
 		bufferU[j++]=0x4;				// 400->404
 		bufferU[j++]=READ_DATA_PROG;	// backup OSCCAL
 	}
-	bufferU[j++]=NOP;				//uscita program mode
+	bufferU[j++]=NOP;				//exit program mode
 	bufferU[j++]=EN_VPP_VCC;
 	bufferU[j++]=0x1;
 	bufferU[j++]=EN_VPP_VCC;
@@ -269,7 +329,7 @@ void Write12F5xx(int dim,int OscAddr)
 		for(z+=3;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
 		if(z<DIMBUF-2) BKosccal=(bufferI[z+1]<<8)+bufferI[z+2];
 		if(osccal==-1||BKosccal==-1){
-			PrintMessage(strings[S_ErrOsccal]);	//"Errore in lettura OSCCAL e BKOSCCAL"
+			PrintMessage(strings[S_ErrOsccal]);	//"Error reading OSCCAL and BKOSCCAL"
 			PrintMessage("\r\n");
 			return;
 		}
@@ -277,7 +337,7 @@ void Write12F5xx(int dim,int OscAddr)
 		PrintMessage1(strings[S_BKOsccal],BKosccal);	//"Backup OSCCAL: 0x%03X\r\n"
  	}
 //****************** erase memory ********************
-	PrintMessage(strings[S_StartErase]);	//"Cancellazione ... "
+	PrintMessage(strings[S_StartErase]);	//"Erase ... "
 	j=1;
 	bufferU[j++]=EN_VPP_VCC;			// enter program mode
 	bufferU[j++]=0x1;
@@ -317,7 +377,7 @@ void Write12F5xx(int dim,int OscAddr)
 			bufferU[j++]=WAIT_T3;			// delay T3=10ms
 		}
 	}
-	bufferU[j++]=EN_VPP_VCC;		// uscita program mode
+	bufferU[j++]=EN_VPP_VCC;		// exit program mode
 	bufferU[j++]=0x1;
 	bufferU[j++]=EN_VPP_VCC;
 	bufferU[j++]=0x0;
@@ -341,13 +401,15 @@ void Write12F5xx(int dim,int OscAddr)
 	PrintMessage(strings[S_Compl]);	//"completed\r\n"
 	if(saveLog)WriteLogIO();
 //****************** write code ********************
-	PrintMessage(strings[S_StartCodeProg]);	//"Scrittura codice ... "
-	PrintMessage("   ");
+	PrintMessage(strings[S_StartCodeProg]);	//"Write code ... "
+#ifdef _CMD
+	PrintMessage("   "); 
+#endif	
 	int dim1=dim;
 	if(programID) dim1=dim+5;
 	if(dati_hex[dim+4]>=0xFFF) dati_hex[dim+4]=BKosccal;  //reload BKosccal if not present
-	if(usa_BKosccal) dati_hex[OscAddr]=BKosccal;
-	else if(usa_osccal) dati_hex[OscAddr]=osccal;
+	if(use_BKosccal) dati_hex[OscAddr]=BKosccal;
+	else if(use_osccal) dati_hex[OscAddr]=osccal;
 	for(i=k=w=0,j=1;i<dim1;i++){
 		if(dati_hex[i]<0xfff){
 			bufferU[j++]=LOAD_DATA_PROG;
@@ -394,13 +456,15 @@ void Write12F5xx(int dim,int OscAddr)
 			}
 		}
 	}
+#ifdef _CMD
 	PrintMessage("\b\b\b");
+#endif
 	err+=i-k;
 	PrintMessage1(strings[S_ComplErr],err);	//"completed, %d errors\r\n"
 //****************** write CONFIG ********************
 	PrintMessage(strings[S_ConfigW]);	//"Write CONFIG ... "
 	int err_c=0;
-	bufferU[j++]=NOP;				//uscita program mode
+	bufferU[j++]=NOP;				//exit program mode
 	bufferU[j++]=EN_VPP_VCC;
 	bufferU[j++]=0x1;
 	bufferU[j++]=EN_VPP_VCC;
@@ -425,7 +489,7 @@ void Write12F5xx(int dim,int OscAddr)
 	bufferU[j++]=END_PROG2;
 	bufferU[j++]=WAIT_T2;			//Tdischarge
 	bufferU[j++]=READ_DATA_PROG;
-	bufferU[j++]=NOP;				//uscita program mode
+	bufferU[j++]=NOP;				//exit program mode
 	bufferU[j++]=EN_VPP_VCC;
 	bufferU[j++]=0x1;
 	bufferU[j++]=EN_VPP_VCC;
@@ -451,10 +515,13 @@ void Write12F5xx(int dim,int OscAddr)
 	}
 	PrintMessage1(strings[S_ComplErr],err_c);	//"completed, %d errors\r\n"
 	if(saveLog){
-		fprintf(logfile,strings[S_Log8],i,i,k,k,err);	//"i=%d, k=%d, errori=%d\n"
+		fprintf(logfile,strings[S_Log8],i,i,k,k,err);	//"i=%d, k=%d, errors=%d\n"
 		WriteLogIO();
 		CloseLogFile();
 	}
-	PrintMessage3(strings[S_EndErr],(stop-start)/1000.0,err,err!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nFine (%.2f s) %d %s\r\n\r\n"
+	PrintMessage3(strings[S_EndErr],(stop-start)/1000.0,err,err!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nEnd (%.2f s) %d %s\r\n\r\n"
+#ifdef _GUI
+	StatusBar.SetWindowText("");
+#endif
 }
 
