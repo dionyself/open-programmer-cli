@@ -31,6 +31,141 @@
 	#include "common.h"
 #endif
 
+struct ID16{
+	int id;
+	char *device;
+	int revmask;
+} PIC16LIST[]={
+	0x046>>1,"12F683 rev%d\r\n",0x1F,	//00 0100 011x xxxx
+	0x04A>>1,"16F685 rev%d\r\n",0x1F,	//00 0100 101x xxxx
+	0x04C>>1,"16F818 rev%d\r\n",0x1F,	//00 0100 110x xxxx
+	0x04E>>1,"16F819 rev%d\r\n",0x1F,	//00 0100 111x xxxx
+	0x056>>1,"16F84A rev%d\r\n",0x1F,	//00 0101 011x xxxx
+	0x060>>1,"16F73 rev%d\r\n",0x1F,	//00 0110 000x xxxx
+	0x062>>1,"16F74 rev%d\r\n",0x1F,	//00 0110 001x xxxx
+	0x064>>1,"16F76 rev%d\r\n",0x1F,	//00 0110 010x xxxx
+	0x066>>1,"16F77 rev%d\r\n",0x1F,	//00 0110 011x xxxx
+	0x072>>1,"16F87 rev%d\r\n",0x1F,	//00 0111 001x xxxx
+	0x076>>1,"16F88 rev%d\r\n",0x1F,	//00 0111 011x xxxx
+	0x07A>>1,"16F627 rev%d\r\n",0x1F,	//00 0111 101x xxxx
+	0x07C>>1,"16F628 rev%d\r\n",0x1F,	//00 0111 110x xxxx
+	0x08E>>1,"16F872 rev%d\r\n",0x1F,	//00 1000 111x xxxx
+	0x092>>1,"16F874 rev%d\r\n",0x1F,	//00 1001 001x xxxx
+	0x096>>1,"16F873 rev%d\r\n",0x1F,	//00 1001 011x xxxx
+	0x09A>>1,"16F877 rev%d\r\n",0x1F,	//00 1001 101x xxxx
+	0x09E>>1,"16F876 rev%d\r\n",0x1F,	//00 1001 111x xxxx
+	0x0BA>>1,"16F737 rev%d\r\n",0x1F,	//00 1011 101x xxxx
+	0x0BE>>1,"16F747 rev%d\r\n",0x1F,	//00 1011 111x xxxx
+	0x0DE>>1,"16F777 rev%d\r\n",0x1F,	//00 1101 111x xxxx
+	0x0E0>>1,"16F876A rev%d\r\n",0xF,	//00 1110 0000 xxxx
+	0x0E2>>1,"16F877A rev%d\r\n",0xF,	//00 1110 0010 xxxx
+	0x0E4>>1,"16F873A rev%d\r\n",0xF,	//00 1110 0100 xxxx
+	0x0E6>>1,"16F874A rev%d\r\n",0xF,	//00 1110 0110 xxxx
+	0x0EA>>1,"16F767 rev%d\r\n",0x1F,	//00 1110 101x xxxx
+	0x0F8>>1,"12F629 rev%d\r\n",0x1F,	//00 1111 100x xxxx
+	0x0FA>>1,"12F635 rev%d\r\n",0x1F,	//00 1111 101x xxxx
+	0x0FC>>1,"12F675 rev%d\r\n",0x1F,	//00 1111 110x xxxx
+	0x104>>1,"16F627A rev%d\r\n",0x1F,	//01 0000 010x xxxx
+	0x106>>1,"16F628A rev%d\r\n",0x1F,	//01 0000 011x xxxx
+	0x108>>1,"16F684 rev%d\r\n",0x1F,	//01 0000 100x xxxx
+	0x110>>1,"16F648A rev%d\r\n",0x1F,	//01 0001 000x xxxx
+	0x10A>>1,"16F636-639 rev%d\r\n",0x1F,//01 0000 101x xxxx
+	0x10C>>1,"16F630 rev%d\r\n",0x1F,	//01 0000 110x xxxx
+	0x10E>>1,"16F676 rev%d\r\n",0x1F,	//01 0000 111x xxxx
+	0x114>>1,"16F716 rev%d\r\n",0x1F,	//01 0001 010x xxxx
+	0x118>>1,"16F688 rev%d\r\n",0x1F,	//01 0001 100x xxxx
+	0x120>>1,"16F785 rev%d\r\n",0x1F,	//01 0010 000x xxxx
+	0x122>>1,"16HV785 rev%d\r\n",0x1F,	//01 0010 001x xxxx
+	0x124>>1,"16F616 rev%d\r\n",0x1F,	//01 0010 010x xxxx
+	0x126>>1,"16HV616 rev%d\r\n",0x1F,	//01 0010 011x xxxx
+	0x132>>1,"16F687 rev%d\r\n",0x1F,	//01 0011 001x xxxx
+	0x134>>1,"16F689 rev%d\r\n",0x1F,	//01 0011 010x xxxx
+	0x138>>1,"16F917 rev%d\r\n",0xF,	//01 0011 1000 xxxx
+	0x13A>>1,"16F916 rev%d\r\n",0xF,	//01 0011 1010 xxxx
+	0x13C>>1,"16F914 rev%d\r\n",0xF,	//01 0011 1100 xxxx
+	0x13E>>1,"16F913 rev%d\r\n",0xF,	//01 0011 1110 xxxx
+	0x140>>1,"16F690 rev%d\r\n",0x1F,	//01 0100 000x xxxx
+	0x142>>1,"16F631 rev%d\r\n",0x1F,	//01 0100 001x xxxx
+	0x144>>1,"16F677 rev%d\r\n",0x1F,	//01 0100 010x xxxx
+	0x146>>1,"16F946 rev%d\r\n",0xF,	//01 0100 0110 xxxx
+	0x148>>1,"16F1847 rev%d\r\n",0x1F,	//01 0100 100x xxxx
+	0x14A>>1,"16LF1847 rev%d\r\n",0x1F,	//01 0100 101x xxxx
+	0x158>>1,"16F1526 rev%d\r\n",0x1F,	//01 0101 100x xxxx
+	0x15A>>1,"16F1527 rev%d\r\n",0x1F,	//01 0101 101x xxxx
+	0x15C>>1,"16LF1526 rev%d\r\n",0x1F,	//01 0101 110x xxxx
+	0x15E>>1,"16LF1527 rev%d\r\n",0x1F,	//01 0101 111x xxxx
+	0x168>>1,"16F1516 rev%d\r\n",0x1F,	//01 0110 100x xxxx
+	0x16A>>1,"16F1517 rev%d\r\n",0x1F,	//01 0110 101x xxxx
+	0x16C>>1,"16F1518 rev%d\r\n",0x1F,	//01 0110 110x xxxx
+	0x16E>>1,"16F1519 rev%d\r\n",0x1F,	//01 0110 111x xxxx
+	0x178>>1,"16LF1516 rev%d\r\n",0x1F,	//01 0111 100x xxxx
+	0x17A>>1,"16LF1517 rev%d\r\n",0x1F,	//01 0111 101x xxxx
+	0x17C>>1,"16LF1518 rev%d\r\n",0x1F,	//01 0111 110x xxxx
+	0x17E>>1,"16LF1519 rev%d\r\n",0x1F,	//01 0111 111x xxxx
+	0x180>>1,"16F727 rev%d\r\n",0x1F,	//01 1000 000x xxxx
+	0x182>>1,"16F726 rev%d\r\n",0x1F,	//01 1000 001x xxxx
+	0x184>>1,"16F724 rev%d\r\n",0x1F,	//01 1000 010x xxxx
+	0x186>>1,"16F723 rev%d\r\n",0x1F,	//01 1000 011x xxxx
+	0x188>>1,"16F722 rev%d\r\n",0x1F,	//01 1000 100x xxxx
+	0x190>>1,"16LF727 rev%d\r\n",0x1F,	//01 1001 000x xxxx
+	0x192>>1,"16LF726 rev%d\r\n",0x1F,	//01 1001 001x xxxx
+	0x194>>1,"16LF724 rev%d\r\n",0x1F,	//01 1001 010x xxxx
+	0x196>>1,"16LF723 rev%d\r\n",0x1F,	//01 1001 011x xxxx
+	0x198>>1,"16LF722 rev%d\r\n",0x1F,	//01 1001 100x xxxx
+	0x1B0>>1,"16F723A rev%d\r\n",0x1F,	//01 1011 000x xxxx
+	0x1B2>>1,"16F722A rev%d\r\n",0x1F,	//01 1011 001x xxxx
+	0x1B4>>1,"16LF723A rev%d\r\n",0x1F,	//01 1011 010x xxxx
+	0x1B6>>1,"16LF722A rev%d\r\n",0x1F,	//01 1011 011x xxxx
+	0x1B8>>1,"12F1840 rev%d\r\n",0x1F,	//01 1011 100x xxxx
+	0x1BA>>1,"12LF1840 rev%d\r\n",0x1F,	//01 1011 101x xxxx
+	0x1D0>>1,"16F870 rev%d\r\n",0x1F,	//10 1101 000x xxxx
+	0x1D2>>1,"16F871 rev%d\r\n",0x1F,	//10 1101 001x xxxx
+	0x200>>1,"16F882 rev%d\r\n",0x1F,	//10 0000 000x xxxx
+	0x202>>1,"16F883 rev%d\r\n",0x1F,	//10 0000 001x xxxx
+	0x204>>1,"16F884 rev%d\r\n",0x1F,	//10 0000 010x xxxx
+	0x206>>1,"16F886 rev%d\r\n",0x1F,	//10 0000 011x xxxx
+	0x208>>1,"16F887 rev%d\r\n",0x1F,	//10 0000 100x xxxx
+	0x218>>1,"12F615 rev%d\r\n",0x1F,	//10 0001 100x xxxx
+	0x21A>>1,"12HV615 rev%d\r\n",0x1F,	//10 0001 101x xxxx
+	0x224>>1,"12F609 rev%d\r\n",0x1F,	//10 0010 010x xxxx
+	0x226>>1,"16F610 rev%d\r\n",0x1F,	//10 0010 011x xxxx
+	0x228>>1,"12HV609 rev%d\r\n",0x1F,	//10 0010 100x xxxx
+	0x22A>>1,"16HV610 rev%d\r\n",0x1F,	//10 0010 101x xxxx
+	0x232>>1,"16F1933 rev%d\r\n",0x1F,	//10 0011 001x xxxx
+	0x234>>1,"16F1934 rev%d\r\n",0x1F,	//10 0011 010x xxxx
+	0x236>>1,"16F1936 rev%d\r\n",0x1F,	//10 0011 011x xxxx
+	0x238>>1,"16F1937 rev%d\r\n",0x1F,	//10 0011 100x xxxx
+	0x23A>>1,"16F1938 rev%d\r\n",0x1F,	//10 0011 101x xxxx
+	0x23C>>1,"16F1939 rev%d\r\n",0x1F,	//10 0011 110x xxxx
+	0x242>>1,"16LF1933 rev%d\r\n",0x1F,	//10 0100 001x xxxx
+	0x244>>1,"16LF1934 rev%d\r\n",0x1F,	//10 0100 010x xxxx
+	0x246>>1,"16LF1936 rev%d\r\n",0x1F,	//10 0100 011x xxxx
+	0x248>>1,"16LF1937 rev%d\r\n",0x1F,	//10 0100 100x xxxx
+	0x24A>>1,"16LF1938 rev%d\r\n",0x1F,	//10 0100 101x xxxx
+	0x24C>>1,"16LF1939 rev%d\r\n",0x1F,	//10 0100 110x xxxx
+	0x250>>1,"16F1946 rev%d\r\n",0x1F,	//10 0101 000x xxxx
+	0x252>>1,"16F1947 rev%d\r\n",0x1F,	//10 0101 001x xxxx
+	0x258>>1,"16LF1946 rev%d\r\n",0x1F,	//10 0101 100x xxxx
+	0x25A>>1,"16LF1947 rev%d\r\n",0x1F,	//10 0101 101x xxxx
+	0x270>>1,"16F1822 rev%d\r\n",0x1F,	//10 0111 000x xxxx
+	0x272>>1,"16F1823 rev%d\r\n",0x1F,	//10 0111 001x xxxx
+	0x274>>1,"16F1824 rev%d\r\n",0x1F,	//10 0111 010x xxxx
+	0x276>>1,"16F1825 rev%d\r\n",0x1F,	//10 0111 011x xxxx
+	0x278>>1,"16F1826 rev%d\r\n",0x1F,	//10 0111 100x xxxx
+	0x27A>>1,"16F1827 rev%d\r\n",0x1F,	//10 0111 101x xxxx
+	0x280>>1,"16LF1822 rev%d\r\n",0x1F,	//10 1000 000x xxxx
+	0x282>>1,"16LF1823 rev%d\r\n",0x1F,	//10 1000 001x xxxx
+	0x284>>1,"16LF1824 rev%d\r\n",0x1F,	//10 1000 010x xxxx
+	0x286>>1,"16LF1825 rev%d\r\n",0x1F,	//10 1000 011x xxxx
+	0x288>>1,"16LF1826 rev%d\r\n",0x1F,	//10 1000 100x xxxx
+	0x28A>>1,"16LF1827 rev%d\r\n",0x1F,	//10 1000 101x xxxx
+	0x2C0>>1,"16LF1903 rev%d\r\n",0x1F,	//10 1100 000x xxxx
+	0x2C2>>1,"16LF1902 rev%d\r\n",0x1F,	//10 1100 001x xxxx
+	0x2C4>>1,"16LF1907 rev%d\r\n",0x1F,	//10 1100 010x xxxx
+	0x2C6>>1,"16LF1906 rev%d\r\n",0x1F,	//10 1100 011x xxxx
+	0x2C8>>1,"16LF1904 rev%d\r\n",0x1F,	//10 1100 100x xxxx
+};
+
 #ifdef _MSC_VER
 	void COpenProgDlg::PIC16_ID(int id)
 #else
@@ -38,380 +173,88 @@
 #endif
 {
 	char s[64];
-	switch(id>>5){
-		case 0x046>>1:		//00 0100 011x xxxx
-			sprintf(s,"12F683 rev%d\r\n",id&0x1F);
-			break;
-		case 0x04A>>1:		//00 0100 101x xxxx
-			sprintf(s,"16F685 rev%d\r\n",id&0x1F);
-			break;
-		case 0x04C>>1:		//00 0100 110x xxxx
-			sprintf(s,"16F818 rev%d\r\n",id&0x1F);
-			break;
-		case 0x04E>>1:		//00 0100 111x xxxx
-			sprintf(s,"16F819 rev%d\r\n",id&0x1F);
-			break;
-		case 0x056>>1:		//00 0101 011x xxxx
-			sprintf(s,"16F84A rev%d\r\n",id&0x1F);
-			break;
-		case 0x060>>1:		//00 0110 000x xxxx
-			sprintf(s,"16F73 rev%d\r\n",id&0x1F);
-			break;
-		case 0x062>>1:		//00 0110 001x xxxx
-			sprintf(s,"16F74 rev%d\r\n",id&0x1F);
-			break;
-		case 0x064>>1:		//00 0110 010x xxxx
-			sprintf(s,"16F76 rev%d\r\n",id&0x1F);
-			break;
-		case 0x066>>1:		//00 0110 011x xxxx
-			sprintf(s,"16F77 rev%d\r\n",id&0x1F);
-			break;
-		case 0x072>>1:		//00 0111 001x xxxx
-			sprintf(s,"16F87 rev%d\r\n",id&0x1F);
-			break;
-		case 0x076>>1:		//00 0111 011x xxxx
-			sprintf(s,"16F88 rev%d\r\n",id&0x1F);
-			break;
-		case 0x07A>>1:		//00 0111 101x xxxx
-			sprintf(s,"16F627 rev%d\r\n",id&0x1F);
-			break;
-		case 0x07C>>1:		//00 0111 110x xxxx
-			sprintf(s,"16F628 rev%d\r\n",id&0x1F);
-			break;
-		case 0x08E>>1:		//00 1000 111x xxxx
-			sprintf(s,"16F872 rev%d\r\n",id&0x1F);
-			break;
-		case 0x092>>1:		//00 1001 001x xxxx
-			sprintf(s,"16F874 rev%d\r\n",id&0x1F);
-			break;
-		case 0x096>>1:		//00 1001 011x xxxx
-			sprintf(s,"16F873 rev%d\r\n",id&0x1F);
-			break;
-		case 0x09A>>1:		//00 1001 101x xxxx
-			sprintf(s,"16F877 rev%d\r\n",id&0x1F);
-			break;
-		case 0x09E>>1:		//00 1001 111x xxxx
-			sprintf(s,"16F876 rev%d\r\n",id&0x1F);
-			break;
-		case 0x0BA>>1:		//00 1011 101x xxxx
-			sprintf(s,"16F737 rev%d\r\n",id&0x1F);
-			break;
-		case 0x0BE>>1:		//00 1011 111x xxxx
-			sprintf(s,"16F747 rev%d\r\n",id&0x1F);
-			break;
-		case 0x0DE>>1:		//00 1101 111x xxxx
-			sprintf(s,"16F777 rev%d\r\n",id&0x1F);
-			break;
-		case 0x0E0>>1:		//00 1110 0000 xxxx
-			sprintf(s,"16F876A rev%d\r\n",id&0xF);
-			break;
-		case 0x0E2>>1:		//00 1110 0010 xxxx
-			sprintf(s,"16F877A rev%d\r\n",id&0xF);
-			break;
-		case 0x0E4>>1:		//00 1110 0100 xxxx
-			sprintf(s,"16F873A rev%d\r\n",id&0xF);
-			break;
-		case 0x0E6>>1:		//00 1110 0110 xxxx
-			sprintf(s,"16F874A rev%d\r\n",id&0xF);
-			break;
-		case 0x0EA>>1:		//00 1110 101x xxxx
-			sprintf(s,"16F767 rev%d\r\n",id&0x1F);
-			break;
-		case 0x0F8>>1:		//00 1111 100x xxxx
-			sprintf(s,"12F629 rev%d\r\n",id&0x1F);
-			break;
-		case 0x0FA>>1:		//00 1111 101x xxxx
-			sprintf(s,"12F635 rev%d\r\n",id&0x1F);
-			break;
-		case 0x0FC>>1:		//00 1111 110x xxxx
-			sprintf(s,"12F675 rev%d\r\n",id&0x1F);
-			break;
-		case 0x104>>1:		//01 0000 010x xxxx
-			sprintf(s,"16F627A rev%d\r\n",id&0x1F);
-			break;
-		case 0x106>>1:		//01 0000 011x xxxx
-			sprintf(s,"16F628A rev%d\r\n",id&0x1F);
-			break;
-		case 0x108>>1:		//01 0000 100x xxxx
-			sprintf(s,"16F684 rev%d\r\n",id&0x1F);
-			break;
-		case 0x110>>1:		//01 0001 000x xxxx
-			sprintf(s,"16F648A rev%d\r\n",id&0x1F);
-			break;
-		case 0x10A>>1:		//01 0000 101x xxxx
-			sprintf(s,"16F636-639 rev%d\r\n",id&0x1F);
-			break;
-		case 0x10C>>1:		//01 0000 110x xxxx
-			sprintf(s,"16F630 rev%d\r\n",id&0x1F);
-			break;
-		case 0x10E>>1:		//01 0000 111x xxxx
-			sprintf(s,"16F676 rev%d\r\n",id&0x1F);
-			break;
-		case 0x114>>1:		//01 0001 010x xxxx
-			sprintf(s,"16F716 rev%d\r\n",id&0x1F);
-			break;
-		case 0x118>>1:		//01 0001 100x xxxx
-			sprintf(s,"16F688 rev%d\r\n",id&0x1F);
-			break;
-		case 0x120>>1:		//01 0010 000x xxxx
-			sprintf(s,"16F785 rev%d\r\n",id&0x1F);
-			break;
-		case 0x122>>1:		//01 0010 001x xxxx
-			sprintf(s,"16HV785 rev%d\r\n",id&0x1F);
-			break;
-		case 0x124>>1:		//01 0010 010x xxxx
-			sprintf(s,"16F616 rev%d\r\n",id&0x1F);
-			break;
-		case 0x126>>1:		//01 0010 011x xxxx
-			sprintf(s,"16HV616 rev%d\r\n",id&0x1F);
-			break;
-		case 0x132>>1:		//01 0011 001x xxxx
-			sprintf(s,"16F687 rev%d\r\n",id&0x1F);
-			break;
-		case 0x134>>1:		//01 0011 010x xxxx
-			sprintf(s,"16F689 rev%d\r\n",id&0x1F);
-			break;
-		case 0x138>>1:		//01 0011 1000 xxxx
-			sprintf(s,"16F917 rev%d\r\n",id&0xF);
-			break;
-		case 0x13A>>1:		//01 0011 1010 xxxx
-			sprintf(s,"16F916 rev%d\r\n",id&0xF);
-			break;
-		case 0x13C>>1:		//01 0011 1100 xxxx
-			sprintf(s,"16F914 rev%d\r\n",id&0xF);
-			break;
-		case 0x13E>>1:		//01 0011 1110 xxxx
-			sprintf(s,"16F913 rev%d\r\n",id&0xF);
-			break;
-		case 0x140>>1:		//01 0100 000x xxxx
-			sprintf(s,"16F690 rev%d\r\n",id&0x1F);
-			break;
-		case 0x142>>1:		//01 0100 001x xxxx
-			sprintf(s,"16F631 rev%d\r\n",id&0x1F);
-			break;
-		case 0x144>>1:		//01 0100 010x xxxx
-			sprintf(s,"16F677 rev%d\r\n",id&0x1F);
-			break;
-		case 0x146>>1:		//01 0100 0110 xxxx
-			sprintf(s,"16F946 rev%d\r\n",id&0xF);
-			break;
-		case 0x148>>1:		//01 0100 100x xxxx
-			sprintf(s,"16F1847 rev%d\r\n",id&0x1F);
-			break;
-		case 0x14A>>1:		//01 0100 101x xxxx
-			sprintf(s,"16LF1847 rev%d\r\n",id&0x1F);
-			break;
-		case 0x158>>1:		//01 0101 100x xxxx
-			sprintf(s,"16F1526 rev%d\r\n",id&0x1F);
-			break;
-		case 0x15A>>1:		//01 0101 101x xxxx
-			sprintf(s,"16F1527 rev%d\r\n",id&0x1F);
-			break;
-		case 0x15C>>1:		//01 0101 110x xxxx
-			sprintf(s,"16LF1526 rev%d\r\n",id&0x1F);
-			break;
-		case 0x15E>>1:		//01 0101 111x xxxx
-			sprintf(s,"16LF1527 rev%d\r\n",id&0x1F);
-			break;
-		case 0x168>>1:		//01 0110 100x xxxx
-			sprintf(s,"16F1516 rev%d\r\n",id&0x1F);
-			break;
-		case 0x16A>>1:		//01 0110 101x xxxx
-			sprintf(s,"16F1517 rev%d\r\n",id&0x1F);
-			break;
-		case 0x16C>>1:		//01 0110 110x xxxx
-			sprintf(s,"16F1518 rev%d\r\n",id&0x1F);
-			break;
-		case 0x16E>>1:		//01 0110 111x xxxx
-			sprintf(s,"16F1519 rev%d\r\n",id&0x1F);
-			break;
-		case 0x178>>1:		//01 0111 100x xxxx
-			sprintf(s,"16LF1516 rev%d\r\n",id&0x1F);
-			break;
-		case 0x17A>>1:		//01 0111 101x xxxx
-			sprintf(s,"16LF1517 rev%d\r\n",id&0x1F);
-			break;
-		case 0x17C>>1:		//01 0111 110x xxxx
-			sprintf(s,"16LF1518 rev%d\r\n",id&0x1F);
-			break;
-		case 0x17E>>1:		//01 0111 111x xxxx
-			sprintf(s,"16LF1519 rev%d\r\n",id&0x1F);
-			break;
-		case 0x180>>1:		//01 1000 000x xxxx
-			sprintf(s,"16F727 rev%d\r\n",id&0x1F);
-			break;
-		case 0x182>>1:		//01 1000 001x xxxx
-			sprintf(s,"16F726 rev%d\r\n",id&0x1F);
-			break;
-		case 0x184>>1:		//01 1000 010x xxxx
-			sprintf(s,"16F724 rev%d\r\n",id&0x1F);
-			break;
-		case 0x186>>1:		//01 1000 011x xxxx
-			sprintf(s,"16F723 rev%d\r\n",id&0x1F);
-			break;
-		case 0x188>>1:		//01 1000 100x xxxx
-			sprintf(s,"16F722 rev%d\r\n",id&0x1F);
-			break;
-		case 0x190>>1:		//01 1001 000x xxxx
-			sprintf(s,"16LF727 rev%d\r\n",id&0x1F);
-			break;
-		case 0x192>>1:		//01 1001 001x xxxx
-			sprintf(s,"16LF726 rev%d\r\n",id&0x1F);
-			break;
-		case 0x194>>1:		//01 1001 010x xxxx
-			sprintf(s,"16LF724 rev%d\r\n",id&0x1F);
-			break;
-		case 0x196>>1:		//01 1001 011x xxxx
-			sprintf(s,"16LF723 rev%d\r\n",id&0x1F);
-			break;
-		case 0x198>>1:		//01 1001 100x xxxx
-			sprintf(s,"16LF722 rev%d\r\n",id&0x1F);
-			break;
-		case 0x1B0>>1:		//01 1011 000x xxxx
-			sprintf(s,"16F723A rev%d\r\n",id&0x1F);
-			break;
-		case 0x1B2>>1:		//01 1011 001x xxxx
-			sprintf(s,"16F722A rev%d\r\n",id&0x1F);
-			break;
-		case 0x1B4>>1:		//01 1011 010x xxxx
-			sprintf(s,"16LF723A rev%d\r\n",id&0x1F);
-			break;
-		case 0x1B6>>1:		//01 1011 011x xxxx
-			sprintf(s,"16LF722A rev%d\r\n",id&0x1F);
-			break;
-		case 0x1B8>>1:		//01 1011 100x xxxx
-			sprintf(s,"12F1840 rev%d\r\n",id&0x1F);
-			break;
-		case 0x1BA>>1:		//01 1011 101x xxxx
-			sprintf(s,"12LF1840 rev%d\r\n",id&0x1F);
-			break;
-		case 0x1D0>>1:		//00 1101 000x xxxx
-			sprintf(s,"16F870 rev%d\r\n",id&0x1F);
-			break;
-		case 0x1D2>>1:		//00 1101 001x xxxx
-			sprintf(s,"16F871 rev%d\r\n",id&0x1F);
-			break;
-		case 0x200>>1:		//10 0000 000x xxxx
-			sprintf(s,"16F882 rev%d\r\n",id&0x1F);
-			break;
-		case 0x202>>1:		//10 0000 001x xxxx
-			sprintf(s,"16F883 rev%d\r\n",id&0x1F);
-			break;
-		case 0x204>>1:		//10 0000 010x xxxx
-			sprintf(s,"16F884 rev%d\r\n",id&0x1F);
-			break;
-		case 0x206>>1:		//10 0000 011x xxxx
-			sprintf(s,"16F886 rev%d\r\n",id&0x1F);
-			break;
-		case 0x208>>1:		//10 0000 100x xxxx
-			sprintf(s,"16F887 rev%d\r\n",id&0x1F);
-			break;
-		case 0x218>>1:		//10 0001 100x xxxx
-			sprintf(s,"12F615 rev%d\r\n",id&0x1F);
-			break;
-		case 0x21A>>1:		//10 0001 101x xxxx
-			sprintf(s,"12HV615 rev%d\r\n",id&0x1F);
-			break;
-		case 0x224>>1:		//10 0010 010x xxxx
-			sprintf(s,"12F609 rev%d\r\n",id&0x1F);
-			break;
-		case 0x226>>1:		//10 0010 011x xxxx
-			sprintf(s,"16F610 rev%d\r\n",id&0x1F);
-			break;
-		case 0x228>>1:		//10 0010 100x xxxx
-			sprintf(s,"12HV609 rev%d\r\n",id&0x1F);
-			break;
-		case 0x22A>>1:		//10 0010 101x xxxx
-			sprintf(s,"16HV610 rev%d\r\n",id&0x1F);
-			break;
-		case 0x232>>1:		//10 0011 001x xxxx
-			sprintf(s,"16F1933 rev%d\r\n",id&0x1F);
-			break;
-		case 0x234>>1:		//10 0011 010x xxxx
-			sprintf(s,"16F1934 rev%d\r\n",id&0x1F);
-			break;
-		case 0x236>>1:		//10 0011 011x xxxx
-			sprintf(s,"16F1936 rev%d\r\n",id&0x1F);
-			break;
-		case 0x238>>1:		//10 0011 100x xxxx
-			sprintf(s,"16F1937 rev%d\r\n",id&0x1F);
-			break;
-		case 0x23A>>1:		//10 0011 101x xxxx
-			sprintf(s,"16F1938 rev%d\r\n",id&0x1F);
-			break;
-		case 0x23C>>1:		//10 0011 110x xxxx
-			sprintf(s,"16F1939 rev%d\r\n",id&0x1F);
-			break;
-		case 0x242>>1:		//10 0100 001x xxxx
-			sprintf(s,"16LF1933 rev%d\r\n",id&0x1F);
-			break;
-		case 0x244>>1:		//10 0100 010x xxxx
-			sprintf(s,"16LF1934 rev%d\r\n",id&0x1F);
-			break;
-		case 0x246>>1:		//10 0100 011x xxxx
-			sprintf(s,"16LF1936 rev%d\r\n",id&0x1F);
-			break;
-		case 0x248>>1:		//10 0100 100x xxxx
-			sprintf(s,"16LF1937 rev%d\r\n",id&0x1F);
-			break;
-		case 0x24A>>1:		//10 0100 101x xxxx
-			sprintf(s,"16LF1938 rev%d\r\n",id&0x1F);
-			break;
-		case 0x24C>>1:		//10 0100 110x xxxx
-			sprintf(s,"16LF1939 rev%d\r\n",id&0x1F);
-			break;
-		case 0x250>>1:		//10 0101 000x xxxx
-			sprintf(s,"16F1946 rev%d\r\n",id&0x1F);
-			break;
-		case 0x252>>1:		//10 0101 001x xxxx
-			sprintf(s,"16F1947 rev%d\r\n",id&0x1F);
-			break;
-		case 0x258>>1:		//10 0101 100x xxxx
-			sprintf(s,"16LF1946 rev%d\r\n",id&0x1F);
-			break;
-		case 0x25A>>1:		//10 0101 101x xxxx
-			sprintf(s,"16LF1947 rev%d\r\n",id&0x1F);
-			break;
-		case 0x270>>1:		//10 0111 000x xxxx
-			sprintf(s,"16F1822 rev%d\r\n",id&0x1F);
-			break;
-		case 0x272>>1:		//10 0111 001x xxxx
-			sprintf(s,"16F1823 rev%d\r\n",id&0x1F);
-			break;
-		case 0x274>>1:		//10 0111 010x xxxx
-			sprintf(s,"16F1824 rev%d\r\n",id&0x1F);
-			break;
-		case 0x276>>1:		//10 0111 011x xxxx
-			sprintf(s,"16F1825 rev%d\r\n",id&0x1F);
-			break;
-		case 0x278>>1:		//10 0111 100x xxxx
-			sprintf(s,"16F1826 rev%d\r\n",id&0x1F);
-			break;
-		case 0x27A>>1:		//10 0111 101x xxxx
-			sprintf(s,"16F1827 rev%d\r\n",id&0x1F);
-			break;
-		case 0x280>>1:		//10 1000 000x xxxx
-			sprintf(s,"16LF1822 rev%d\r\n",id&0x1F);
-			break;
-		case 0x282>>1:		//10 1000 001x xxxx
-			sprintf(s,"16LF1823 rev%d\r\n",id&0x1F);
-			break;
-		case 0x284>>1:		//10 1000 010x xxxx
-			sprintf(s,"16LF1824 rev%d\r\n",id&0x1F);
-			break;
-		case 0x286>>1:		//10 1000 011x xxxx
-			sprintf(s,"16LF1825 rev%d\r\n",id&0x1F);
-			break;
-		case 0x288>>1:		//10 1000 100x xxxx
-			sprintf(s,"16LF1826 rev%d\r\n",id&0x1F);
-			break;
-		case 0x28A>>1:		//10 1000 101x xxxx
-			sprintf(s,"16LF1827 rev%d\r\n",id&0x1F);
-			break;
-		default:
-			sprintf(s,"%s",strings[S_nodev]); //"Unknown device\r\n");
+	int i;
+	for(i=0;i<sizeof(PIC16LIST)/sizeof(PIC16LIST[0]);i++){
+		if((id>>5)==PIC16LIST[i].id){
+			sprintf(s,PIC16LIST[i].device,id&PIC16LIST[i].revmask);
+			PrintMessage(s);
+			return;
+		}
 	}
+			sprintf(s,"%s",strings[S_nodev]); //"Unknown device\r\n");
 	PrintMessage(s);
+}
+
+#ifdef _MSC_VER
+void COpenProgDlg::DisplayCODE16F(int size){
+#else
+void DisplayCODE16F(int size){
+#endif
+// display 14 bit PIC CODE memory
+	char s[256]="",t[256]="";
+	char* aux=(char*)malloc((size/COL+1)*(16+COL*5));
+	aux[0]=0;
+	int valid=0,empty=1,i,j;
+	for(i=0;i<size&&i<sizeW;i+=COL){
+		valid=0;
+		for(j=i;j<i+COL&&j<sizeW&&i<size;j++){
+			sprintf(t,"%04X ",dati_hex[j]);
+			strcat(s,t);
+			if(dati_hex[j]<0x3fff) valid=1;
+	}
+		if(valid){
+			sprintf(t,"%04X: %s\r\n",i,s);
+			empty=0;
+			strcat(aux,t);
+		}
+		s[0]=0;
+	}
+	if(empty) PrintMessage(strings[S_Empty]);	//empty
+	else PrintMessage(aux);
+	free(aux);
+}
+
+#ifdef _MSC_VER
+void COpenProgDlg::DisplayEE16F(int size){
+#else
+void DisplayEE16F(int size){
+#endif
+// display 14 bit PIC EEPROM memory
+	int valid=0,empty=1,i,j;
+	char s[256]="",t[256]="",v[256]="";
+	char* aux=(char*)malloc((size/COL+1)*(16+COL*5));
+	aux[0]=0;
+#ifdef __GTK_H__
+	char *g;
+#endif
+	empty=1;
+	v[0]=0;
+	for(i=0x2100;i<0x2100+size&&i<sizeW;i+=COL){
+		valid=0;
+		for(j=i;j<i+COL&&j<0x2100+size&&j<sizeW;j++){
+			sprintf(t,"%02X ",dati_hex[j]&0xff);
+			strcat(s,t);
+			sprintf(t,"%c",isprint(dati_hex[j]&0xFF)&&(dati_hex[j]&0xFF)<0xFF?dati_hex[j]&0xFF:'.');
+#ifdef __GTK_H__
+			g=g_locale_to_utf8(t,-1,NULL,NULL,NULL);
+			if(g) strcat(v,g);
+			g_free(g);
+#else
+			strcat(v,t);
+#endif
+			if(dati_hex[j]<0xff) valid=1;/**/
+		}
+		if(valid){
+			sprintf(t,"%04X: %s %s\r\n",i,s,v);
+			empty=0;
+			strcat(aux,t);
+		}
+		s[0]=0;
+		v[0]=0;
+	}
+	if(empty) PrintMessage(strings[S_Empty]);	//empty
+	else PrintMessage(aux);
+	free(aux);
 }
 
 #ifdef _MSC_VER
@@ -430,12 +273,8 @@ void Read16Fxxx(int dim,int dim2,int dim3,int vdd){
 // Calib1/Config2@0x2008
 // Calib2/Calib1@0x2009
 // eeprom@0x2100
-#ifdef _MSC_VER
-	CString str,aux;
-	int size;
-#endif
 	int k=0,k2=0,z=0,i,j,ee2200=0;
-	char s[512],t[256],v[256];
+	char s[512],t[256],*aux;
 	if(dim2<0){
 		dim2=-dim2;
 		ee2200=1;
@@ -457,13 +296,9 @@ void Read16Fxxx(int dim,int dim2,int dim3,int vdd){
 		OpenLogFile();	//"log.txt"
 		fprintf(logfile,"Read12F6xx(%d,%d,%d,%d)\n",dim,dim2,dim3,vdd);
 	}
-	size=0x2100+dim2;
-#ifdef _MSC_VER
-	dati_hex.RemoveAll();
-	dati_hex.SetSize(size);
-#else
-	dati_hex=malloc(sizeof(WORD)*size);
-#endif
+	sizeW=0x2100+dim2;
+	if(dati_hex) free(dati_hex);
+	dati_hex=(WORD*)malloc(sizeof(WORD)*sizeW);
 	unsigned int start=GetTickCount();
 	bufferU[0]=0;
 	j=1;
@@ -517,9 +352,7 @@ void Read16Fxxx(int dim,int dim2,int dim3,int vdd){
 	if(saveLog)WriteLogIO();
 //****************** read code ********************
 	PrintMessage(strings[S_CodeReading1]);		//read code ...
-#ifdef _CMD
-	PrintMessage("   "); 
-#endif
+	PrintStatusSetup();
 	for(i=0,j=1;i<dim;i++){
 		bufferU[j++]=READ_DATA_PROG;
 		bufferU[j++]=INC_ADDR;
@@ -543,9 +376,7 @@ void Read16Fxxx(int dim,int dim2,int dim3,int vdd){
 			}
 		}
 	}
-#ifdef _CMD
-	PrintMessage("\b\b\b\b");
-#endif
+	PrintStatusEnd();
 	if(k!=dim){
 		PrintMessage("\r\n");
 		PrintMessage2(strings[S_ReadCodeErr],dim,k);	//"Error reading code area, requested %d words, read %d\r\n"
@@ -572,9 +403,7 @@ void Read16Fxxx(int dim,int dim2,int dim3,int vdd){
 					z+=2;
 				}
 			}
-#ifdef _GUI
 			PrintStatus(strings[S_CodeReading],(i-0x2000+dim)*100/(dim+dim2+dim3),i);	//"Read: %d%%, addr. %03X"
-#endif
 			j=1;
 			if(saveLog){
 				fprintf(logfile,strings[S_Log7],i,i,k2,k2);	//"i=%d(0x%X), k=%d(0x%X)\n"
@@ -591,9 +420,7 @@ void Read16Fxxx(int dim,int dim2,int dim3,int vdd){
 //****************** read eeprom ********************
 	if(dim2){
 		PrintMessage(strings[S_ReadEE]);		//Read EEPROM ...
-#ifdef _CMD
-		PrintMessage("   "); 
-#endif
+		PrintStatusSetup();
 		if(ee2200){		//eeprom a 0x2200
 			bufferU[j++]=INC_ADDR_N;
 			bufferU[j++]=0xFF;
@@ -624,9 +451,7 @@ void Read16Fxxx(int dim,int dim2,int dim3,int vdd){
 				}
 			}
 		}
-#ifdef _CMD
-		PrintMessage("\b\b\b\b");
-#endif
+		PrintStatusEnd();
 		if(k2!=dim2){
 			PrintMessage("\r\n");
 			PrintMessage2(strings[S_ReadEEErr],dim2,k2);	//"Error reading EE area, ..."
@@ -647,9 +472,7 @@ void Read16Fxxx(int dim,int dim2,int dim3,int vdd){
 	msDelay(1);
 	read();
 	unsigned int stop=GetTickCount();
-#ifdef _GUI
-	StatusBar.SetWindowText("");
-#endif
+	PrintStatusClear();			//clear status report
 //****************** visualize ********************
 	for(i=0;i<4;i+=2){
 		PrintMessage4("ID%d: 0x%04X\tID%d: 0x%04X\r\n",i,dati_hex[0x2000+i],i+1,dati_hex[0x2000+i+1]);
@@ -664,33 +487,12 @@ void Read16Fxxx(int dim,int dim2,int dim3,int vdd){
 		PrintMessage1(strings[S_Calib1_2],dati_hex[0x2009]);	//"Calibration word 1 or 2: 0x%04X\r\n"
 	}
 	PrintMessage(strings[S_CodeMem2]);	//"\r\nCode memory\r\n"
+	DisplayCODE16F(dim);
 	s[0]=0;
 	int valid=0,empty=1;
-	for(i=0;i<dim;i+=COL){
-		valid=0;
-		for(j=i;j<i+COL&&j<dim;j++){
-			sprintf(t,"%04X ",dati_hex[j]);
-			strcat(s,t);
-			if(dati_hex[j]<0x3fff) valid=1;
-		}
-		if(valid){
-#ifdef _GUI
-			sprintf(t,"%04X: %s\r\n",i,s);
-			empty=0;
-			aux+=t;
-#else
-			PrintMessage("%04X: %s\r\n",i,s);
-			empty=0;
-#endif
-		}
-		s[0]=0;
-	}
-	if(empty) PrintMessage(strings[S_Empty]);	//empty
-#ifdef _GUI
-	else PrintMessage(aux);
-	aux.Empty();
-#endif
 	if(dim3>8){
+		aux=(char*)malloc((dim3/COL+1)*(16+COL*5));
+		aux[0]=0;
 		empty=1;
 		PrintMessage(strings[S_ConfigResMem]);	//"\r\nConfig and reserved memory:\r\n"
 		for(i=0x2000;i<0x2000+dim3;i+=COL){
@@ -701,60 +503,23 @@ void Read16Fxxx(int dim,int dim2,int dim3,int vdd){
 				if(dati_hex[j]<0x3fff) valid=1;
 			}
 			if(valid){
-#ifdef _GUI
 				sprintf(t,"%04X: %s\r\n",i,s);
 				empty=0;
-				aux+=t;
-#else
-				PrintMessage("%04X: %s\r\n",i,s);
-				empty=0;
-#endif
+				strcat(aux,t);
 			}
 			s[0]=0;
 		}
 		if(empty) PrintMessage(strings[S_Empty]);	//empty
-#ifdef _GUI
 		else PrintMessage(aux);
-		aux.Empty();
-#endif
+		free(aux);
 	}
 	if(dim2){
-		empty=1;
-		v[0]=0;
 		PrintMessage(strings[S_EEMem]);	//"\r\nEEPROM memory:\r\n"
-		for(i=0x2100;i<0x2100+dim2;i+=COL){
-			valid=0;
-			for(j=i;j<i+COL&&j<0x2100+dim2;j++){
-				sprintf(t,"%02X ",dati_hex[j]&0xff);
-				strcat(s,t);
-				sprintf(t,"%c",isprint(dati_hex[j]&0xff)?dati_hex[j]&0xff:'.');
-				strcat(v,t);
-				if(dati_hex[j]<0xff) valid=1;
-			}
-			if(valid){
-#ifdef _GUI
-				sprintf(t,"%04X: %s %s\r\n",i,s,v);
-				empty=0;
-				aux+=t;
-#else
-				PrintMessage("%04X: %s %s\r\n",i,s,v);
-				empty=0;
-#endif
-			}
-			s[0]=0;
-			v[0]=0;
-		}
-		if(empty) PrintMessage(strings[S_Empty]);	//empty
-#ifdef _GUI
-		else PrintMessage(aux);
-		aux.Empty();
-#endif
+		DisplayEE16F(dim2);
 	}
 	PrintMessage1(strings[S_End],(stop-start)/1000.0);	//"\r\nEnd (%.2f s)\r\n"
 	if(saveLog) CloseLogFile();
-#ifdef _GUI
-	StatusBar.SetWindowText("");
-#endif
+	PrintStatusClear();			//clear status report
 }
 
 #ifdef _MSC_VER
@@ -774,16 +539,12 @@ void Read16F1xxx(int dim,int dim2,int dim3,int options){
 // Calib1@0x8009
 // Calib2@0x800A
 // eeprom@0x0
-#ifdef _MSC_VER
-	CString str,aux;
-	int size,sizeEE;
-#endif
 	int k=0,k2=0,z=0,i,j;
 	if(!CheckV33Regulator()){
 		PrintMessage(strings[S_noV33reg]);	//Can't find 3.3V expansion board
 		return;
 	}
-	char s[256],t[256];
+	char s[256],t[256],*aux;
 	if(dim>0x8000||dim<0){
 		PrintMessage(strings[S_CodeLim]);	//"Code size exceeds limits\r\n"
 		return;
@@ -806,18 +567,15 @@ void Read16F1xxx(int dim,int dim2,int dim3,int options){
 			PrintMessage(strings[S_HVregErr]); //"HV regulator error\r\n"
 			return;
 		}
+		else hvreg=8.5;
 	}
 	else StartHVReg(-1);			//LVP mode, turn off HV
-	size=0x8000+dim3;
+	sizeW=0x8000+dim3;
 	sizeEE=dim2;
-#ifdef _MSC_VER
-	dati_hex.RemoveAll();
-	dati_hex.SetSize(size);
-	memEE.SetSize(dim2);
-#else
-	dati_hex=malloc(sizeof(WORD)*size);
-	memEE=malloc(dim2);			//EEPROM
-#endif
+	if(dati_hex) free(dati_hex);
+	dati_hex=(WORD*)malloc(sizeof(WORD)*sizeW);
+	if(memEE) free(memEE);
+	memEE=(unsigned char*)malloc(sizeEE);			//EEPROM
 	for(i=0;i<sizeEE;i++) memEE[i]=0xFF;
 	unsigned int start=GetTickCount();
 	bufferU[0]=0;
@@ -871,9 +629,7 @@ void Read16F1xxx(int dim,int dim2,int dim3,int options){
 	if(saveLog)WriteLogIO();
 //****************** read code ********************
 	PrintMessage(strings[S_CodeReading1]);		//read code ...
-#ifdef _CMD
-	PrintMessage("   "); 
-#endif
+	PrintStatusSetup();
 	for(i=0,j=1;i<dim;i++){
 		bufferU[j++]=READ_DATA_PROG;
 		bufferU[j++]=INC_ADDR;
@@ -897,9 +653,7 @@ void Read16F1xxx(int dim,int dim2,int dim3,int options){
 			}
 		}
 	}
-#ifdef _CMD
-	PrintMessage("\b\b\b\b");
-#endif
+	PrintStatusEnd();
 	if(k!=dim){
 		PrintMessage("\r\n");
 		PrintMessage2(strings[S_ReadCodeErr],dim,k);	//"Error reading code area, requested %d words, read %d\r\n"
@@ -926,9 +680,7 @@ void Read16F1xxx(int dim,int dim2,int dim3,int options){
 					z+=2;
 				}
 			}
-#ifdef _MSC_VER
 			PrintStatus(strings[S_CodeReading],(i-0x8000+dim)*100/(dim+dim2+dim3),i);	//"Read: %d%%, ind. %03X"
-#endif
 			j=1;
 			if(saveLog){
 				fprintf(logfile,strings[S_Log7],i,i,k2,k2);	//"i=%d(0x%X), k=%d(0x%X)\n"
@@ -970,9 +722,7 @@ void Read16F1xxx(int dim,int dim2,int dim3,int options){
 				}
 			}
 		}
-#ifdef _CMD
-		PrintMessage("\b\b\b\b");
-#endif
+		PrintStatusEnd();
 		if(i!=dim2){
 			PrintMessage("\r\n");
 			PrintMessage2(strings[S_ReadEEErr],dim2,i);	//"Error reading EE area, ..."
@@ -993,9 +743,7 @@ void Read16F1xxx(int dim,int dim2,int dim3,int options){
 	msDelay(1);
 	read();
 	unsigned int stop=GetTickCount();
-#ifdef _GUI
-	StatusBar.SetWindowText("");
-#endif
+	PrintStatusClear();			//clear status report
 //****************** visualize ********************
 	for(i=0;i<4;i+=2){
 		PrintMessage4("ID%d: 0x%04X\tID%d: 0x%04X\r\n",i,dati_hex[0x8000+i],i+1,dati_hex[0x8000+i+1]);
@@ -1007,33 +755,12 @@ void Read16F1xxx(int dim,int dim2,int dim3,int options){
 	PrintMessage2(strings[S_CalibWordX],1,dati_hex[0x8009]);	//"Calibration word %d: 0x%04X\r\n"
 	PrintMessage2(strings[S_CalibWordX],2,dati_hex[0x800A]);	//"Calibration word %d: 0x%04X\r\n"
 	PrintMessage(strings[S_CodeMem2]);	//"\r\nCode memory:\r\n"
+	DisplayCODE16F(dim);
+	if(dim3>11){
 	int valid=0,empty=1;
 	s[0]=0;
-	for(i=0;i<dim;i+=COL){
-		valid=0;
-		for(j=i;j<i+COL&&j<dim;j++){
-			sprintf(t,"%04X ",dati_hex[j]);
-			strcat(s,t);
-			if(dati_hex[j]<0x3fff) valid=1;
-		}
-		if(valid){
-#ifdef _GUI
-			sprintf(t,"%04X: %s\r\n",i,s);
-			empty=0;
-			aux+=t;
-#else
-			PrintMessage("%04X: %s\r\n",i,s);
-			empty=0;
-#endif
-		}
-		s[0]=0;
-	}
-	if(empty) PrintMessage(strings[S_Empty]);	//empty
-#ifdef _GUI
-	else PrintMessage(aux);
-	aux.Empty();
-#endif
-	if(dim3>11){
+		aux=(char*)malloc(dim3/COL*(16+COL*5));
+		aux[0]=0;
 		empty=1;
 		PrintMessage(strings[S_ConfigResMem]);	//"\r\nConfig and reserved memory:\r\n"
 		for(i=0x8000;i<0x8000+dim3;i+=COL){
@@ -1044,29 +771,20 @@ void Read16F1xxx(int dim,int dim2,int dim3,int options){
 				if(dati_hex[j]<0x3fff) valid=1;
 			}
 			if(valid){
-#ifdef _GUI
 				sprintf(t,"%04X: %s\r\n",i,s);
 				empty=0;
-				aux+=t;
-#else
-				PrintMessage("%04X: %s\r\n",i,s);
-				empty=0;
-#endif
+				strcat(aux,t);
 			}
 			s[0]=0;
 		}
 		if(empty) PrintMessage(strings[S_Empty]);	//empty
-#ifdef _GUI
 		else PrintMessage(aux);
-		aux.Empty();
-#endif
+		free(aux);
 	}
 	if(dim2) DisplayEE();	//visualize
 	PrintMessage1(strings[S_End],(stop-start)/1000.0);	//"\r\nEnd (%.2f s)\r\n"
 	if(saveLog) CloseLogFile();
-#ifdef _GUI
-	StatusBar.SetWindowText("");
-#endif
+	PrintStatusClear();			//clear status report
 }
 
 #ifdef _MSC_VER
@@ -1088,37 +806,33 @@ void Write12F6xx(int dim,int dim2)
 //			LOAD_DATA_DATA (0011) + BEGIN_PROG (1000) + 8ms
 // verify during write
 {
-#ifdef _MSC_VER
-	CString str;
-	int size=dati_hex.GetSize();
-#endif
 	int err=0;
 	WORD devID=0x3fff,calib1=0x3fff,calib2=0x3fff;
 	int k=0,z=0,i,j,w;
-	if(size<0x2007){
+	if(sizeW<0x2007){
 		PrintMessage(strings[S_NoConfigW3]);	//"Can't find CONFIG (0x2007)\r\nEnd\r\n"
 		return;
 	}
 	if(load_calibword){
-		if(size>0x2009) load_calibword=2;
-		else if(size>0x2008) load_calibword=1;
+		if(sizeW>0x2009) load_calibword=2;
+		else if(sizeW>0x2008) load_calibword=1;
 		else{
 			PrintMessage(strings[S_NoCalibW]);	//"Can't find calibration data\r\n"
 			load_calibword=0;
 		}
 	}
 	if(dim2){
-		if(size<0x2100){
+		if(sizeW<0x2100){
 			dim2=0;
 			PrintMessage(strings[S_NoEEMem]);	//"Can't find EEPROM data\r\n"
 		}
-		else if(dim2>size-0x2100) dim2=size-0x2100;
+		else if(dim2>sizeW-0x2100) dim2=sizeW-0x2100;
 	}
 	if(saveLog){
 		OpenLogFile();	//"log.txt"
 		fprintf(logfile,"Write12F6xx(%d,%d)\n",dim,dim2);
 	}
-	for(i=0;i<0x2009&&i<size;i++) dati_hex[i]&=0x3FFF;
+	for(i=0;i<0x2009&&i<sizeW;i++) dati_hex[i]&=0x3FFF;
 	unsigned int start=GetTickCount();
 	bufferU[0]=0;
 	j=1;
@@ -1229,9 +943,7 @@ void Write12F6xx(int dim,int dim2)
 	PrintMessage(strings[S_Compl]);	//"completed\r\n"
 //****************** write code ********************
 	PrintMessage(strings[S_StartCodeProg]);	//"Write code ... "
-#ifdef _CMD
-	PrintMessage("   "); 
-#endif
+	PrintStatusSetup();
 	for(w=i=k=0,j=1;i<dim;i++){
 		if(dati_hex[i]<0x3fff){
 			bufferU[j++]=LOAD_DATA_PROG;
@@ -1277,17 +989,13 @@ void Write12F6xx(int dim,int dim2)
 		}
 	}
 	err+=i-k;
-#ifdef _CMD
-	PrintMessage("\b\b\b\b");
-#endif
+	PrintStatusEnd();
 	PrintMessage1(strings[S_ComplErr],err);	//"completed, %d errors\r\n"
 //****************** write eeprom ********************
 	if(dim2){
 		int err_e=0;
 		PrintMessage(strings[S_EEAreaW]);	//"Writing EEPROM ... "
-#ifdef _CMD
-		PrintMessage("   "); 
-#endif
+		PrintStatusSetup();
 		j=1;
 		bufferU[j++]=SET_PARAMETER;
 		bufferU[j++]=SET_T3;
@@ -1347,9 +1055,7 @@ void Write12F6xx(int dim,int dim2)
 		}
 		err_e+=i-k;
 		err+=err_e;
-#ifdef _CMD
-		PrintMessage("\b\b\b\b");
-#endif
+		PrintStatusEnd();
 		PrintMessage1(strings[S_ComplErr],err_e);	//"completed, %d errors\r\n"
 	}
 //****************** write ID, CONFIG, CALIB ********************
@@ -1481,9 +1187,7 @@ void Write12F6xx(int dim,int dim2)
 	unsigned int stop=GetTickCount();
 	PrintMessage3(strings[S_EndErr],(stop-start)/1000.0,err,err!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nEnd (%.2f s) %d %s\r\n\r\n"
 	if(saveLog)CloseLogFile();
-#ifdef _GUI
-	StatusBar.SetWindowText("");
-#endif
+	PrintStatusClear();			//clear status report
 }
 
 #ifdef _MSC_VER
@@ -1513,29 +1217,25 @@ void Write16F8x (int dim,int dim2)
 // write eeprom: LOAD_DATA_DATA (0011) + BEGIN_PROG (1000) + 20ms o 8ms(16F84A)
 // verify during write
 {
-#ifdef _MSC_VER
-	CString str;
-	int size=dati_hex.GetSize();
-#endif
 	int err=0;
 	WORD devID,config;
 	int k=0,z=0,i,j,w,r;
-	if(size<0x2007){
+	if(sizeW<0x2007){
 		PrintMessage(strings[S_NoConfigW3]);	//"Can't find CONFIG (0x2007)\r\nEnd\r\n"
 		return;
 	}
 	if(dim2){
-		if(size<0x2100){
+		if(sizeW<0x2100){
 			dim2=0;
 			PrintMessage(strings[S_NoEEMem]);	//"Can't find EEPROM data\r\n"
 		}
-		else if(dim2>size-0x2100) dim2=size-0x2100;
+		else if(dim2>sizeW-0x2100) dim2=sizeW-0x2100;
 	}
 	if(saveLog){
 		OpenLogFile();	//"log.txt"
 		fprintf(logfile,"Write16F8x(%d,%d)\n",dim,dim2);
 	}
-	for(i=0;i<0x2009&&i<size;i++) dati_hex[i]&=0x3FFF;
+	for(i=0;i<0x2009&&i<sizeW;i++) dati_hex[i]&=0x3FFF;
 	unsigned int start=GetTickCount();
 	bufferU[0]=0;
 	j=1;
@@ -1698,9 +1398,7 @@ void Write16F8x (int dim,int dim2)
 	PrintMessage(strings[S_Compl]);	//"completed\r\n"
 //****************** write code ********************
 	PrintMessage(strings[S_StartCodeProg]);	//"Write code ... "
-#ifdef _CMD
-	PrintMessage("   "); 
-#endif
+	PrintStatusSetup();
 	for(w=i=k=0,j=1;i<dim;i++){
 		if(dati_hex[i]<0x3fff){
 			bufferU[j++]=LOAD_DATA_PROG;
@@ -1746,9 +1444,7 @@ void Write16F8x (int dim,int dim2)
 		}
 	}
 	err+=i-k;
-#ifdef _CMD
-	PrintMessage("\b\b\b\b");
-#endif
+	PrintStatusEnd();
 	PrintMessage1(strings[S_ComplErr],err);	//"completed, %d errors\r\n"
 //****************** write ID, CONFIG ********************
 	PrintMessage(strings[S_ConfigAreaW]);	//"Writing CONFIG area ... "
@@ -1810,9 +1506,7 @@ void Write16F8x (int dim,int dim2)
 //****************** write eeprom ********************
 	if(dim2){
 		PrintMessage(strings[S_EEAreaW]);	//"Writing EEPROM ... "
-#ifdef _CMD
-		PrintMessage("   "); 
-#endif
+		PrintStatusSetup();
 		j=1;
 		bufferU[j++]=INC_ADDR_N;
 		bufferU[j++]=0x2100-0x2008;		//clear EEPROM counter
@@ -1860,9 +1554,7 @@ void Write16F8x (int dim,int dim2)
 			}
 		}
 		err+=i-k;
-#ifdef _CMD
-		PrintMessage("\b\b\b\b");
-#endif
+		PrintStatusEnd();
 		PrintMessage1(strings[S_ComplErr],i-k);	//"completed, %d errors\r\n"
 	}
 //****************** exit ********************
@@ -1886,9 +1578,7 @@ void Write16F8x (int dim,int dim2)
 	unsigned int stop=GetTickCount();
 	PrintMessage3(strings[S_EndErr],(stop-start)/1000.0,err,err!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nEnd (%.2f s) %d %s\r\n\r\n"
 	if(saveLog)CloseLogFile();
-#ifdef _GUI
-	StatusBar.SetWindowText("");
-#endif
+	PrintStatusClear();			//clear status report
 }
 
 #ifdef _MSC_VER
@@ -1914,29 +1604,25 @@ void Write16F62x (int dim,int dim2)
 // eeprom: LOAD_DATA_DATA (0011) + BEGIN_PROG2 (11000) + 8ms
 // verify during write
 {
-#ifdef _MSC_VER
-	CString str;
-	int size=dati_hex.GetSize();
-#endif
 	int err=0;
 	WORD devID,config;
 	int k=0,z=0,i,j,w;
-	if(size<0x2007){
+	if(sizeW<0x2007){
 		PrintMessage(strings[S_NoConfigW3]);	//"Can't find CONFIG (0x2007)\r\nEnd\r\n"
 		return;
 	}
 	if(dim2){
-		if(size<0x2100){
+		if(sizeW<0x2100){
 			dim2=0;
 			PrintMessage(strings[S_NoEEMem]);	//"Can't find EEPROM data\r\n"
 		}
-		else if(dim2>size-0x2100) dim2=size-0x2100;
+		else if(dim2>sizeW-0x2100) dim2=sizeW-0x2100;
 	}
 	if(saveLog){
 		OpenLogFile();	//"log.txt"
 		fprintf(logfile,"Write16F62x(%d,%d)\n",dim,dim2);
 	}
-	for(i=0;i<0x2009&&i<size;i++) dati_hex[i]&=0x3FFF;
+	for(i=0;i<0x2009&&i<sizeW;i++) dati_hex[i]&=0x3FFF;
 	unsigned int start=GetTickCount();
 	bufferU[0]=0;
 	j=1;
@@ -2054,9 +1740,7 @@ void Write16F62x (int dim,int dim2)
 	PrintMessage(strings[S_Compl]);	//"completed\r\n"
 //****************** write code ********************
 	PrintMessage(strings[S_StartCodeProg]);	//"Write code ... "
-#ifdef _CMD
-	PrintMessage("   "); 
-#endif
+	PrintStatusSetup();
 	for(w=i=k=0,j=1;i<dim;i++){
 		if(dati_hex[i]<0x3fff){
 			bufferU[j++]=LOAD_DATA_PROG;
@@ -2102,9 +1786,7 @@ void Write16F62x (int dim,int dim2)
 		}
 	}
 	err+=i-k;
-#ifdef _CMD
-	PrintMessage("\b\b\b\b");
-#endif
+	PrintStatusEnd();
 	PrintMessage1(strings[S_ComplErr],err);	//"completed, %d errors\r\n"
 //****************** write ID, CONFIG ********************
 	PrintMessage(strings[S_ConfigAreaW]);	//"Writing CONFIG area ... "
@@ -2165,9 +1847,7 @@ void Write16F62x (int dim,int dim2)
 //****************** write eeprom ********************
 	if(dim2){
 		PrintMessage(strings[S_EEAreaW]);	//"Writing EEPROM ... "
-#ifdef _CMD
-		PrintMessage("   "); 
-#endif
+		PrintStatusSetup();
 		j=1;
 		bufferU[j++]=INC_ADDR_N;
 		bufferU[j++]=0x2102-0x2008;		//clear EEPROM counter
@@ -2217,9 +1897,7 @@ void Write16F62x (int dim,int dim2)
 			}
 		}
 		err+=i-k;
-#ifdef _CMD
-		PrintMessage("\b\b\b\b");
-#endif
+		PrintStatusEnd();
 		PrintMessage1(strings[S_ComplErr],i-k);	//"completed, %d errors\r\n"
 	}
 //****************** exit ********************
@@ -2243,9 +1921,7 @@ void Write16F62x (int dim,int dim2)
 	unsigned int stop=GetTickCount();
 	PrintMessage3(strings[S_EndErr],(stop-start)/1000.0,err,err!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nEnd (%.2f s) %d %s\r\n\r\n"
 	if(saveLog)CloseLogFile();
-#ifdef _GUI
-	StatusBar.SetWindowText("");
-#endif
+	PrintStatusClear();			//clear status report
 }
 
 #ifdef _MSC_VER
@@ -2266,29 +1942,25 @@ void Write12F62x(int dim,int dim2)
 // LOAD_DATA_DATA (0011) + BEGIN_PROG (1000) + 6ms
 // verify during write
 {
-#ifdef _MSC_VER
-	CString str;
-	int size=dati_hex.GetSize();
-#endif
 	int err=0;
 	WORD devID,config,osccal;
 	int k=0,z=0,i,j,w;
-	if(size<0x2007){
+	if(sizeW<0x2007){
 		PrintMessage(strings[S_NoConfigW3]);	//"Can't find CONFIG (0x2007)\r\nEnd\r\n"
 		return;
 	}
 	if(dim2){
-		if(size<0x2100){
+		if(sizeW<0x2100){
 			dim2=0;
 			PrintMessage(strings[S_NoEEMem]);	//"Can't find EEPROM data\r\n"
 		}
-		else if(dim2>size-0x2100) dim2=size-0x2100;
+		else if(dim2>sizeW-0x2100) dim2=sizeW-0x2100;
 	}
 	if(saveLog){
 		OpenLogFile();	//"log.txt"
 		fprintf(logfile,"Write12F62x(%d,%d)\n",dim,dim2);
 	}
-	for(i=0;i<size;i++) dati_hex[i]&=0x3FFF;
+	for(i=0;i<sizeW;i++) dati_hex[i]&=0x3FFF;
 	unsigned int start=GetTickCount();
 	bufferU[0]=0;
 	j=1;
@@ -2390,9 +2062,7 @@ void Write12F62x(int dim,int dim2)
 	PrintMessage(strings[S_Compl]);	//"completed\r\n"
 //****************** write code ********************
 	PrintMessage(strings[S_StartCodeProg]);	//"Write code ... "
-#ifdef _CMD
-	PrintMessage("   "); 
-#endif
+	PrintStatusSetup();
 	if(!load_osccal) dati_hex[dim-1]=osccal;	//backup osccal
 	for(w=i=k=0,j=1;i<dim;i++){
 		if(dati_hex[i]<0x3fff){
@@ -2438,9 +2108,7 @@ void Write12F62x(int dim,int dim2)
 			}
 		}
 	}
-#ifdef _CMD
-	PrintMessage("\b\b\b\b");
-#endif
+	PrintStatusEnd();
 	err+=i-k;
 	PrintMessage1(strings[S_ComplErr],err);	//"completed, %d errors\r\n"
 //****************** write ID, CONFIG, CALIB ********************
@@ -2500,9 +2168,7 @@ void Write12F62x(int dim,int dim2)
 //****************** write eeprom ********************
 	if(dim2){
 		PrintMessage(strings[S_EEAreaW]);	//"Writing EEPROM ... "
-#ifdef _CMD
-		PrintMessage("   "); 
-#endif
+		PrintStatusSetup();
 		j=1;
 		bufferU[j++]=SET_PARAMETER;
 		bufferU[j++]=SET_T3;
@@ -2557,9 +2223,7 @@ void Write12F62x(int dim,int dim2)
 			}
 		}
 		err+=i-k;
-#ifdef _CMD
-		PrintMessage("\b\b\b\b");
-#endif
+		PrintStatusEnd();
 		PrintMessage1(strings[S_ComplErr],i-k);	//"completed, %d errors\r\n"
 	}
 //****************** exit ********************
@@ -2582,9 +2246,7 @@ void Write12F62x(int dim,int dim2)
 	unsigned int stop=GetTickCount();
 	PrintMessage3(strings[S_EndErr],(stop-start)/1000.0,err,err!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nEnd (%.2f s) %d %s\r\n\r\n"
 	if(saveLog)CloseLogFile();
-#ifdef _GUI
-	StatusBar.SetWindowText("");
-#endif
+	PrintStatusClear();			//clear status report
 }
 
 #ifdef _MSC_VER
@@ -2612,10 +2274,6 @@ void Write16F87x (int dim,int dim2)
 // write eeprom: LOAD_DATA_DATA (0011) + BEGIN_PROG (1000) + 8ms
 // verify during write
 {
-#ifdef _MSC_VER
-	CString str;
-	int size=dati_hex.GetSize();
-#endif
 	int err=0;
 	WORD devID,config;
 	int k=0,z=0,i,j,w,ee2200=0;
@@ -2623,22 +2281,22 @@ void Write16F87x (int dim,int dim2)
 		dim2=-dim2;
 		ee2200=1;
 	}
-	if(size<0x2007){
+	if(sizeW<0x2007){
 		PrintMessage(strings[S_NoConfigW3]);	//"Can't find CONFIG (0x2007)\r\nEnd\r\n"
 		return;
 	}
 	if(dim2){
-		if(size<0x2100){
+		if(sizeW<0x2100){
 			dim2=0;
 			PrintMessage(strings[S_NoEEMem]);	//"Can't find EEPROM data\r\n"
 		}
-		else if(dim2>size-0x2100) dim2=size-0x2100;
+		else if(dim2>sizeW-0x2100) dim2=sizeW-0x2100;
 	}
 	if(saveLog){
 		OpenLogFile();	//"log.txt"
 		fprintf(logfile,"Write16F87x(%d,%d)\n",dim,dim2);
 	}
-	for(i=0;i<size;i++) dati_hex[i]&=0x3FFF;
+	for(i=0;i<sizeW;i++) dati_hex[i]&=0x3FFF;
 	unsigned int start=GetTickCount();
 	bufferU[0]=0;
 	j=1;
@@ -2785,9 +2443,7 @@ void Write16F87x (int dim,int dim2)
 	PrintMessage(strings[S_Compl]);	//"completed\r\n"
 //****************** write code ********************
 	PrintMessage(strings[S_StartCodeProg]);	//"Write code ... "
-#ifdef _CMD
-	PrintMessage("   "); 
-#endif
+	PrintStatusSetup();
 	for(w=i=k=0,j=1;i<dim;i++){
 		if(dati_hex[i]<0x3fff){
 			bufferU[j++]=LOAD_DATA_PROG;
@@ -2833,9 +2489,7 @@ void Write16F87x (int dim,int dim2)
 		}
 	}
 	err+=i-k;
-#ifdef _CMD
-	PrintMessage("\b\b\b\b");
-#endif
+	PrintStatusEnd();
 	PrintMessage1(strings[S_ComplErr],err);	//"completed, %d errors\r\n"
 //****************** write ID, CONFIG, CALIB ********************
 	PrintMessage(strings[S_ConfigAreaW]);	//"Writing CONFIG area ... "
@@ -2916,9 +2570,7 @@ void Write16F87x (int dim,int dim2)
 	if(dim2){
 		int err_e=0;
 		PrintMessage(strings[S_EEAreaW]);	//"Writing EEPROM ... "
-#ifdef _CMD
-		PrintMessage("   "); 
-#endif
+		PrintStatusSetup();
 		j=1;
 		if(ee2200){		//eeprom a 0x2200
 			bufferU[j++]=INC_ADDR_N;
@@ -2973,9 +2625,7 @@ void Write16F87x (int dim,int dim2)
 		}
 		err_e+=i-k;
 		err+=err_e;
-#ifdef _CMD
-		PrintMessage("\b\b\b\b");
-#endif
+		PrintStatusEnd();
 		PrintMessage1(strings[S_ComplErr],err_e);	//"completed, %d errors\r\n"
 	}
 //****************** exit ********************
@@ -2998,9 +2648,7 @@ void Write16F87x (int dim,int dim2)
 	unsigned int stop=GetTickCount();
 	PrintMessage3(strings[S_EndErr],(stop-start)/1000.0,err,err!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nEnd (%.2f s) %d %s\r\n\r\n"
 	if(saveLog)CloseLogFile();
-#ifdef _GUI
-	StatusBar.SetWindowText("");
-#endif
+	PrintStatusClear();			//clear status report
 }
 
 #ifdef _MSC_VER
@@ -3022,29 +2670,25 @@ void Write16F87xA (int dim,int dim2,int seq)
 // write eeprom: LOAD_DATA_DATA (0011) + BEGIN_PROG (1000) + 12ms
 // verify during write
 {
-#ifdef _MSC_VER
-	CString str;
-	int size=dati_hex.GetSize();
-#endif
 	int err=0;
 	WORD devID,config;
 	int k=0,z=0,i,j,w;
-	if(size<0x2007){
+	if(sizeW<0x2007){
 		PrintMessage(strings[S_NoConfigW3]);	//"Can't find CONFIG (0x2007)\r\nEnd\r\n"
 		return;
 	}
 	if(dim2){
-		if(size<0x2100){
+		if(sizeW<0x2100){
 			dim2=0;
 			PrintMessage(strings[S_NoEEMem]);	//"Can't find EEPROM data\r\n"
 		}
-		else if(dim2>size-0x2100) dim2=size-0x2100;
+		else if(dim2>sizeW-0x2100) dim2=sizeW-0x2100;
 	}
 	if(saveLog){
 		OpenLogFile();	//"log.txt"
 		fprintf(logfile,"Write16F87xA(%d,%d,%d)\n",dim,dim2,seq);
 	}
-	for(i=0;i<size;i++) dati_hex[i]&=0x3FFF;
+	for(i=0;i<sizeW;i++) dati_hex[i]&=0x3FFF;
 	unsigned int start=GetTickCount();
 	bufferU[0]=0;
 	j=1;
@@ -3137,9 +2781,7 @@ void Write16F87xA (int dim,int dim2,int seq)
 	PrintMessage(strings[S_Compl]);	//"completed\r\n"
 //****************** write code ********************
 	PrintMessage(strings[S_StartCodeProg]);	//"Write code ... "
-#ifdef _CMD
-	PrintMessage("   "); 
-#endif
+	PrintStatusSetup();
 	for(w=i=k=0,j=1;i<dim;i++){
 		if(dati_hex[i]<0x3fff){
 			bufferU[j++]=LOAD_DATA_PROG;
@@ -3187,17 +2829,13 @@ void Write16F87xA (int dim,int dim2,int seq)
 		}
 	}
 	err+=i-k;
-#ifdef _CMD
-	PrintMessage("\b\b\b\b");
-#endif
+	PrintStatusEnd();
 	PrintMessage1(strings[S_ComplErr],err);	//"completed, %d errors\r\n"
 //****************** write eeprom ********************
 	if(dim2){
 		int err_e=0;
 		PrintMessage(strings[S_EEAreaW]);	//"Writing EEPROM ... "
-#ifdef _CMD
-		PrintMessage("   "); 
-#endif
+		PrintStatusSetup();
 		j=1;
 		bufferU[j++]=SET_PARAMETER;
 		bufferU[j++]=SET_T3;
@@ -3255,9 +2893,7 @@ void Write16F87xA (int dim,int dim2,int seq)
 		}
 		err_e+=i-k;
 		err+=err_e;
-#ifdef _CMD
-		PrintMessage("\b\b\b\b");
-#endif
+		PrintStatusEnd();
 		PrintMessage1(strings[S_ComplErr],err_e);	//"completed, %d errors\r\n"
 	}
 //****************** write ID, CONFIG, CALIB ********************
@@ -3303,7 +2939,7 @@ void Write16F87xA (int dim,int dim2,int seq)
 	bufferU[j++]=WAIT_T3;					//Tprogram
 	bufferU[j++]=READ_DATA_PROG;
 	bufferU[j++]=INC_ADDR;
-	if(size>0x2008&&dati_hex[0x2008]!=0x3fff){
+	if(sizeW>0x2008&&dati_hex[0x2008]!=0x3fff){
 		bufferU[j++]=LOAD_DATA_PROG;			//Config word2 0x2008
 		bufferU[j++]=dati_hex[0x2008]>>8;		//MSB
 		bufferU[j++]=dati_hex[0x2008]&0xff;		//LSB
@@ -3339,7 +2975,7 @@ void Write16F87xA (int dim,int dim2,int seq)
 		PrintMessage2(strings[S_ConfigWErr3],dati_hex[0x2007],(bufferI[z+1]<<8)+bufferI[z+2]);	//"Error writing config area: written %04X, read %04X\r\n"
 		err_c++;
 	}
-	if(size>0x2008&&dati_hex[0x2008]!=0x3fff){
+	if(sizeW>0x2008&&dati_hex[0x2008]!=0x3fff){
 		for(z+=6;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
 		if(~dati_hex[0x2008]&((bufferI[z+1]<<8)+bufferI[z+2])){	//error if written 0 and read 1 (~W&R)
 			PrintMessage2(strings[S_ConfigWErr3],dati_hex[0x2008],(bufferI[z+1]<<8)+bufferI[z+2]);	//"Error writing config area: written %04X, read %04X\r\n"
@@ -3372,9 +3008,7 @@ void Write16F87xA (int dim,int dim2,int seq)
 	unsigned int stop=GetTickCount();
 	PrintMessage3(strings[S_EndErr],(stop-start)/1000.0,err,err!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nEnd (%.2f s) %d %s\r\n\r\n"
 	if(saveLog)CloseLogFile();
-#ifdef _GUI
-	StatusBar.SetWindowText("");
-#endif
+	PrintStatusClear();			//clear status report
 }
 
 #ifdef _MSC_VER
@@ -3397,29 +3031,25 @@ void Write16F81x (int dim,int dim2)
 // write eeprom: LOAD_DATA_DATA (0011) + BEGIN_PROG2 (11000) + 1.5ms + END_PROGX (10111)
 // verify during write
 {
-#ifdef _MSC_VER
-	CString str;
-	int size=dati_hex.GetSize();
-#endif
 	int err=0;
 	WORD devID,config;
 	int k=0,z=0,i,j,w;
-	if(size<0x2007){
+	if(sizeW<0x2007){
 		PrintMessage(strings[S_NoConfigW3]);	//"Can't find CONFIG (0x2007)\r\nEnd\r\n"
 		return;
 	}
 	if(dim2){
-		if(size<0x2100){
+		if(sizeW<0x2100){
 			dim2=0;
 			PrintMessage(strings[S_NoEEMem]);	//"Can't find EEPROM data\r\n"
 		}
-		else if(dim2>size-0x2100) dim2=size-0x2100;
+		else if(dim2>sizeW-0x2100) dim2=sizeW-0x2100;
 	}
 	if(saveLog){
 		OpenLogFile();	//"log.txt"
 		fprintf(logfile,"Write16F81x(%d,%d)\n",dim,dim2);
 	}
-	for(i=0;i<size;i++) dati_hex[i]&=0x3FFF;
+	for(i=0;i<sizeW;i++) dati_hex[i]&=0x3FFF;
 	unsigned int start=GetTickCount();
 	bufferU[0]=0;
 	j=1;
@@ -3522,9 +3152,7 @@ void Write16F81x (int dim,int dim2)
 	PrintMessage(strings[S_Compl]);	//"completed\r\n"
 //****************** write code ********************
 	PrintMessage(strings[S_StartCodeProg]);	//"Write code ... "
-#ifdef _CMD
-	PrintMessage("   "); 
-#endif
+	PrintStatusSetup();
 	for(w=i=k=0,j=1;i<dim;i++){
 		if(dati_hex[i]<0x3fff){
 			bufferU[j++]=LOAD_DATA_PROG;
@@ -3572,17 +3200,13 @@ void Write16F81x (int dim,int dim2)
 		}
 	}
 	err+=i-k;
-#ifdef _CMD
-	PrintMessage("\b\b\b\b");
-#endif
+	PrintStatusEnd();
 	PrintMessage1(strings[S_ComplErr],err);	//"completed, %d errors\r\n"
 //****************** write eeprom ********************
 	if(dim2){
 		int err_e=0;
 		PrintMessage(strings[S_EEAreaW]);	//"Writing EEPROM ... "
-#ifdef _CMD
-		PrintMessage("   "); 
-#endif
+		PrintStatusSetup();
 		j=1;
 		bufferU[j++]=EN_VPP_VCC;
 		bufferU[j++]=0x1;
@@ -3656,9 +3280,7 @@ void Write16F81x (int dim,int dim2)
 		}
 		err_e+=i-k;
 		err+=err_e;
-#ifdef _CMD
-		PrintMessage("\b\b\b\b");
-#endif
+		PrintStatusEnd();
 		PrintMessage1(strings[S_ComplErr],err_e);	//"completed, %d errors\r\n"
 	}
 //****************** write ID, CONFIG, CALIB ********************
@@ -3706,7 +3328,7 @@ void Write16F81x (int dim,int dim2)
 	bufferU[j++]=0x17;						//END_PROGX (10111)
 	bufferU[j++]=READ_DATA_PROG;
 	bufferU[j++]=INC_ADDR;
-	if(size>0x2008&&dati_hex[0x2008]!=0x3fff){
+	if(sizeW>0x2008&&dati_hex[0x2008]!=0x3fff){
 		bufferU[j++]=LOAD_DATA_PROG;			//Config word2 0x2008
 		bufferU[j++]=dati_hex[0x2008]>>8;		//MSB
 		bufferU[j++]=dati_hex[0x2008]&0xff;		//LSB
@@ -3742,7 +3364,7 @@ void Write16F81x (int dim,int dim2)
 		PrintMessage2(strings[S_ConfigWErr3],dati_hex[0x2007],(bufferI[z+1]<<8)+bufferI[z+2]);	//"Error writing config area: written %04X, read %04X\r\n"
 		err_c++;
 	}
-	if(size>0x2008&&dati_hex[0x2008]!=0x3fff){
+	if(sizeW>0x2008&&dati_hex[0x2008]!=0x3fff){
 		for(z+=7;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
 		if(~dati_hex[0x2008]&((bufferI[z+1]<<8)+bufferI[z+2])){	//error if written 0 and read 1 (~W&R)
 			PrintMessage2(strings[S_ConfigWErr3],dati_hex[0x2008],(bufferI[z+1]<<8)+bufferI[z+2]);	//"Error writing config area: written %04X, read %04X\r\n"
@@ -3775,9 +3397,7 @@ void Write16F81x (int dim,int dim2)
 	unsigned int stop=GetTickCount();
 	PrintMessage3(strings[S_EndErr],(stop-start)/1000.0,err,err!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nEnd (%.2f s) %d %s\r\n\r\n"
 	if(saveLog)CloseLogFile();
-#ifdef _GUI
-	StatusBar.SetWindowText("");
-#endif
+	PrintStatusClear();			//clear status report
 }
 
 #ifdef _MSC_VER
@@ -3795,19 +3415,15 @@ void Write12F61x(int dim)
 // write: LOAD_DATA_PROG (0010) + BEGIN_PROG2 (11000) + 4ms + END_PROG (1010)
 // verify during write
 {
-#ifdef _MSC_VER
-	CString str;
-	int size=dati_hex.GetSize();
-#endif
 	int err=0;
 	WORD devID=0x3fff,calib1=0x3fff;
 	int k=0,z=0,i,j,w;
-	if(size<0x2007){
+	if(sizeW<0x2007){
 		PrintMessage(strings[S_NoConfigW3]);	//"Can't find CONFIG (0x2007)\r\nEnd\r\n"
 		return;
 	}
 	if(load_calibword){
-		if(size>0x2008) load_calibword=1;
+		if(sizeW>0x2008) load_calibword=1;
 		else{
 			PrintMessage(strings[S_NoCalibW]);	//"Can't find calibration data\r\n"
 			load_calibword=0;
@@ -3817,7 +3433,7 @@ void Write12F61x(int dim)
 		OpenLogFile();	//"log.txt"
 		fprintf(logfile,"Write12F61x(%d)\n",dim);
 	}
-	for(i=0;i<0x2009&&i<size;i++) dati_hex[i]&=0x3FFF;
+	for(i=0;i<0x2009&&i<sizeW;i++) dati_hex[i]&=0x3FFF;
 	unsigned int start=GetTickCount();
 	bufferU[0]=0;
 	j=1;
@@ -3920,9 +3536,7 @@ void Write12F61x(int dim)
 	PrintMessage(strings[S_Compl]);	//"completed\r\n"
 //****************** write code ********************
 	PrintMessage(strings[S_StartCodeProg]);	//"Write code ... "
-#ifdef _CMD
-	PrintMessage("   "); 
-#endif
+	PrintStatusSetup();
 	for(w=i=k=0,j=1;i<dim;i++){
 		if(dati_hex[i]<0x3fff){
 			bufferU[j++]=LOAD_DATA_PROG;
@@ -3970,9 +3584,7 @@ void Write12F61x(int dim)
 		}
 	}
 	err+=i-k;
-#ifdef _CMD
-	PrintMessage("\b\b\b\b");
-#endif
+	PrintStatusEnd();
 	PrintMessage1(strings[S_ComplErr],err);	//"completed, %d errors\r\n"
 //****************** write ID, CONFIG, CALIB ********************
 	PrintMessage(strings[S_ConfigAreaW]);	//"Writing CONFIG area ... "
@@ -4073,9 +3685,7 @@ void Write12F61x(int dim)
 	unsigned int stop=GetTickCount();
 	PrintMessage3(strings[S_EndErr],(stop-start)/1000.0,err,err!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nEnd (%.2f s) %d %s\r\n\r\n"
 	if(saveLog)CloseLogFile();
-#ifdef _GUI
-	StatusBar.SetWindowText("");
-#endif
+	PrintStatusClear();			//clear status report
 }
 
 #ifdef _MSC_VER
@@ -4097,36 +3707,32 @@ void Write16F88x(int dim,int dim2)
 //			LOAD_DATA_DATA (0011) + BEGIN_PROG (1000) + 6ms
 // verify during write
 {
-#ifdef _MSC_VER
-	CString str;
-	int size=dati_hex.GetSize();
-#endif
 	int err=0;
 	WORD devID=0x3fff,calib1=0x3fff;
 	int k=0,z=0,i,j,w;
-	if(size<0x2009){
+	if(sizeW<0x2009){
 		PrintMessage(strings[S_NoConfigW4]);	//"Can't find CONFIG (0x2008)\r\nEnd\r\n"
 		return;
 	}
 	if(load_calibword){
-		if(size>0x200A) load_calibword=1;
+		if(sizeW>0x200A) load_calibword=1;
 		else{
 			PrintMessage(strings[S_NoCalibW]);	//"Can't find calibration data\r\n"
 			load_calibword=0;
 		}
 	}
 	if(dim2){
-		if(size<0x2100){
+		if(sizeW<0x2100){
 			dim2=0;
 			PrintMessage(strings[S_NoEEMem]);	//"Can't find EEPROM data\r\n"
 		}
-		else if(dim2>size-0x2100) dim2=size-0x2100;
+		else if(dim2>sizeW-0x2100) dim2=sizeW-0x2100;
 	}
 	if(saveLog){
 		OpenLogFile();	//"log.txt"
 		fprintf(logfile,"Write16F88x(%d,%d)\n",dim,dim2);
 	}
-	for(i=0;i<0x200A&&i<size;i++) dati_hex[i]&=0x3FFF;
+	for(i=0;i<0x200A&&i<sizeW;i++) dati_hex[i]&=0x3FFF;
 	unsigned int start=GetTickCount();
 	bufferU[0]=0;
 	j=1;
@@ -4226,9 +3832,7 @@ void Write16F88x(int dim,int dim2)
 	PrintMessage(strings[S_Compl]);	//"completed\r\n"
 //****************** write code ********************
 	PrintMessage(strings[S_StartCodeProg]);	//"Write code ... "
-#ifdef _CMD
-	PrintMessage("   "); 
-#endif
+	PrintStatusSetup();
 	for(w=i=k=0,j=1;i<dim;i++){
 		if(dati_hex[i]<0x3fff){
 			bufferU[j++]=LOAD_DATA_PROG;
@@ -4274,16 +3878,12 @@ void Write16F88x(int dim,int dim2)
 		}
 	}
 	err+=i-k;
-#ifdef _CMD
-	PrintMessage("\b\b\b\b");
-#endif
+	PrintStatusEnd();
 	PrintMessage1(strings[S_ComplErr],err);	//"completed, %d errors\r\n"
 //****************** write eeprom ********************
 	if(dim2){
 		PrintMessage(strings[S_EEAreaW]);	//"Writing EEPROM ... "
-#ifdef _CMD
-		PrintMessage("   "); 
-#endif
+		PrintStatusSetup();
 		j=1;
 		bufferU[j++]=SET_PARAMETER;
 		bufferU[j++]=SET_T3;
@@ -4342,9 +3942,7 @@ void Write16F88x(int dim,int dim2)
 			}
 		}
 		err+=i-k;
-#ifdef _CMD
-		PrintMessage("\b\b\b\b");
-#endif
+		PrintStatusEnd();
 		PrintMessage1(strings[S_ComplErr],i-k);	//"completed, %d errors\r\n"
 	}
 //****************** write ID, CONFIG, CALIB ********************
@@ -4471,9 +4069,7 @@ void Write16F88x(int dim,int dim2)
 	unsigned int stop=GetTickCount();
 	PrintMessage3(strings[S_EndErr],(stop-start)/1000.0,err,err!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nEnd (%.2f s) %d %s\r\n\r\n"
 	if(saveLog)CloseLogFile();
-#ifdef _GUI
-	StatusBar.SetWindowText("");
-#endif
+	PrintStatusClear();			//clear status report
 }
 
 #ifdef _MSC_VER
@@ -4492,14 +4088,10 @@ void Write16F7x(int dim,int vdd)
 // write:LOAD_DATA_PROG (0010) + BEGIN_PROG (1000) + 1ms + END_PROG2(1110)
 // verify during write
 {
-#ifdef _MSC_VER
-	CString str;
-	int size=dati_hex.GetSize();
-#endif
 	int err=0;
 	WORD devID=0x3fff,calib1=0x3fff;
 	int k=0,z=0,i,j,w;
-	if(size<0x2007){
+	if(sizeW<0x2007){
 		PrintMessage(strings[S_NoConfigW3]);	//"Can't find CONFIG (0x2007)\r\nEnd\r\n"
 		return;
 	}
@@ -4507,7 +4099,7 @@ void Write16F7x(int dim,int vdd)
 		OpenLogFile();	//"log.txt"
 		fprintf(logfile,"Write16F7x(%d,%d)\n",dim,vdd);
 	}
-	for(i=0;i<0x2009&&i<size;i++) dati_hex[i]&=0x3FFF;
+	for(i=0;i<0x2009&&i<sizeW;i++) dati_hex[i]&=0x3FFF;
 	unsigned int start=GetTickCount();
 	bufferU[0]=0;
 	j=1;
@@ -4593,9 +4185,7 @@ void Write16F7x(int dim,int vdd)
 	PrintMessage(strings[S_Compl]);	//"completed\r\n"
 //****************** write code ********************
 	PrintMessage(strings[S_StartCodeProg]);	//"Write code ... "
-#ifdef _CMD
-	PrintMessage("   "); 
-#endif
+	PrintStatusSetup();
 	for(w=i=k=0,j=1;i<dim;i++){
 		if(dati_hex[i]<0x3fff){
 			bufferU[j++]=LOAD_DATA_PROG;
@@ -4642,9 +4232,7 @@ void Write16F7x(int dim,int vdd)
 		}
 	}
 	err+=i-k;
-#ifdef _CMD
-	PrintMessage("\b\b\b\b");
-#endif
+	PrintStatusEnd();
 	PrintMessage1(strings[S_ComplErr],err);	//"completed, %d errors\r\n"
 //****************** write ID, CONFIG, CALIB ********************
 	PrintMessage(strings[S_ConfigAreaW]);	//"Writing CONFIG area ... "
@@ -4678,7 +4266,7 @@ void Write16F7x(int dim,int vdd)
 	bufferU[j++]=END_PROG2;
 	bufferU[j++]=READ_DATA_PROG;
 	bufferU[j++]=INC_ADDR;
-	if(size>0x2008&&dati_hex[0x2008]<0x3fff){
+	if(sizeW>0x2008&&dati_hex[0x2008]<0x3fff){
 		bufferU[j++]=LOAD_DATA_PROG;			//Config word 2 0x2008
 		bufferU[j++]=dati_hex[0x2008]>>8;		//MSB
 		bufferU[j++]=dati_hex[0x2008]&0xff;		//LSB
@@ -4707,7 +4295,7 @@ void Write16F7x(int dim,int vdd)
 		PrintMessage2(strings[S_ConfigWErr3],dati_hex[0x2007],(bufferI[z+1]<<8)+bufferI[z+2]);	//"Error writing config area: written %04X, read %04X\r\n"
 		err_c++;
 	}
-	if(size>0x2008&&dati_hex[0x2008]<0x3fff){
+	if(sizeW>0x2008&&dati_hex[0x2008]<0x3fff){
 		for(z+=6;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
 		if(~dati_hex[0x2008]&((bufferI[z+1]<<8)+bufferI[z+2])){	//error if written 0 and read 1 (~W&R)
 			PrintMessage("\r\n");
@@ -4742,9 +4330,7 @@ void Write16F7x(int dim,int vdd)
 	unsigned int stop=GetTickCount();
 	PrintMessage3(strings[S_EndErr],(stop-start)/1000.0,err,err!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nEnd (%.2f s) %d %s\r\n\r\n"
 	if(saveLog)CloseLogFile();
-#ifdef _GUI
-	StatusBar.SetWindowText("");
-#endif
+	PrintStatusClear();			//clear status report
 }
 
 #ifdef _MSC_VER
@@ -4762,14 +4348,10 @@ void Write16F71x(int dim,int vdd)
 // write:LOAD_DATA_PROG (0010) + BEGIN_PROG2 (11000) + 2ms + END_PROG2(1110)
 // verify during write
 {
-#ifdef _MSC_VER
-	CString str;
-	int size=dati_hex.GetSize();
-#endif
 	int err=0;
 	WORD devID=0x3fff,calib1=0x3fff;
 	int k=0,z=0,i,j,w;
-	if(size<0x2007){
+	if(sizeW<0x2007){
 		PrintMessage(strings[S_NoConfigW3]);	//"Can't find CONFIG (0x2007)\r\nEnd\r\n"
 		return;
 	}
@@ -4777,7 +4359,7 @@ void Write16F71x(int dim,int vdd)
 		OpenLogFile();	//"log.txt"
 		fprintf(logfile,"Write16F71x(%d,%d)\n",dim,vdd);
 	}
-	for(i=0;i<0x2009&&i<size;i++) dati_hex[i]&=0x3FFF;
+	for(i=0;i<0x2009&&i<sizeW;i++) dati_hex[i]&=0x3FFF;
 	unsigned int start=GetTickCount();
 	bufferU[0]=0;
 	j=1;
@@ -4885,9 +4467,7 @@ void Write16F71x(int dim,int vdd)
 	PrintMessage(strings[S_Compl]);	//"completed\r\n"
 //****************** write code ********************
 	PrintMessage(strings[S_StartCodeProg]);	//"Write code ... "
-#ifdef _CMD
-	PrintMessage("   "); 
-#endif
+	PrintStatusSetup();
 	for(w=i=k=0,j=1;i<dim;i++){
 		if(dati_hex[i]<0x3fff){
 			bufferU[j++]=LOAD_DATA_PROG;
@@ -4935,9 +4515,7 @@ void Write16F71x(int dim,int vdd)
 		}
 	}
 	err+=i-k;
-#ifdef _CMD
-	PrintMessage("\b\b\b\b");
-#endif
+	PrintStatusEnd();
 	PrintMessage1(strings[S_ComplErr],err);	//"completed, %d errors\r\n"
 //****************** write ID, CONFIG, CALIB ********************
 	PrintMessage(strings[S_ConfigAreaW]);	//"Writing CONFIG area ... "
@@ -4973,7 +4551,7 @@ void Write16F71x(int dim,int vdd)
 	bufferU[j++]=WAIT_T2;				//Tdischarge 100us
 	bufferU[j++]=READ_DATA_PROG;
 	bufferU[j++]=INC_ADDR;
-	if(size>0x2008&&dati_hex[0x2008]<0x3fff){
+	if(sizeW>0x2008&&dati_hex[0x2008]<0x3fff){
 		bufferU[j++]=LOAD_DATA_PROG;			//Config word 2 0x2008
 		bufferU[j++]=dati_hex[0x2008]>>8;		//MSB
 		bufferU[j++]=dati_hex[0x2008]&0xff;		//LSB
@@ -5003,7 +4581,7 @@ void Write16F71x(int dim,int vdd)
 		PrintMessage2(strings[S_ConfigWErr3],dati_hex[0x2007],(bufferI[z+1]<<8)+bufferI[z+2]);	//"Error writing config area: written %04X, read %04X\r\n"
 		err_c++;
 	}
-	if(size>0x2008&&dati_hex[0x2008]<0x3fff){
+	if(sizeW>0x2008&&dati_hex[0x2008]<0x3fff){
 		for(z+=6;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
 		if(~dati_hex[0x2008]&((bufferI[z+1]<<8)+bufferI[z+2])){	//error if written 0 and read 1 (~W&R)
 			PrintMessage("\r\n");
@@ -5038,9 +4616,7 @@ void Write16F71x(int dim,int vdd)
 	unsigned int stop=GetTickCount();
 	PrintMessage3(strings[S_EndErr],(stop-start)/1000.0,err,err!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nEnd (%.2f s) %d %s\r\n\r\n"
 	if(saveLog)CloseLogFile();
-#ifdef _GUI
-	StatusBar.SetWindowText("");
-#endif
+	PrintStatusClear();			//clear status report
 }
 
 #ifdef _MSC_VER
@@ -5058,10 +4634,6 @@ void Write16F72x(int dim)
 // write:LOAD_DATA_PROG (0010) + BEGIN_PROG (1000) + 2.5ms
 // verify during write
 {
-#ifdef _MSC_VER
-	CString str;
-	int size=dati_hex.GetSize();
-#endif
 	int err=0;
 	WORD devID=0x3fff,calib1=0x3fff;
 	int k=0,z=0,i,j,w;
@@ -5073,7 +4645,7 @@ void Write16F72x(int dim)
 		PrintMessage(strings[S_HVregErr]); //"HV regulator error\r\n"
 		return;
 	}
-	if(size<0x2009){
+	if(sizeW<0x2009){
 		PrintMessage(strings[S_NoConfigW4]);	//"Can't find CONFIG (0x2008)\r\nEnd\r\n"
 		return;
 	}
@@ -5081,7 +4653,7 @@ void Write16F72x(int dim)
 		OpenLogFile();	//"log.txt"
 		fprintf(logfile,"Write16F72x(%d)\n",dim);
 	}
-	for(i=0;i<0x2009&&i<size;i++) dati_hex[i]&=0x3FFF;
+	for(i=0;i<0x2009&&i<sizeW;i++) dati_hex[i]&=0x3FFF;
 	unsigned int start=GetTickCount();
 	bufferU[0]=0;
 	j=1;
@@ -5149,9 +4721,7 @@ void Write16F72x(int dim)
 	PrintMessage(strings[S_Compl]);	//"completed\r\n"
 //****************** write code ********************
 	PrintMessage(strings[S_StartCodeProg]);	//"Write code ... "
-#ifdef _CMD
-	PrintMessage("   "); 
-#endif
+	PrintStatusSetup();
 	for(w=i=k=0,j=1;i<dim;i++){
 		if(dati_hex[i]<0x3fff){
 			bufferU[j++]=LOAD_DATA_PROG;
@@ -5197,9 +4767,7 @@ void Write16F72x(int dim)
 		}
 	}
 	err+=i-k;
-#ifdef _CMD
-	PrintMessage("\b\b\b\b");
-#endif
+	PrintStatusEnd();
 	PrintMessage1(strings[S_ComplErr],err);	//"completed, %d errors\r\n"
 //****************** write ID, CONFIG, CALIB ********************
 	PrintMessage(strings[S_ConfigAreaW]);	//"Writing CONFIG area ... "
@@ -5308,9 +4876,7 @@ void Write16F72x(int dim)
 	unsigned int stop=GetTickCount();
 	PrintMessage3(strings[S_EndErr],(stop-start)/1000.0,err,err!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nEnd (%.2f s) %d %s\r\n\r\n"
 	if(saveLog)CloseLogFile();
-#ifdef _GUI
-	StatusBar.SetWindowText("");
-#endif
+	PrintStatusClear();			//clear status report
 }
 
 #ifdef _MSC_VER
@@ -5336,11 +4902,6 @@ void Write16F1xxx(int dim,int dim2,int options)
 //			LOAD_DATA_DATA (0011) + BEGIN_PROG (1000) + 2.5ms
 // verify after write
 {
-#ifdef _MSC_VER
-	CString str;
-	int size=dati_hex.GetSize();
-	int sizeEE=memEE.GetSize();
-#endif
 	int err=0,load_calibword=0;
 	WORD devID=0x3fff,calib1=0x3fff,calib2=0x3fff;
 	int k=0,k2=0,z=0,i,j,w;
@@ -5348,13 +4909,13 @@ void Write16F1xxx(int dim,int dim2,int options)
 		PrintMessage(strings[S_noV33reg]);	//Can't find 3.3V expansion board
 		return;
 	}
-	if(size<0x8009){
+	if(sizeW<0x8009){
 		PrintMessage(strings[S_NoConfigW5]);	//"Can't find CONFIG (0x8007-0x8008)\r\n"
 		PrintMessage(strings[S_End]);
 		return;
 	}
 	if(load_calibword){
-		if(size>0x800A) load_calibword=1;
+		if(sizeW>0x800A) load_calibword=1;
 		else PrintMessage(strings[S_NoCalibW]);	//"Can't find calibration data\r\n"
 	}
 	if(saveLog){
@@ -5369,7 +4930,7 @@ void Write16F1xxx(int dim,int dim2,int options)
 		}
 	}
 	else StartHVReg(-1);			//LVP mode, turn off HV
-	for(i=0;i<0x800B&&i<size;i++) dati_hex[i]&=0x3FFF;
+	for(i=0;i<0x800B&&i<sizeW;i++) dati_hex[i]&=0x3FFF;
 	unsigned int start=GetTickCount();
 	bufferU[0]=0;
 	j=1;
@@ -5474,9 +5035,7 @@ void Write16F1xxx(int dim,int dim2,int options)
 	PrintMessage(strings[S_Compl]);	//"completed\r\n"
 //****************** write code ********************
 	PrintMessage(strings[S_StartCodeProg]);	//"Write code ... "
-#ifdef _CMD
-	PrintMessage("   "); 
-#endif
+	PrintStatusSetup();
 	for(;dim>0&&dati_hex[dim]>=0x3fff;dim--); //skip empty space at end
 	dim+=dim%8;		//grow to 8 word multiple
 	int valid,inc;
@@ -5532,15 +5091,11 @@ void Write16F1xxx(int dim,int dim2,int options)
 			PrintStatus(strings[S_CodeWriting],i*100/dim,i);	//"Writing: %d%%, addr. %03X"
 		}
 	}
-#ifdef _CMD
-	PrintMessage("\b\b\b\b");
-#endif
+	PrintStatusEnd();
 	PrintMessage(strings[S_Compl]);	//"completed\r\n"
 //****************** verify code ********************
 	PrintMessage(strings[S_CodeV]);	//"Verifying code ... "
-#ifdef _CMD
-	PrintMessage("   "); 
-#endif
+	PrintStatusSetup();
 	if(saveLog)	fprintf(logfile,"VERIFY CODE\n");
 	j=1;
 	bufferU[j++]=CUST_CMD;
@@ -5601,9 +5156,7 @@ void Write16F1xxx(int dim,int dim2,int options)
 			if(err>=max_err) i=dim;
 		}
 	}
-#ifdef _CMD
-	PrintMessage("\b\b\b\b");
-#endif
+	PrintStatusEnd();
 	if(k<dim){
 		PrintMessage2(strings[S_CodeVError3],dim,k);	//"Error verifying code area, requested %d words, read %d\r\n"
 	}
@@ -5615,9 +5168,7 @@ void Write16F1xxx(int dim,int dim2,int options)
 	if(dim2&&err<max_err){
 		int errEE=0;
 		PrintMessage(strings[S_EEAreaW]);	//"Writing EEPROM ... "
-#ifdef _CMD
-		PrintMessage("   "); 
-#endif
+		PrintStatusSetup();
 		j=1;
 		bufferU[j++]=SET_PARAMETER;
 		bufferU[j++]=SET_T3;
@@ -5678,9 +5229,7 @@ void Write16F1xxx(int dim,int dim2,int options)
 			}
 		}
 		errEE+=i-k;
-#ifdef _CMD
-		PrintMessage("\b\b\b\b");
-#endif
+		PrintStatusEnd();
 		PrintMessage1(strings[S_ComplErr],errEE);	//"completed, %d errors\r\n"
 		err+=errEE;
 	}
@@ -5781,7 +5330,5 @@ void Write16F1xxx(int dim,int dim2,int options)
 	unsigned int stop=GetTickCount();
 	PrintMessage3(strings[S_EndErr],(stop-start)/1000.0,err,err!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nEnd (%.2f s) %d %s\r\n\r\n"
 	if(saveLog)CloseLogFile();
-#ifdef _GUI
-	StatusBar.SetWindowText("");
-#endif
+	PrintStatusClear();			//clear status report
 }

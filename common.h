@@ -38,8 +38,12 @@ typedef unsigned char BYTE;
 #define PrintMessage3 printf
 #define PrintMessage4 printf
 #define PrintStatus(s,p1,p2) printf("\b\b\b\b%3d%%",p1); fflush(stdout);
+#define	PrintStatusSetup() printf("    ");
+#define	PrintStatusEnd() printf("\b\b\b\b");
+#define	PrintStatusClear() //only for GUI
 #define COL 16
-#define VERSION "0.7.8"
+#define VERSION "0.7.9"
+#define G (12.0/34*1024/5)		//=72,2823529412
 #define LOCK	1
 #define FUSE	2
 #define FUSE_H  4
@@ -74,7 +78,7 @@ extern HANDLE hEventObject;
 #endif
 
 
-extern int size,saveLog;
+extern int saveLog;
 extern char** strings;
 extern int fd;
 extern int DIMBUF;
@@ -83,19 +87,57 @@ extern int use_osccal,use_BKosccal;
 extern int load_calibword,max_err;
 extern int AVRlock,AVRfuse,AVRfuse_h,AVRfuse_x;
 extern int ICDenable,ICDaddr;
-extern int FWVersion;
+extern int FWVersion,HwID;
 extern FILE* logfile;
-extern char LogFileName[256];
-extern char loadfile[256],savefile[256];
+extern char LogFileName[512];
+extern char loadfile[512],savefile[512];
 extern WORD *dati_hex;
-extern int size,sizeEE,sizeCONFIG;
-extern unsigned char *memCODE,*memEE,memID[8],memCONFIG[34];
+extern int size,sizeW,sizeEE,sizeCONFIG;
+extern unsigned char *memCODE,*memEE,memID[8],memCONFIG[48];
 extern double hvreg;
 extern struct hiddev_report_info rep_info_i,rep_info_u;
 extern struct hiddev_usage_ref_multi ref_multi_i,ref_multi_u;
-extern void msDelay(double delay);
-extern void WriteLogIO();
-extern void PIC_ID(int id);
-extern int StartHVReg(double V);
-extern void DisplayEE();
-extern void CloseLogFile();
+
+int StartHVReg(double V);
+void msDelay(double delay);
+void WriteLogIO();
+void PIC_ID(int id);
+void DisplayEE();
+void CloseLogFile();
+//void PrintMessage(const char *msg);
+void PrintMessageI2C(const char *msg);
+void Read12F5xx(int dim, int dim2);
+void Read16Fxxx(int dim,int dim2,int dim3,int vdd);
+void Write12F5xx(int dim,int OscAddr);
+void Write12F6xx(int dim,int dim2);
+void Write12F61x(int dim);
+void Write12F62x(int dim,int dim2);
+void Write16F7x(int dim,int vdd);
+void Write16F71x(int dim,int vdd);
+void Write16F72x(int dim);
+void Write16F8x(int dim,int dim2);
+void Write16F81x(int dim,int dim2);
+void Write16F87x(int dim,int dim2);
+void Write16F87xA(int dim,int dim2,int seq);
+void Write16F88x(int dim,int dim2);
+void Read16F1xxx(int dim,int dim2,int dim3,int options);
+void Write16F1xxx(int dim,int dim2,int options);
+void Read18Fx(int dim,int dim2,int options);
+void Write18Fx(int dim,int dim2,int wbuf,int eraseW1,int eraseW2,int options);
+void Read24Fx(int dim,int dim2,int options,int appIDaddr,int executiveArea);
+void Write24Fx(int dim,int dim2,int options,int appIDaddr,int rowSize, double wait);
+void ReadAT(int dim, int dim2, int options);
+void WriteAT(int dim, int dim2);
+void WriteATmega(int dim, int dim2, int page, int options);
+void ReadI2C(int dim,int addr);
+void WriteI2C(int dim,int addr,int page);
+void Read93x(int dim,int na,int options);
+void Write93Sx(int dim,int na,int page);
+void Write93Cx(int dim,int na, int options);
+void Read25xx(int dim);
+void Write25xx(int dim,int page);
+void DisplayCODE16F(int size);
+void DisplayEE16F(int size);
+void DisplayCODE18F(int dim);
+void DisplayCODE24F(int dim);
+void DisplayEE24F();

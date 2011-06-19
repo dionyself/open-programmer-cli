@@ -37,9 +37,6 @@
 unsigned int htoi(const char *hex, int length)
 #endif
 {
-#ifdef _MSC_VER
-	CString str;
-#endif
 	int i;
 	unsigned int v = 0;
 	for (i = 0; i < length; i++) {
@@ -58,30 +55,23 @@ void COpenProgDlg::Save(char* dev,char* savefile)
 void Save(char* dev,char* savefile)
 #endif
 {
-#ifdef _MSC_VER
-		int size=memCODE.GetSize();
-		int sizeEE=memEE.GetSize();
-#endif
 	FILE* f=fopen(savefile,"w");
 	if(!f) return;
 	char str[512],str1[512]="";
 	int i,sum=0,count=0,ext=0,s,base;
 //**************** 10-16F *******************************************
 	if(!strncmp(dev,"10",2)||!strncmp(dev,"12",2)||!strncmp(dev,"16",2)){
-#ifdef _MSC_VER
-			size=dati_hex.GetSize();
-#endif
 		int x=0xfff,addr;
 		if(!strncmp(dev,"16",2)||!strncmp(dev,"12F6",4)) x=0x3fff;
 		fprintf(f,":020000040000FA\n");			//extended address=0
-		for(i=0;i<size;i++) dati_hex[i]&=x;
-		for(i=0;i<size&&dati_hex[i]>=x;i++); //remove leading 0xFFF
-		for(;i<size;i++){
+		for(i=0;i<sizeW;i++) dati_hex[i]&=x;
+		for(i=0;i<sizeW&&dati_hex[i]>=x;i++); //remove leading 0xFFF
+		for(;i<sizeW;i++){
 			sum+=(dati_hex[i]>>8)+dati_hex[i]&0xff;
 			sprintf(str,"%02X%02X",dati_hex[i]&0xff,dati_hex[i]>>8);
 			strcat(str1,str);
 			count++;
-			if(count==8||i==size-1){
+			if(count==8||i==sizeW-1){
 				base=i-count+1;
 				for(s=i;s>=base&&dati_hex[s]>=x;s--){	//remove trailing 0xFFF
 					sum-=(dati_hex[s]>>8)+dati_hex[s]&0xff;
@@ -99,7 +89,7 @@ void Save(char* dev,char* savefile)
 				count=sum=0;
 			}
 		}
-		if(sizeEE){
+		if(sizeEE){		//this is only for 16F1xxx
 			if(ext!=0x01) fprintf(f,":020000040001F9\n");
 			for(i=0,count=sum=0;i<sizeEE;i++){
 				sum+=memEE[i];
@@ -359,7 +349,6 @@ void Save(char* dev,char* savefile)
 
 #ifdef _MSC_VER
 void COpenProgDlg::SaveEE(char* dev,char* savefile){
-	int sizeEE=memEE.GetSize();
 #else
 void SaveEE(char* dev,char* savefile){
 #endif
@@ -398,13 +387,10 @@ void SaveEE(char* dev,char* savefile){
 
 #ifdef _MSC_VER
 int COpenProgDlg::Load(char*dev,char*loadfile){
-	CString aux,err,str;
-	int	sizeEE=0;
 #else
 int Load(char*dev,char*loadfile){
 #endif
-	int i,j;
-	int input_address=0,ext_addr=0,sum,valid;
+	int i,input_address=0,ext_addr=0,sum,valid,empty;
 	char s[256]="",t[256]="",v[256]="",line[256];
 	FILE* f=fopen(loadfile,"r");
 	if(!f) return -1;
@@ -432,7 +418,7 @@ int Load(char*dev,char*loadfile){
 						switch(htoi(line+7,2)){
 							case 0:		//Data record
 								if(ext_addr<=0x01&&input_address<0xE000){		//Code
-									size=(ext_addr<<16)+input_address+hex_count;
+									sizeW=(ext_addr<<16)+input_address+hex_count;
 									for (i=0;i<hex_count;i++){
 										buffer[(ext_addr<<16)+input_address+i]=htoi(line+9+i*2,2);
 									}
@@ -454,51 +440,29 @@ int Load(char*dev,char*loadfile){
 				}
 			}
 		}
-		size/=2;
-		dati_hex=malloc(sizeof(WORD)*size);
-		for(i=0;i<size;i++){		//Swap bytes
+		sizeW/=2;
+		if(dati_hex) free(dati_hex);
+		dati_hex=(WORD*)malloc(sizeof(WORD)*sizeW);
+		for(i=0;i<sizeW;i++){		//Swap bytes
 			dati_hex[i]=(buffer[i*2+1]<<8)+buffer[i*2];
 		}
-		memEE=malloc(sizeEE);
-		memcpy(memEE,bufferEE,sizeEE);
-		PrintMessage(strings[S_CodeMem]);	//"\r\nMemoria programma:\r\n"
-		PrintMessage("\r\n");
-		s[0]=0;
-		int imax=size>0x8000?0x8500:0x2100;
-		for(i=0;i<imax&&i<size;i+=COL){
-			int valid=0;
-			for(j=i;j<i+COL&&j<size&&i<imax;j++){
-				sprintf(t,"%04X ",dati_hex[j]);
-				strcat(s,t);
-				if(dati_hex[j]<0x3fff) valid=1;
+		if(memEE) free(memEE);
+		if(sizeEE){
+			memEE=(unsigned char*)malloc(sizeEE);
+			memcpy(memEE,bufferEE,sizeEE);
 			}
-			if(valid){
-				PrintMessage("%04X: %s\n",i,s);
-			}
-			s[0]=0;
-		}
-		PrintMessage("\r\n");
-		if(size>=0x2100&&size<0x3000){	//EEPROM@0x2100
-			PrintMessage(strings[S_EEMem]);	//"\r\nmemoria EEPROM:\r\n"
-			v[0]=0;
-			for(i=0x2100;i<0x2800&&i<size;i+=COL){
-				valid=0;
-				for(j=i;j<i+COL&&j<0x2800&&j<size;j++){
-					sprintf(t,"%02X ",dati_hex[j]&0xFF);
-					strcat(s,t);
-					sprintf(t,"%c",isprint(dati_hex[j]&0xFF)?dati_hex[j]:'.');
-					strcat(v,t);
-					if(dati_hex[j]<0xff) valid=1;
-				}
-				if(valid){
-					PrintMessage("%04X: %s %s\r\n",i,s,v);
-				}
+		else memEE=0;
+		PrintMessage(strings[S_CodeMem]);	//"\r\nCode memory:\r\n"
 				s[0]=0;
-				v[0]=0;
-			}
-			PrintMessage("\r\n");
+		empty=1;
+		int imax=sizeW>0x8000?0x8500:0x2100;
+		DisplayCODE16F(imax);
+		if(sizeW>=0x2100&&sizeW<0x3000){	//EEPROM@0x2100
+			PrintMessage(strings[S_EEMem]);	//"\r\nEEPROM memory:\r\n"
+			DisplayEE16F(0x700);
 		}
 		else if(sizeEE) DisplayEE();
+		PrintMessage("\r\n");
 	}
 //**************** 18F *******************************************
 	else if(!strncmp(dev,"18F",3)){
@@ -558,32 +522,21 @@ int Load(char*dev,char*loadfile){
 				}
 			}
 		}
-		memCODE=malloc(size);
+		if(memCODE) free(memCODE);
+		memCODE=(unsigned char*)malloc(size);
 		memcpy(memCODE,buffer,size);
-		memEE=malloc(sizeEE);
+		if(memEE) free(memEE);
+		memEE=(unsigned char*)malloc(sizeEE);
 		memcpy(memEE,bufferEE,sizeEE);
-		PrintMessage(strings[S_IDMem]);	//"memoria ID:\r\n"
+		PrintMessage(strings[S_IDMem]);	//"ID memory:\r\n"
 		for(i=0;i<8;i+=2)	PrintMessage4("ID%d: 0x%02X   ID%d: 0x%02X\r\n",i,memID[i],i+1,memID[i+1]);
-		PrintMessage(strings[S_ConfigMem]);	//"memoria CONFIG:\r\n"
+		PrintMessage(strings[S_ConfigMem]);	//"CONFIG memory:\r\n"
 		for(i=0;i<7;i++){
-			PrintMessage2("CONFIG%dH: 0x%02X\t",i+1,memCONFIG[i*2+1]);
-			PrintMessage2("CONFIG%dL: 0x%02X\r\n",i+1,memCONFIG[i*2]);
+			PrintMessage2(strings[S_ConfigWordH],i+1,memCONFIG[i*2+1]);	//"CONFIG%dH: 0x%02X\t"
+			PrintMessage2(strings[S_ConfigWordL],i+1,memCONFIG[i*2]);	//"CONFIG%dL: 0x%02X\r\n"
 		}
-		PrintMessage("\r\n");
-		if(size) PrintMessage(strings[S_CodeMem]);	//"\r\nmemoria CODICE:\r\n"
-		for(i=0;i<size;i+=COL*2){
-			int valid=0;
-			for(j=i;j<i+COL*2&&j<size;j++){
-				sprintf(t,"%02X ",memCODE[j]);
-				strcat(s,t);
-				if(memCODE[j]<0xff) valid=1;
-			}
-			if(valid){
-				PrintMessage("%04X: %s\n",i,s);
-			}
-			s[0]=0;
-		}
-		PrintMessage("\r\n");
+		PrintMessage(strings[S_CodeMem]);	//"\r\nCODE memory:\r\n"
+		DisplayCODE18F(size);
 		if(sizeEE) DisplayEE();
 		PrintMessage("\r\n");
 	}
@@ -642,11 +595,13 @@ int Load(char*dev,char*loadfile){
 				}
 			}
 		}
-		memCODE=malloc(size);
+		if(memCODE) free(memCODE);
+		memCODE=(unsigned char*)malloc(size);
 		memcpy(memCODE,buffer,size);
 		free(buffer);
 		sizeEE=sizeEE?0x1000:0;
-		memEE=malloc(sizeEE);
+		if(memEE) free(memEE);
+		memEE=(unsigned char*)malloc(sizeEE);
 		for(i=0;i<sizeEE;i+=2){		//skip voids in the hex file organization
 			memEE[i]=bufferEE[i*2]; 	//0 1 4 5 8 9 12 13 ...
 			memEE[i+1]=bufferEE[i*2+1];
@@ -660,45 +615,10 @@ int Load(char*dev,char*loadfile){
 			}
 		}
 		if(size) PrintMessage(strings[S_CodeMem]);	//"\r\nCODE memory:\r\n"
-		for(i=0;i<size;i+=COL*2){
-			valid=0;
-			for(j=i;j<i+COL*2&&j<size;j+=4){
-				d=(memCODE[j+3]<<24)+(memCODE[j+2]<<16)+(memCODE[j+1]<<8)+memCODE[j];
-				sprintf(t,"%08X ",d);
-				strcat(s,t);
-				if(d!=0xffffffff) valid=1;
-			}
-			if(valid){
-				PrintMessage("%06X: %s\n",i/2,s);
-			}
-			s[0]=0;
-		}
-		PrintMessage("\n");
+		DisplayCODE24F(size);
 		if(sizeEE){			//show eeprom with address offset by 0x7FF000
-			int valid=0,empty=1;
-			s[0]=0;
-			v[0]=0;
-			PrintMessage(strings[S_EEMem]);	//"\r\nEEPROM:\r\n"
-			for(i=0;i<sizeEE;i+=COL){
-				valid=0;
-				for(j=i;j<i+COL&&j<sizeEE;j+=2){
-					sprintf(t,"%02X %02X ",memEE[j],memEE[j+1]);
-					strcat(s,t);
-					sprintf(t,"%c",isprint(memEE[j])?memEE[j]:'.');
-					strcat(v,t);
-					if(memEE[j]<0xff) valid=1;
-					sprintf(t,"%c",isprint(memEE[j+1])?memEE[j+1]:'.');
-					strcat(v,t);
-					if(memEE[j+1]<0xff) valid=1;
-				}
-				if(valid){
-					PrintMessage("7F%04X: %s %s\r\n",i+0xF000,s,v);
-					empty=0;
-				}
-				s[0]=0;
-				v[0]=0;
-			}
-			if(empty) PrintMessage(strings[S_Empty]);	//empty
+			PrintMessage(strings[S_EEMem]);	//"\r\nEEPROM memory:\r\n"
+			DisplayEE24F();
 		}
 		PrintMessage("\r\n");
 	}
@@ -740,21 +660,11 @@ int Load(char*dev,char*loadfile){
 				}
 			}
 		}
-		memCODE=malloc(size);
+		if(memCODE) free(memCODE);
+		memCODE=(unsigned char*)malloc(size);
 		memcpy(memCODE,buffer,size);
 		if(size) PrintMessage(strings[S_CodeMem]);	//"\r\nmemoria CODICE:\r\n"
-		for(i=0;i<size;i+=COL*2){
-			int valid=0;
-			for(j=i;j<i+COL*2&&j<size;j++){
-				sprintf(t,"%02X ",memCODE[j]);
-				strcat(s,t);
-				if(memCODE[j]<0xff) valid=1;
-			}
-			if(valid){
-				PrintMessage("%04X: %s\n",i,s);
-			}
-			s[0]=0;
-		}
+		DisplayCODEAVR(size);
 		PrintMessage("\r\n");
 	}
 //**************** 24xxx / 93xxx / 25xxx **************************************
@@ -764,7 +674,8 @@ int Load(char*dev,char*loadfile){
 			sizeEE=ftell(f);
 			fseek(f, 0L, SEEK_SET);
 			if(sizeEE>0x100000) sizeEE=0x100000;
-			memEE=malloc(sizeEE);
+			if(memEE) free(memEE);
+			memEE=(unsigned char*)malloc(sizeEE);
 			sizeEE=fread(memEE,1,sizeEE,f);
 		}
 		else{			//Hex file
@@ -805,7 +716,8 @@ int Load(char*dev,char*loadfile){
 					}
 				}
 			}
-			memEE=malloc(sizeEE);
+			if(memEE) free(memEE);
+			memEE=(unsigned char*)malloc(sizeEE);
 			memcpy(memEE,bufferEE,sizeEE);
 			free(bufferEE);
 		}
@@ -818,13 +730,12 @@ int Load(char*dev,char*loadfile){
 
 #ifdef _MSC_VER
 void COpenProgDlg::LoadEE(char*dev,char*loadfile){
-	CString str;
 #else
 void LoadEE(char*dev,char*loadfile){
 #endif
 	FILE* f=fopen(loadfile,"r");
 	if(!f) return;
-	int i,sizeEE;
+	int i;
 //**************** ATMEL *******************************************
 	if(!strncmp(dev,"AT",2)){
 		char line[256];
@@ -865,7 +776,8 @@ void LoadEE(char*dev,char*loadfile){
 				}
 			}
 		}
-		memEE=malloc(sizeEE);
+		if(memEE) free(memEE);
+		memEE=(unsigned char*)malloc(sizeEE);
 		memcpy(memEE,bufferEE,sizeEE);
 		if(sizeEE) DisplayEE();	//visualize
 		PrintMessage("\r\n");
@@ -913,7 +825,7 @@ void WriteLogIO()
 		if(i%32==0) fprintf(logfile,"\n");
 	}
 	fprintf(logfile,"]\n");
-	fprintf(logfile,"bufferI=[%02X\n",bufferU[0]);
+	fprintf(logfile,"bufferI=[%02X\n",bufferI[0]);
 	for(i=1;i<DIMBUF;i++){
 		fprintf(logfile,"%02X ",bufferI[i]);
 		if(i%32==0) fprintf(logfile,"\n");

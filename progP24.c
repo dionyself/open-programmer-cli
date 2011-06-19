@@ -58,6 +58,200 @@ void CheckData(int a,int b,int addr,int *err)
 	}
 }
 
+struct ID24{
+	int id;
+	char *device;
+} PIC24LIST[]={
+	0x0040,"30F2010\r\n",
+	0x0041,"24HJ64GP206\r\n",
+	0x0047,"24HJ64GP210\r\n",
+	0x0049,"24HJ64GP506\r\n",
+	0x004B,"24HJ64GP510\r\n",
+	0x005D,"24HJ128GP206\r\n",
+	0x005F,"24HJ128GP210\r\n",
+	0x0061,"24HJ128GP506\r\n",
+	0x0063,"24HJ128GP510\r\n",
+	0x0065,"24HJ128GP306\r\n",
+	0x0067,"24HJ128GP310\r\n",
+	0x0071,"24HJ256GP206\r\n",
+	0x0073,"24HJ256GP210\r\n",
+	0x007B,"24HJ256GP610\r\n",
+	0x0080,"30F5011\r\n",
+	0x0081,"30F5013\r\n",
+	0x0089,"33FJ64MC506\r\n",
+	0x008A,"33FJ64MC508\r\n",
+	0x008B,"33FJ64MC510\r\n",
+	0x0091,"33FJ64MC706\r\n",
+	0x0097,"33FJ64MC710\r\n",
+	0x00A1,"33FJ128MC506\r\n",
+	0x00A3,"33FJ128MC510\r\n",
+	0x00A9,"33FJ128MC706\r\n",
+	0x00AE,"33FJ128MC708\r\n",
+	0x00AF,"33FJ128MC710\r\n",
+	0x00B7,"33FJ256MC510\r\n",
+	0x00BF,"33FJ256MC710\r\n",
+	0x00C1,"30F3012/33FJ64GP206\r\n",
+	0x00C3,"30F3013\r\n",
+	0x00CD,"33FJ64GP306\r\n",
+	0x00CF,"33FJ64GP310\r\n",
+	0x00D5,"33FJ64GP706\r\n",
+	0x00D6,"33FJ64GP708\r\n",
+	0x00D7,"33FJ64GP710\r\n",
+	0x00D9,"33FJ128GP206\r\n",
+	0x00E5,"33FJ128GP306\r\n",
+	0x00E7,"33FJ128GP310\r\n",
+	0x00ED,"33FJ128GP706\r\n",
+	0x00EE,"33FJ128GP708\r\n",
+	0x00EF,"33FJ128GP710\r\n",
+	0x00F5,"33FJ256GP506\r\n",
+	0x00F7,"33FJ256GP510\r\n",
+	0x00FF,"33FJ256GP710\r\n",
+	0x0100,"30F4012\r\n",
+	0x0101,"30F4011\r\n",
+	0x0141,"30F4013\r\n",
+	0x0160,"30F3014\r\n",
+	0x0188,"30F6010\r\n",
+	0x0192,"30F6011\r\n",
+	0x0193,"30F6012\r\n",
+	0x0197,"30F6013\r\n",
+	0x0198,"30F6014\r\n",
+	0x01C0,"30F3010\r\n",
+	0x01C1,"30F3011\r\n",
+	0x0200,"30F5015\r\n",
+	0x0201,"30F5016\r\n",
+	0x0240,"30F2011\r\n",
+	0x0241,"30F2012\r\n",
+	0x0280,"30F6015\r\n",
+	0x0281,"30F6010A\r\n",
+	0x02C0,"30F6011A\r\n",
+	0x02C1,"30F6013A\r\n",
+	0x02C2,"30F6012A\r\n",
+	0x02C3,"30F6014A\r\n",
+	0x0400,"30F2020\r\n",
+	0x0403,"30F2023\r\n",
+	0x0404,"30F1010\r\n",
+	0x0405,"24FJ64GA006\r\n",
+	0x0406,"24FJ96GA006\r\n",
+	0x0407,"24FJ128GA006\r\n",
+	0x0408,"24FJ64GA008\r\n",
+	0x0409,"24FJ96GA008\r\n",
+	0x040A,"24FJ128GA008\r\n",
+	0x040B,"24FJ64GA010\r\n",
+	0x040C,"24FJ96GA010\r\n",
+	0x040D,"24FJ128GA010\r\n",
+	0x0444,"24FJ16GA002\r\n",
+	0x0445,"24FJ32GA002\r\n",
+	0x0446,"24FJ48GA002\r\n",
+	0x0447,"24FJ64GA002\r\n",
+	0x044C,"24FJ16GA004\r\n",
+	0x044D,"24FJ32GA004\r\n",
+	0x044E,"24FJ48GA004\r\n",
+	0x044F,"24FJ64GA004\r\n",
+	0x0601,"33FJ32MC302\r\n",
+	0x0603,"33FJ32MC304\r\n",
+	0x0605,"33FJ32GP302\r\n",
+	0x0607,"33FJ32GP304\r\n",
+	0x0611,"33FJ64MC202\r\n",
+	0x0613,"33FJ64MC204\r\n",
+	0x0615,"33FJ64GP202\r\n",
+	0x0617,"33FJ64GP204\r\n",
+	0x0619,"33FJ64MC802\r\n",
+	0x061B,"33FJ64MC804\r\n",
+	0x061D,"33FJ64GP802\r\n",
+	0x061F,"33FJ64GP804\r\n",
+	0x0621,"33FJ128MC202\r\n",
+	0x0623,"33FJ128MC204\r\n",
+	0x0625,"33FJ128GP202\r\n",
+	0x0627,"33FJ128GP204\r\n",
+	0x0629,"33FJ128MC802\r\n",
+	0x062B,"33FJ128MC804\r\n",
+	0x062D,"33FJ128GP802\r\n",
+	0x062F,"33FJ128GP804\r\n",
+	0x0645,"24HJ32GP302\r\n",
+	0x0647,"24HJ32GP304\r\n",
+	0x0655,"24HJ64GP202\r\n",
+	0x0657,"24HJ64GP204\r\n",
+	0x0665,"24HJ128GP202\r\n",
+	0x0667,"24HJ128GP204\r\n",
+	0x0675,"24HJ64GP502\r\n",
+	0x0677,"24HJ64GP504\r\n",
+	0x067D,"24HJ128GP502\r\n",
+	0x067F,"24HJ128GP504\r\n",
+	0x0771,"24HJ256GP206A\r\n",
+	0x0773,"24HJ256GP210A\r\n",
+	0x077B,"24HJ256GP610A\r\n",
+	0x07B7,"33FJ256MC510A\r\n",
+	0x07BF,"33FJ256MC710A\r\n",
+	0x07F5,"33FJ256GP506A\r\n",
+	0x07F7,"33FJ256GP510A\r\n",
+	0x07FF,"33FJ256GP710A\r\n",
+	0x0800,"33FJ12MC201\r\n",
+	0x0801,"33FJ12MC202\r\n",
+	0x0802,"33FJ12GP201\r\n",
+	0x0803,"33FJ12GP202\r\n",
+	0x080A,"24HJ12GP201\r\n",
+	0x080B,"24HJ12GP202\r\n",
+	0x0C00,"33FJ06GS101\r\n",
+	0x0C01,"33FJ06GS102\r\n",
+	0x0C02,"33FJ06GS202\r\n",
+	0x0C03,"33FJ16GS502\r\n",
+	0x0C04,"33FJ16GS402\r\n",
+	0x0C05,"33FJ16GS504\r\n",
+	0x0C06,"33FJ16GS404\r\n",
+	0x0D00,"24F04KA201\r\n",
+	0x0D01,"24F16KA101\r\n",
+	0x0D02,"24F04KA200\r\n",
+	0x0D03,"24F16KA102\r\n",
+	0x0D08,"24F08KA101\r\n",
+	0x0D0A,"24F08KA102\r\n",
+	0x0F03,"33FJ16MC304\r\n",
+	0x0F07,"33FJ16GP304\r\n",
+	0x0F09,"33FJ32MC202\r\n",
+	0x0F0B,"33FJ32MC204\r\n",
+	0x0F0D,"33FJ32GP202\r\n",
+	0x0F0F,"33FJ32GP204\r\n",
+	0x0F17,"24HJ16GP304\r\n",
+	0x0F1D,"24HJ32GP202\r\n",
+	0x0F1F,"24HJ32GP204\r\n",
+	0x1001,"24FJ64GB106\r\n",
+	0x1003,"24FJ64GB108\r\n",
+	0x1007,"24FJ64GB110\r\n",
+	0x1008,"24FJ128GA106\r\n",
+	0x1009,"24FJ128GB106\r\n",
+	0x100A,"24FJ128GA100\r\n",
+	0x100B,"24FJ128GB108\r\n",
+	0x100E,"24FJ128GA110\r\n",
+	0x100F,"24FJ128GB110\r\n",
+	0x1010,"24FJ192GA106\r\n",
+	0x1011,"24FJ192GB106\r\n",
+	0x1012,"24FJ192GA108\r\n",
+	0x1013,"24FJ192GB108\r\n",
+	0x1016,"24FJ192GA110\r\n",
+	0x1017,"24FJ192GB110\r\n",
+	0x1018,"24FJ256GA106\r\n",
+	0x1019,"24FJ256GB106\r\n",
+	0x101A,"24FJ256GA108\r\n",
+	0x101B,"24FJ256GB108\r\n",
+	0x101E,"24FJ256GA110\r\n",
+	0x101F,"24FJ256GB110\r\n",
+	0x4000,"33FJ32GS406\r\n",
+	0x4001,"33FJ64GS406\r\n",
+	0x4002,"33FJ32GS606\r\n",
+	0x4003,"33FJ64GS606\r\n",
+	0x4004,"33FJ32GS608\r\n",
+	0x4005,"33FJ64GS608\r\n",
+	0x4008,"33FJ32GS610\r\n",
+	0x4009,"33FJ64GS610\r\n",
+	0x4202,"24FJ32GA102\r\n",
+	0x4203,"24FJ32GB002\r\n",
+	0x4206,"24FJ64GA102\r\n",
+	0x4207,"24FJ64GB002\r\n",
+	0x420A,"24FJ32GA104\r\n",
+	0x420B,"24FJ32GB004\r\n",
+	0x420E,"24FJ64GA104\r\n",
+	0x420F,"24FJ64GB004\r\n",
+};
+
 #ifdef _MSC_VER
 void COpenProgDlg::PIC24_ID(int id)
 #else
@@ -65,575 +259,98 @@ void PIC24_ID(int id)
 #endif
 {
 	char s[64];
-	switch(id){
-		case 0x0040:
-			sprintf(s,"30F2010\r\n",0);
-			break;
-		case 0x0041:
-			sprintf(s,"24HJ64GP206\r\n",0);
-			break;
-		case 0x0047:
-			sprintf(s,"24HJ64GP210\r\n",0);
-			break;
-		case 0x0049:
-			sprintf(s,"24HJ64GP506\r\n",0);
-			break;
-		case 0x004B:
-			sprintf(s,"24HJ64GP510\r\n",0);
-			break;
-		case 0x005D:
-			sprintf(s,"24HJ128GP206\r\n",0);
-			break;
-		case 0x005F:
-			sprintf(s,"24HJ128GP210\r\n",0);
-			break;
-		case 0x0061:
-			sprintf(s,"24HJ128GP506\r\n",0);
-			break;
-		case 0x0063:
-			sprintf(s,"24HJ128GP510\r\n",0);
-			break;
-		case 0x0065:
-			sprintf(s,"24HJ128GP306\r\n",0);
-			break;
-		case 0x0067:
-			sprintf(s,"24HJ128GP310\r\n",0);
-			break;
-		case 0x0071:
-			sprintf(s,"24HJ256GP206\r\n",0);
-			break;
-		case 0x0073:
-			sprintf(s,"24HJ256GP210\r\n",0);
-			break;
-		case 0x007B:
-			sprintf(s,"24HJ256GP610\r\n",0);
-			break;
-		case 0x0080:
-			sprintf(s,"30F5011\r\n",0);
-			break;
-		case 0x0081:
-			sprintf(s,"30F5013\r\n",0);
-			break;
-		case 0x0089:
-			sprintf(s,"33FJ64MC506\r\n",0);
-			break;
-		case 0x008A:
-			sprintf(s,"33FJ64MC508\r\n",0);
-			break;
-		case 0x008B:
-			sprintf(s,"33FJ64MC510\r\n",0);
-			break;
-		case 0x0091:
-			sprintf(s,"33FJ64MC706\r\n",0);
-			break;
-		case 0x0097:
-			sprintf(s,"33FJ64MC710\r\n",0);
-			break;
-		case 0x00A1:
-			sprintf(s,"33FJ128MC506\r\n",0);
-			break;
-		case 0x00A3:
-			sprintf(s,"33FJ128MC510\r\n",0);
-			break;
-		case 0x00A9:
-			sprintf(s,"33FJ128MC706\r\n",0);
-			break;
-		case 0x00AE:
-			sprintf(s,"33FJ128MC708\r\n",0);
-			break;
-		case 0x00AF:
-			sprintf(s,"33FJ128MC710\r\n",0);
-			break;
-		case 0x00B7:
-			sprintf(s,"33FJ256MC510\r\n",0);
-			break;
-		case 0x00BF:
-			sprintf(s,"33FJ256MC710\r\n",0);
-			break;
-		case 0x00C1:
-			sprintf(s,"30F3012/33FJ64GP206\r\n",0);
-			break;
-		case 0x00C3:
-			sprintf(s,"30F3013\r\n",0);
-			break;
-		case 0x00CD:
-			sprintf(s,"33FJ64GP306\r\n",0);
-			break;
-		case 0x00CF:
-			sprintf(s,"33FJ64GP310\r\n",0);
-			break;
-		case 0x00D5:
-			sprintf(s,"33FJ64GP706\r\n",0);
-			break;
-		case 0x00D6:
-			sprintf(s,"33FJ64GP708\r\n",0);
-			break;
-		case 0x00D7:
-			sprintf(s,"33FJ64GP710\r\n",0);
-			break;
-		case 0x00D9:
-			sprintf(s,"33FJ128GP206\r\n",0);
-			break;
-		case 0x00E5:
-			sprintf(s,"33FJ128GP306\r\n",0);
-			break;
-		case 0x00E7:
-			sprintf(s,"33FJ128GP310\r\n",0);
-			break;
-		case 0x00ED:
-			sprintf(s,"33FJ128GP706\r\n",0);
-			break;
-		case 0x00EE:
-			sprintf(s,"33FJ128GP708\r\n",0);
-			break;
-		case 0x00EF:
-			sprintf(s,"33FJ128GP710\r\n",0);
-			break;
-		case 0x00F5:
-			sprintf(s,"33FJ256GP506\r\n",0);
-			break;
-		case 0x00F7:
-			sprintf(s,"33FJ256GP510\r\n",0);
-			break;
-		case 0x00FF:
-			sprintf(s,"33FJ256GP710\r\n",0);
-			break;
-		case 0x0100:
-			sprintf(s,"30F4012\r\n",0);
-			break;
-		case 0x0101:
-			sprintf(s,"30F4011\r\n",0);
-			break;
-		case 0x0141:
-			sprintf(s,"30F4013\r\n",0);
-			break;
-		case 0x0160:
-			sprintf(s,"30F3014\r\n",0);
-			break;
-		case 0x0188:
-			sprintf(s,"30F6010\r\n",0);
-			break;
-		case 0x0192:
-			sprintf(s,"30F6011\r\n",0);
-			break;
-		case 0x0193:
-			sprintf(s,"30F6012\r\n",0);
-			break;
-		case 0x0197:
-			sprintf(s,"30F6013\r\n",0);
-			break;
-		case 0x0198:
-			sprintf(s,"30F6014\r\n",0);
-			break;
-		case 0x01C0:
-			sprintf(s,"30F3010\r\n",0);
-			break;
-		case 0x01C1:
-			sprintf(s,"30F3011\r\n",0);
-			break;
-		case 0x0200:
-			sprintf(s,"30F5015\r\n",0);
-			break;
-		case 0x0201:
-			sprintf(s,"30F5016\r\n",0);
-			break;
-		case 0x0240:
-			sprintf(s,"30F2011\r\n",0);
-			break;
-		case 0x0241:
-			sprintf(s,"30F2012\r\n",0);
-			break;
-		case 0x0280:
-			sprintf(s,"30F6015\r\n",0);
-			break;
-		case 0x0281:
-			sprintf(s,"30F6010A\r\n",0);
-			break;
-		case 0x02C0:
-			sprintf(s,"30F6011A\r\n",0);
-			break;
-		case 0x02C1:
-			sprintf(s,"30F6013A\r\n",0);
-			break;
-		case 0x02C2:
-			sprintf(s,"30F6012A\r\n",0);
-			break;
-		case 0x02C3:
-			sprintf(s,"30F6014A\r\n",0);
-			break;
-		case 0x0400:
-			sprintf(s,"30F2020\r\n",0);
-			break;
-		case 0x0403:
-			sprintf(s,"30F2023\r\n",0);
-			break;
-		case 0x0404:
-			sprintf(s,"30F1010\r\n",0);
-			break;
-		case 0x0405:
-			sprintf(s,"24FJ64GA006\r\n",0);
-			break;
-		case 0x0406:
-			sprintf(s,"24FJ96GA006\r\n",0);
-			break;
-		case 0x0407:
-			sprintf(s,"24FJ128GA006\r\n",0);
-			break;
-		case 0x0408:
-			sprintf(s,"24FJ64GA008\r\n",0);
-			break;
-		case 0x0409:
-			sprintf(s,"24FJ96GA008\r\n",0);
-			break;
-		case 0x040A:
-			sprintf(s,"24FJ128GA008\r\n",0);
-			break;
-		case 0x040B:
-			sprintf(s,"24FJ64GA010\r\n",0);
-			break;
-		case 0x040C:
-			sprintf(s,"24FJ96GA010\r\n",0);
-			break;
-		case 0x040D:
-			sprintf(s,"24FJ128GA010\r\n",0);
-			break;
-		case 0x0444:
-			sprintf(s,"24FJ16GA002\r\n",0);
-			break;
-		case 0x0445:
-			sprintf(s,"24FJ32GA002\r\n",0);
-			break;
-		case 0x0446:
-			sprintf(s,"24FJ48GA002\r\n",0);
-			break;
-		case 0x0447:
-			sprintf(s,"24FJ64GA002\r\n",0);
-			break;
-		case 0x044C:
-			sprintf(s,"24FJ16GA004\r\n",0);
-			break;
-		case 0x044D:
-			sprintf(s,"24FJ32GA004\r\n",0);
-			break;
-		case 0x044E:
-			sprintf(s,"24FJ48GA004\r\n",0);
-			break;
-		case 0x044F:
-			sprintf(s,"24FJ64GA004\r\n",0);
-			break;
-		case 0x0601:
-			sprintf(s,"33FJ32MC302\r\n",0);
-			break;
-		case 0x0603:
-			sprintf(s,"33FJ32MC304\r\n",0);
-			break;
-		case 0x0605:
-			sprintf(s,"33FJ32GP302\r\n",0);
-			break;
-		case 0x0607:
-			sprintf(s,"33FJ32GP304\r\n",0);
-			break;
-		case 0x0611:
-			sprintf(s,"33FJ64MC202\r\n",0);
-			break;
-		case 0x0613:
-			sprintf(s,"33FJ64MC204\r\n",0);
-			break;
-		case 0x0615:
-			sprintf(s,"33FJ64GP202\r\n",0);
-			break;
-		case 0x0617:
-			sprintf(s,"33FJ64GP204\r\n",0);
-			break;
-		case 0x0619:
-			sprintf(s,"33FJ64MC802\r\n",0);
-			break;
-		case 0x061B:
-			sprintf(s,"33FJ64MC804\r\n",0);
-			break;
-		case 0x061D:
-			sprintf(s,"33FJ64GP802\r\n",0);
-			break;
-		case 0x061F:
-			sprintf(s,"33FJ64GP804\r\n",0);
-			break;
-		case 0x0621:
-			sprintf(s,"33FJ128MC202\r\n",0);
-			break;
-		case 0x0623:
-			sprintf(s,"33FJ128MC204\r\n",0);
-			break;
-		case 0x0625:
-			sprintf(s,"33FJ128GP202\r\n",0);
-			break;
-		case 0x0627:
-			sprintf(s,"33FJ128GP204\r\n",0);
-			break;
-		case 0x0629:
-			sprintf(s,"33FJ128MC802\r\n",0);
-			break;
-		case 0x062B:
-			sprintf(s,"33FJ128MC804\r\n",0);
-			break;
-		case 0x062D:
-			sprintf(s,"33FJ128GP802\r\n",0);
-			break;
-		case 0x062F:
-			sprintf(s,"33FJ128GP804\r\n",0);
-			break;
-		case 0x0645:
-			sprintf(s,"24HJ32GP302\r\n",0);
-			break;
-		case 0x0647:
-			sprintf(s,"24HJ32GP304\r\n",0);
-			break;
-		case 0x0655:
-			sprintf(s,"24HJ64GP202\r\n",0);
-			break;
-		case 0x0657:
-			sprintf(s,"24HJ64GP204\r\n",0);
-			break;
-		case 0x0665:
-			sprintf(s,"24HJ128GP202\r\n",0);
-			break;
-		case 0x0667:
-			sprintf(s,"24HJ128GP204\r\n",0);
-			break;
-		case 0x0675:
-			sprintf(s,"24HJ64GP502\r\n",0);
-			break;
-		case 0x0677:
-			sprintf(s,"24HJ64GP504\r\n",0);
-			break;
-		case 0x067D:
-			sprintf(s,"24HJ128GP502\r\n",0);
-			break;
-		case 0x067F:
-			sprintf(s,"24HJ128GP504\r\n",0);
-			break;
-		case 0x0771:
-			sprintf(s,"24HJ256GP206A\r\n",0);
-			break;
-		case 0x0773:
-			sprintf(s,"24HJ256GP210A\r\n",0);
-			break;
-		case 0x077B:
-			sprintf(s,"24HJ256GP610A\r\n",0);
-			break;
-		case 0x07B7:
-			sprintf(s,"33FJ256MC510A\r\n",0);
-			break;
-		case 0x07BF:
-			sprintf(s,"33FJ256MC710A\r\n",0);
-			break;
-		case 0x07F5:
-			sprintf(s,"33FJ256GP506A\r\n",0);
-			break;
-		case 0x07F7:
-			sprintf(s,"33FJ256GP510A\r\n",0);
-			break;
-		case 0x07FF:
-			sprintf(s,"33FJ256GP710A\r\n",0);
-			break;
-		case 0x0800:
-			sprintf(s,"33FJ12MC201\r\n",0);
-			break;
-		case 0x0801:
-			sprintf(s,"33FJ12MC202\r\n",0);
-			break;
-		case 0x0802:
-			sprintf(s,"33FJ12GP201\r\n",0);
-			break;
-		case 0x0803:
-			sprintf(s,"33FJ12GP202\r\n",0);
-			break;
-		case 0x080A:
-			sprintf(s,"24HJ12GP201\r\n",0);
-			break;
-		case 0x080B:
-			sprintf(s,"24HJ12GP202\r\n",0);
-			break;
-		case 0x0C00:
-			sprintf(s,"33FJ06GS101\r\n",0);
-			break;
-		case 0x0C01:
-			sprintf(s,"33FJ06GS102\r\n",0);
-			break;
-		case 0x0C02:
-			sprintf(s,"33FJ06GS202\r\n",0);
-			break;
-		case 0x0C03:
-			sprintf(s,"33FJ16GS502\r\n",0);
-			break;
-		case 0x0C04:
-			sprintf(s,"33FJ16GS402\r\n",0);
-			break;
-		case 0x0C05:
-			sprintf(s,"33FJ16GS504\r\n",0);
-			break;
-		case 0x0C06:
-			sprintf(s,"33FJ16GS404\r\n",0);
-			break;
-		case 0x0D00:
-			sprintf(s,"24F04KA201\r\n",0);
-			break;
-		case 0x0D01:
-			sprintf(s,"24F16KA101\r\n",0);
-			break;
-		case 0x0D02:
-			sprintf(s,"24F04KA200\r\n",0);
-			break;
-		case 0x0D03:
-			sprintf(s,"24F16KA102\r\n",0);
-			break;
-		case 0x0D08:
-			sprintf(s,"24F08KA101\r\n",0);
-			break;
-		case 0x0D0A:
-			sprintf(s,"24F08KA102\r\n",0);
-			break;
-		case 0x0F03:
-			sprintf(s,"33FJ16MC304\r\n",0);
-			break;
-		case 0x0F07:
-			sprintf(s,"33FJ16GP304\r\n",0);
-			break;
-		case 0x0F09:
-			sprintf(s,"33FJ32MC202\r\n",0);
-			break;
-		case 0x0F0B:
-			sprintf(s,"33FJ32MC204\r\n",0);
-			break;
-		case 0x0F0D:
-			sprintf(s,"33FJ32GP202\r\n",0);
-			break;
-		case 0x0F0F:
-			sprintf(s,"33FJ32GP204\r\n",0);
-			break;
-		case 0x0F17:
-			sprintf(s,"24HJ16GP304\r\n",0);
-			break;
-		case 0x0F1D:
-			sprintf(s,"24HJ32GP202\r\n",0);
-			break;
-		case 0x0F1F:
-			sprintf(s,"24HJ32GP204\r\n",0);
-			break;
-		case 0x1001:
-			sprintf(s,"24FJ64GB106\r\n",0);
-			break;
-		case 0x1003:
-			sprintf(s,"24FJ64GB108\r\n",0);
-			break;
-		case 0x1007:
-			sprintf(s,"24FJ64GB110\r\n",0);
-			break;
-		case 0x1008:
-			sprintf(s,"24FJ128GA106\r\n",0);
-			break;
-		case 0x1009:
-			sprintf(s,"24FJ128GB106\r\n",0);
-			break;
-		case 0x100A:
-			sprintf(s,"24FJ128GA100\r\n",0);
-			break;
-		case 0x100B:
-			sprintf(s,"24FJ128GB108\r\n",0);
-			break;
-		case 0x100E:
-			sprintf(s,"24FJ128GA110\r\n",0);
-			break;
-		case 0x100F:
-			sprintf(s,"24FJ128GB110\r\n",0);
-			break;
-		case 0x1010:
-			sprintf(s,"24FJ192GA106\r\n",0);
-			break;
-		case 0x1011:
-			sprintf(s,"24FJ192GB106\r\n",0);
-			break;
-		case 0x1012:
-			sprintf(s,"24FJ192GA108\r\n",0);
-			break;
-		case 0x1013:
-			sprintf(s,"24FJ192GB108\r\n",0);
-			break;
-		case 0x1016:
-			sprintf(s,"24FJ192GA110\r\n",0);
-			break;
-		case 0x1017:
-			sprintf(s,"24FJ192GB110\r\n",0);
-			break;
-		case 0x1018:
-			sprintf(s,"24FJ256GA106\r\n",0);
-			break;
-		case 0x1019:
-			sprintf(s,"24FJ256GB106\r\n",0);
-			break;
-		case 0x101A:
-			sprintf(s,"24FJ256GA108\r\n",0);
-			break;
-		case 0x101B:
-			sprintf(s,"24FJ256GB108\r\n",0);
-			break;
-		case 0x101E:
-			sprintf(s,"24FJ256GA110\r\n",0);
-			break;
-		case 0x101F:
-			sprintf(s,"24FJ256GB110\r\n",0);
-			break;
-		case 0x4000:
-			sprintf(s,"33FJ32GS406\r\n",0);
-			break;
-		case 0x4001:
-			sprintf(s,"33FJ64GS406\r\n",0);
-			break;
-		case 0x4002:
-			sprintf(s,"33FJ32GS606\r\n",0);
-			break;
-		case 0x4003:
-			sprintf(s,"33FJ64GS606\r\n",0);
-			break;
-		case 0x4004:
-			sprintf(s,"33FJ32GS608\r\n",0);
-			break;
-		case 0x4005:
-			sprintf(s,"33FJ64GS608\r\n",0);
-			break;
-		case 0x4008:
-			sprintf(s,"33FJ32GS610\r\n",0);
-			break;
-		case 0x4009:
-			sprintf(s,"33FJ64GS610\r\n",0);
-			break;
-		case 0x4202:
-			sprintf(s,"24FJ32GA102\r\n",0);
-			break;
-		case 0x4203:
-			sprintf(s,"24FJ32GB002\r\n",0);
-			break;
-		case 0x4206:
-			sprintf(s,"24FJ64GA102\r\n",0);
-			break;
-		case 0x4207:
-			sprintf(s,"24FJ64GB002\r\n",0);
-			break;
-		case 0x420A:
-			sprintf(s,"24FJ32GA104\r\n",0);
-			break;
-		case 0x420B:
-			sprintf(s,"24FJ32GB004\r\n",0);
-			break;
-		case 0x420E:
-			sprintf(s,"24FJ64GA104\r\n",0);
-			break;
-		case 0x420F:
-			sprintf(s,"24FJ64GB004\r\n",0);
-			break;
-		default:
-			sprintf(s,"%s",strings[S_nodev]); //"Unknown device\r\n");
+	int i;
+	for(i=0;i<sizeof(PIC24LIST)/sizeof(PIC24LIST[0]);i++){
+		if(id==PIC24LIST[i].id){
+			sprintf(s,PIC24LIST[i].device);
+			PrintMessage(s);
+			return;
+		}
 	}
-	PrintMessage(s);
+	PrintMessage(strings[S_nodev]); //"Unknown device\r\n");
+}
+
+#ifdef _MSC_VER
+void COpenProgDlg::DisplayCODE24F(int dim){
+#else
+void DisplayCODE24F(int dim){
+#endif
+// display 16 bit PIC CODE memory
+	char s[256]="",t[256]="";
+	char* aux=(char*)malloc((dim/COL+1)*2*(16+COL*9));
+	aux[0]=0;
+	int valid=0,empty=1,i,j,d;
+	for(i=0;i<dim&&i<size;i+=COL*2){
+		valid=0;
+		for(j=i;j<i+COL*2&&j<dim;j+=4){
+			d=(memCODE[j+3]<<24)+(memCODE[j+2]<<16)+(memCODE[j+1]<<8)+memCODE[j];
+			sprintf(t,"%08X ",d);
+			strcat(s,t);
+			if(d!=0xffffffff) valid=1;
+	}
+		if(valid){
+			sprintf(t,"%06X: %s\r\n",i/2,s);
+			empty=0;
+			strcat(aux,t);
+		}
+		s[0]=0;
+	}
+	if(empty) PrintMessage(strings[S_Empty]);	//empty
+	else PrintMessage(aux);
+	free(aux);
+}
+
+#ifdef _MSC_VER
+void COpenProgDlg::DisplayEE24F(){
+#else
+void DisplayEE24F(){
+#endif
+// display EE memory with address offset by 0x7FF000
+	char s[256],t[256],v[256],*aux;
+	int valid=0,empty=1;
+	int i,j;
+#ifdef __GTK_H__
+	char *g	;
+#endif
+	s[0]=0;
+	v[0]=0;
+	aux=(char*)malloc(0x1000/COL*(16+COL*5));
+	aux[0]=0;
+	for(i=0;i<0x1000&&i<sizeEE;i+=COL){
+		valid=0;
+		for(j=i;j<i+COL&&j<0x1000&&i<sizeEE;j+=2){
+			sprintf(t,"%02X %02X ",memEE[j],memEE[j+1]);
+			strcat(s,t);
+			sprintf(t,"%c",isprint(memEE[j])&&(memEE[j]<0xFF)?memEE[j]:'.');
+#ifdef __GTK_H__
+			g=g_locale_to_utf8(t,-1,NULL,NULL,NULL);
+			if(g) strcat(v,g);
+			g_free(g);
+#else
+			strcat(v,t);
+#endif
+			if(memEE[j]<0xff) valid=1;
+			sprintf(t,"%c",isprint(memEE[j+1])&&(memEE[j+1]<0xFF)?memEE[j+1]:'.');
+#ifdef __GTK_H__
+			g=g_locale_to_utf8(t,-1,NULL,NULL,NULL);
+			if(g) strcat(v,g);
+			g_free(g);
+#else
+			strcat(v,t);
+#endif
+			if(memEE[j+1]<0xff) valid=1;
+		}
+		if(valid){
+			sprintf(t,"%04X: %s %s\r\n",i+0xF000,s,v);		//back to the device address
+			strcat(aux,t);
+			empty=0;
+		}
+		s[0]=0;
+		v[0]=0;
+	}
+	if(empty) PrintMessage(strings[S_Empty]);	//empty
+	else PrintMessage(aux);
+	free(aux);
 }
 
 #ifdef _MSC_VER
@@ -661,9 +378,6 @@ void Read24Fx(int dim,int dim2,int options,int appIDaddr,int executiveArea){
 //     6 = 0xF80000 to 0xF8000E (30FSMPS)
 // appIDaddr = application ID word lower address (high is 0x80)
 // executiveArea = size of executive area (16 bit words, starting at 0x800000)
-#ifdef _MSC_VER
-	CString str,aux;
-#endif
 	int k=0,k2=0,z=0,i,j;
 	int entry=options&0xF;
 	int config=(options>>4)&0xF;
@@ -695,17 +409,12 @@ void Read24Fx(int dim,int dim2,int options,int appIDaddr,int executiveArea){
 	for(i=0;i<executiveArea;i++) memExec[i]=0xFF;
 	size=dim;
 	sizeEE=0x1000;
-#ifdef _MSC_VER
-	memCODE.SetSize(dim);		//CODE
-	memEE.SetSize(0x1000);		//EEPROM
-	memset(memCODE.GetData(),0xFF,dim);
-	memset(memEE.GetData(),0xFF,0x1000);
-#else
-	memCODE=malloc(dim);		//CODE
-	memEE=malloc(0x1000);		//EEPROM
+	if(memCODE) free(memCODE);
+	memCODE=(unsigned char*)malloc(size);		//CODE
+	if(memEE) free(memEE);
+	memEE=(unsigned char*)malloc(0x1000);		//EEPROM
 	memset(memCODE,0xFF,dim);
 	memset(memEE,0xFF,0x1000);
-#endif
 	if(config>2){					//only if separate config area
 		sizeCONFIG=48;
 		for(i=0;i<48;i++) memCONFIG[i]=0xFF;
@@ -899,9 +608,7 @@ void Read24Fx(int dim,int dim2,int options,int appIDaddr,int executiveArea){
 	PrintMessage2("ApplicationID @ 0x80%04X:  0x%04X\r\n",appIDaddr,w0);
 //****************** read code ********************
 	PrintMessage(strings[S_CodeReading1]);		//code read ...
-#ifdef _CMD
-	PrintMessage("   ");
-#endif
+	PrintStatusSetup();
 //Read 6 24 bit words packed in 9 16 bit words
 //memory address advances by 24 bytes because of alignment
 	int High=0;
@@ -1055,9 +762,7 @@ void Read24Fx(int dim,int dim2,int options,int appIDaddr,int executiveArea){
 			WriteLogIO();
 		}
 	}
-#ifdef _CMD
-	PrintMessage("\b\b\b");
-#endif
+	PrintStatusEnd();
 	if(k!=dim){
 		PrintMessage("\r\n");
 		PrintMessage2(strings[S_ReadCodeErr2],dim,k);	//"Error reading code area, requested %d bytes, read %d\r\n"
@@ -1175,17 +880,13 @@ void Read24Fx(int dim,int dim2,int options,int appIDaddr,int executiveArea){
 			memCONFIG[i*4+1]=bufferI[z+1];	//High byte
 			z+=3;
 		}
-#ifdef _GUI
-		StatusBar.SetWindowText("");
-#endif
+		PrintStatusClear();
 	}
 //****************** read eeprom ********************
 	if(dim2){
 		if(saveLog)	fprintf(logfile,"\nEEPROM:\n");
 		PrintMessage(strings[S_ReadEE]);		//read eeprom ...
-#ifdef _CMD
-		PrintMessage("   ");
-#endif
+		PrintStatusSetup();
 		bufferU[j++]=SIX_N;
 		bufferU[j++]=0x45;				//append 1 NOP
 		bufferU[j++]=0x20;				//MOV #0x7F,W0
@@ -1231,9 +932,7 @@ void Read24Fx(int dim,int dim2,int options,int appIDaddr,int executiveArea){
 				}
 			}
 		}
-#ifdef _CMD
-		PrintMessage("\b\b\b");
-#endif
+		PrintStatusEnd();
 		if(k2!=dim2){
 			PrintMessage("\r\n");
 			PrintMessage2(strings[S_ReadEEErr],dim2,k2);	//"Error reading EEPROM area, requested %d bytes, read %d\r\n"
@@ -1244,9 +943,7 @@ void Read24Fx(int dim,int dim2,int options,int appIDaddr,int executiveArea){
 	if(executiveArea){
 		j=1;
 		PrintMessage(strings[S_Read_EXE_A]);		//read executive area ...
-#ifdef _CMD
-		PrintMessage("   ");
-#endif
+		PrintStatusSetup();
 		if(saveLog)	fprintf(logfile,"\nExecutive area:\n");
 		bufferU[j++]=SIX_N;
 		bufferU[j++]=0x45;				//append 1 NOP
@@ -1357,9 +1054,7 @@ void Read24Fx(int dim,int dim2,int options,int appIDaddr,int executiveArea){
 				WriteLogIO();
 			}
 		}
-#ifdef _CMD
-		PrintMessage("\b\b\b");
-#endif
+		PrintStatusEnd();
 		if(k!=executiveArea){
 			PrintMessage("\r\n");
 			PrintMessage2(strings[S_ReadCodeErr2],executiveArea,k);	//"Error reading code area, requested %d bytes, read %d\r\n"
@@ -1383,9 +1078,7 @@ void Read24Fx(int dim,int dim2,int options,int appIDaddr,int executiveArea){
 	read();
 	if(saveLog)	WriteLogIO();
 	unsigned int stop=GetTickCount();
-#ifdef _GUI
-	StatusBar.SetWindowText("");
-#endif
+	PrintStatusClear();
 //****************** visualize ********************
 	if(config>2){					//only if separate config area
 		PrintMessage(strings[S_ConfigMem]);				//"\r\nConfig Memory:\r\n"
@@ -1432,73 +1125,19 @@ void Read24Fx(int dim,int dim2,int options,int appIDaddr,int executiveArea){
 		}
 	}
 	PrintMessage(strings[S_CodeMem]);	//"\r\nCode memory:\r\n"
-	char s[256],t[256],v[256];
-	int d,valid,empty=1;
-	s[0]=0;
-	for(i=0;i<dim;i+=COL*2){
-		valid=0;
-		for(j=i;j<i+COL*2&&j<dim;j+=4){
-			d=(memCODE[j+3]<<24)+(memCODE[j+2]<<16)+(memCODE[j+1]<<8)+memCODE[j];
-			sprintf(t,"%08X ",d);
-			strcat(s,t);
-			if(d!=0xffffffff) valid=1;
-		}
-		if(valid){
-#ifdef _GUI
-			sprintf(t,"%06X: %s\r\n",i/2,s);
-			empty=0;
-			aux+=t;
-#else
-			PrintMessage("%06X: %s\r\n",i/2,s);
-			empty=0;
-#endif
-		}
-		s[0]=0;
-	}
-	if(empty) PrintMessage(strings[S_Empty]);	//empty
-#ifdef _GUI
-	else PrintMessage(aux);
-	aux.Empty();
-#endif
+	DisplayCODE24F(dim);
 	if(dim2){
-		v[0]=0;
-		empty=1;
 		PrintMessage(strings[S_EEMem]);	//"\r\nEEPROM memory:\r\n"
-		for(i=0;i<0x1000;i+=COL){
-			valid=0;
-			for(j=i;j<i+COL&&j<0x1000;j+=2){
-				sprintf(t,"%02X %02X ",memEE[j],memEE[j+1]);
-				strcat(s,t);
-				sprintf(t,"%c",isprint(memEE[j])?memEE[j]:'.');
-				strcat(v,t);
-				if(memEE[j]<0xff) valid=1;
-				sprintf(t,"%c",isprint(memEE[j+1])?memEE[j+1]:'.');
-				strcat(v,t);
-				if(memEE[j+1]<0xff) valid=1;
-			}
-			if(valid){
-#ifdef _GUI
-				sprintf(t,"%04X: %s %s\r\n",i+0xF000,s,v);		//back to the device address
-				empty=0;
-				aux+=t;
-#else
-				PrintMessage("%04X: %s %s\r\n",i/2,s,v);
-				empty=0;
-#endif
-			}
-			s[0]=0;
-			v[0]=0;
-		}
-		if(empty) PrintMessage(strings[S_Empty]);	//empty
-#ifdef _GUI
-		else PrintMessage(aux);
-		aux.Empty();
-#endif
+		DisplayEE24F();
 	}
 	if(executiveArea){
-		PrintMessage(strings[S_ExeMem]);	//"\r\nExecutive memory:\r\n"
+		char s[256],t[256];
+		int d,valid,empty=1;
+		char* aux=(char*)malloc((dim/COL+1)*2*(16+COL*9));
+		aux[0]=0;
 		s[0]=0;
 		empty=1;
+		PrintMessage(strings[S_ExeMem]);	//"\r\nExecutive memory:\r\n"
 		for(i=0;i<executiveArea;i+=COL*2){
 			valid=0;
 			for(j=i;j<i+COL*2&&j<executiveArea;j+=4){
@@ -1508,21 +1147,15 @@ void Read24Fx(int dim,int dim2,int options,int appIDaddr,int executiveArea){
 				if(d!=0xffffffff) valid=1;
 			}
 			if(valid){
-#ifdef _GUI
-				sprintf(t,"%06X: %s\r\n",0x800000+i/2,s);
+				sprintf(t,"%06X: %s\r\n",i/2,s);
 				empty=0;
-				aux+=t;
-#else
-				PrintMessage("%06X: %s\r\n",0x800000+i/2,s);
-				empty=0;
-#endif
+				strcat(aux,t);
 			}
 			s[0]=0;
 		}
 		if(empty) PrintMessage(strings[S_Empty]);	//empty
-#ifdef _GUI
 		else PrintMessage(aux);
-#endif
+		free(aux);
 	}
 	PrintMessage1(strings[S_End],(stop-start)/1000.0);	//"\r\nEnd (%.2f s)\r\n"
 	if(saveLog) CloseLogFile();
@@ -1568,11 +1201,6 @@ void Write24Fx(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 // appIDaddr = application ID word lower address (high is 0x80)
 // rowSize = row size in instruction words (a row is written altogether)
 // wait = write delay in ms
-#ifdef _MSC_VER
-	CString str;
-	size=memCODE.GetSize();
-	sizeEE=memEE.GetSize();
-#endif
 	int k=0,k2=0,z=0,i,j;
 	int entry=options&0xF;
 	int config=(options>>4)&0xF;
@@ -1604,11 +1232,7 @@ void Write24Fx(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 	j=size;
 	if(j%(rowSize*4)){			//grow to an integer number of rows
 		size=(j/(rowSize*4)+1)*rowSize*4;
-#ifdef _MSC_VER
-		memCODE.SetSize(size);
-#else
-		memCODE=realloc(memCODE,size);
-#endif
+		memCODE=(unsigned char*)realloc(memCODE,size);
 		for(;j<size;j++) memCODE[j]=0xFF;
 	}
 	int writeConfig=config<3&&dim>size;	//separate config write
@@ -1990,9 +1614,7 @@ void Write24Fx(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 //****************** write code ********************
 	PrintMessage(strings[S_StartCodeProg]);	//"Write code ... "
 	if(saveLog)	fprintf(logfile,"\nWRITE CODE:\n");
-#ifdef _CMD
-	PrintMessage("   ");
-#endif
+	PrintStatusSetup();
 //	instruction words are stored in code memory array as follows:
 //	L0 M0 H0 FF L1 M1 H1 FF
 	int valid,High=0;
@@ -2155,16 +1777,12 @@ void Write24Fx(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 			WriteLogIO();
 		}
 	}
-#ifdef _CMD
-	PrintMessage("\b\b\b");
-#endif
+	PrintStatusEnd();
 	PrintMessage(strings[S_Compl]);	//"completed\r\n"
 //****************** verify code ********************
 	PrintMessage(strings[S_CodeV]);	//"Verify code ... "
 	if(saveLog)	fprintf(logfile,"\nVERIFY CODE:\n");
-#ifdef _CMD
-	PrintMessage("   ");
-#endif
+	PrintStatusSetup();
 //Read 4 24 bit words packed in 6 16 bit words
 //memory address advances by 16 bytes because of alignment
 	High=0xE0000000;
@@ -2297,9 +1915,7 @@ void Write24Fx(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 		}
 		if(err>=max_err) break;
 	}
-#ifdef _CMD
-	PrintMessage("\b\b\b");
-#endif
+	PrintStatusEnd();
 	PrintMessage1(strings[S_ComplErr],err);	//"completed: %d errors\r\n"
 	if(err>=max_err){
 		PrintMessage1(strings[S_MaxErr],err);	//"Exceeded maximum number of errors (%d), write interrupted\r\n"
@@ -2308,9 +1924,7 @@ void Write24Fx(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 	if(dim2&&err<max_err){
 		//EEPROM @ 0x7F(EEbaseAddr)
 		PrintMessage(strings[S_EEAreaW]);	//"Write EEPROM ... "
-#ifdef _CMD
-		PrintMessage("   ");
-#endif
+		PrintStatusSetup();
 		if(saveLog)	fprintf(logfile,"\nWRITE EEPROM:\n");
 		int eewrite=(options&0xf000)>>12;
 		if(eewrite==0){		//24FxxKAxx
@@ -2593,14 +2207,10 @@ void Write24Fx(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 				}
 			}
 		}
-#ifdef _CMD
-		PrintMessage("\b\b\b");
-#endif
+		PrintStatusEnd();
 		PrintMessage1(strings[S_ComplErr],errE);	//"completed: %d errors \r\n"
 		err+=errE;
-#ifdef _GUI
-		StatusBar.SetWindowText("");
-#endif
+		PrintStatusClear();
 	}
 //****************** write CONFIG ********************
 	int written, read;
@@ -2769,9 +2379,7 @@ void Write24Fx(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 			z+=3;
 		}
 		PrintMessage1(strings[S_ComplErr],errC);	//"completed: %d errors \r\n"
-#ifdef _GUI
-		StatusBar.SetWindowText("");
-#endif
+		PrintStatusClear();
 		err+=errC;
 	}
 	else if(config>=5&&err<max_err){	//16 bit config area (30Fxxxx)
@@ -2970,9 +2578,7 @@ void Write24Fx(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 			z+=3;
 		}
 		PrintMessage1(strings[S_ComplErr],errC);	//"completed: %d errors \r\n"
-#ifdef _GUI
-		StatusBar.SetWindowText("");
-#endif
+		PrintStatusClear();
 		err+=errC;
 	}
 //****************** exit ********************
@@ -2988,9 +2594,7 @@ void Write24Fx(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 	if(saveLog)WriteLogIO();
 	j=1;
 	unsigned int stop=GetTickCount();
-#ifdef _GUI
-	StatusBar.SetWindowText("");
-#endif
+	PrintStatusClear();
 	PrintMessage3(strings[S_EndErr],(stop-start)/1000.0,err,err!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nEnd (%.2f s) %d %s\r\n\r\n"
 	if(saveLog) CloseLogFile();
 }

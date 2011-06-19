@@ -3,6 +3,8 @@
 enum S {				//
 	S_noprog,			//
 	S_prog,				//
+	S_progDev,			//
+	S_DevPermission,	//
 	S_nodev_r,			//
 	S_nodev_w,			//
 	S_nodev,			//
@@ -26,6 +28,7 @@ enum S {				//
 	S_IhexChecksum,		//
 	S_InvHandle,		//
 	S_LogFile,			//
+	S_FileSaved,			//
 	S_HVICSP,			//
 	S_StartRead,		//
 	S_Read,				//
@@ -169,6 +172,11 @@ enum S {				//
 	S_NoConfigW5,		//
 	S_Empty,			//
 // GUI strings
+	I_Fopen,			//
+	I_Fsave,			//
+	I_DevR,				//
+	I_DevW,				//
+	I_Info,				//
 	I_Data,				//
 	I_Opt,				//
 	I_Dev,				//

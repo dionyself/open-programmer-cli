@@ -31,6 +31,144 @@
 	#include "common.h"
 #endif
 
+struct ID18{
+	int id;
+	char *device;
+	int revmask;
+} PIC18LIST[]={
+		0x0400,"18F252/2539 rev%d\r\n",0x1F,
+		0x0420,"18F452/4539 rev%d\r\n",0x1F,
+		0x0480,"18F242/2439 rev%d\r\n",0x1F,
+		0x04A0,"18F442/4439 rev%d\r\n",0x1F,
+		0x0500,"18F2320 rev%d\r\n",0x1F,
+		0x0520,"18F4320 rev%d\r\n",0x1F,
+		0x0580,"18F2220 rev%d\r\n",0x1F,
+		0x05A0,"18F4220 rev%d\r\n",0x1F,
+		0x07C0,"18F1320 rev%d\r\n",0x1F,
+		0x07E0,"18F1220 rev%d\r\n",0x1F,
+		0x0800,"18F248 rev%d\r\n",0x1F,
+		0x0820,"18F448 rev%d\r\n",0x1F,
+		0x0840,"18F258 rev%d\r\n",0x1F,
+		0x0860,"18F458 rev%d\r\n",0x1F,
+		0x0880,"18F4431 rev%d\r\n",0x1F,
+		0x08A0,"18F4331 rev%d\r\n",0x1F,
+		0x08C0,"18F2431 rev%d\r\n",0x1F,
+		0x08E0,"18F2331 rev%d\r\n",0x1F,
+		0x0C00,"18F4620 rev%d\r\n",0x1F,
+		0x0C20,"18F4610 rev%d\r\n",0x1F,
+		0x0C40,"18F4525 rev%d\r\n",0x1F,
+		0x0C60,"18F4515 rev%d\r\n",0x1F,
+		0x0C80,"18F2620 rev%d\r\n",0x1F,
+		0x0CA0,"18F2610 rev%d\r\n",0x1F,
+		0x0CC0,"18F2525 rev%d\r\n",0x1F,
+		0x0CE0,"18F2515 rev%d\r\n",0x1F,
+		0x0E80,"18F4680 rev%d\r\n",0x1F,
+		0x0EA0,"18F4585 rev%d\r\n",0x1F,
+		0x0EC0,"18F2680 rev%d\r\n",0x1F,
+		0x0EE0,"18F2585 rev%d\r\n",0x1F,
+		0x1081,"18F4523 rev%d\r\n",0x0F,
+		0x1080,"18F4520 rev%d\r\n",0x0F,
+		0x10A0,"18F4510 rev%d\r\n",0x1F,
+		0x10C1,"18F4423 rev%d\r\n",0x0F,
+		0x10C0,"18F4420 rev%d\r\n",0x0F,
+		0x10E0,"18F4410 rev%d\r\n",0x1F,
+		0x1100,"18F2523 rev%d\r\n",0x0F,
+		0x1100,"18F2520 rev%d\r\n",0x0F,
+		0x1120,"18F2510 rev%d\r\n",0x1F,
+		0x1140,"18F2423 rev%d\r\n",0x0F,
+		0x1140,"18F2420 rev%d\r\n",0x0F,
+		0x1160,"18F2410 rev%d\r\n",0x1F,
+		0x1200,"18F4550 rev%d\r\n",0x1F,
+		0x1220,"18F4455 rev%d\r\n",0x1F,
+		0x1240,"18F2550 rev%d\r\n",0x1F,
+		0x1260,"18F2455 rev%d\r\n",0x1F,
+		0x1340,"18F6527 rev%d\r\n",0x1F,
+		0x1360,"18F8527 rev%d\r\n",0x1F,
+		0x1380,"18F6622 rev%d\r\n",0x1F,
+		0x13A0,"18F8622 rev%d\r\n",0x1F,
+		0x13C0,"18F6627 rev%d\r\n",0x1F,
+		0x13E0,"18F8627 rev%d\r\n",0x1F,
+		0x1400,"18F6722 rev%d\r\n",0x1F,
+		0x1420,"18F8722 rev%d\r\n",0x1F,
+		0x1A80,"18F4580 rev%d\r\n",0x1F,
+		0x1AA0,"18F4480 rev%d\r\n",0x1F,
+		0x1AC0,"18F2580 rev%d\r\n",0x1F,
+		0x1AE0,"18F2480 rev%d\r\n",0x1F,
+		0x1C00,"18F25J10 rev%d\r\n",0x1F,
+		0x1C20,"18F45J10 rev%d\r\n",0x1F,
+		0x1C40,"18LF25J10 rev%d\r\n",0x1F,
+		0x1C60,"18LF45J10 rev%d\r\n",0x1F,
+		0x1D00,"18F24J10 rev%d\r\n",0x1F,
+		0x1D20,"18F44J10 rev%d\r\n",0x1F,
+		0x1D40,"18LF24J10 rev%d\r\n",0x1F,
+		0x1D60,"18LF44J10 rev%d\r\n",0x1F,
+		0x1E00,"18F1230 rev%d\r\n",0x1F,
+		0x1E20,"18F1330 rev%d\r\n",0x1F,
+		0x1FE0,"18F1330-ICD rev%d\r\n",0x1F,
+		0x2000,"18F46K20 rev%d\r\n",0x1F,
+		0x2020,"18F26K20 rev%d\r\n",0x1F,
+		0x2040,"18F45K20 rev%d\r\n",0x1F,
+		0x2060,"18F25K20 rev%d\r\n",0x1F,
+		0x2080,"18F44K20 rev%d\r\n",0x1F,
+		0x20A0,"18F24K20 rev%d\r\n",0x1F,
+		0x20C0,"18F43K20 rev%d\r\n",0x1F,
+		0x20E0,"18F23K20 rev%d\r\n",0x1F,
+		0x2100,"18F4321 rev%d\r\n",0x1F,
+		0x2120,"18F2321 rev%d\r\n",0x1F,
+		0x2140,"18F4221 rev%d\r\n",0x1F,
+		0x2160,"18F2221 rev%d\r\n",0x1F,
+		0x2400,"18F4450 rev%d\r\n",0x1F,
+		0x2420,"18F2450 rev%d\r\n",0x1F,
+		0x2700,"18F2682 rev%d\r\n",0x1F,
+		0x2720,"18F2685 rev%d\r\n",0x1F,
+		0x2740,"18F4682 rev%d\r\n",0x1F,
+		0x2760,"18F4685 rev%d\r\n",0x1F,
+		0x2A00,"18F4553 rev%d\r\n",0x1F,
+		0x2A20,"18F4458 rev%d\r\n",0x1F,
+		0x2A40,"18F2553 rev%d\r\n",0x1F,
+		0x2A60,"18F2458 rev%d\r\n",0x1F,
+		0x4700,"18LF13K50 rev%d\r\n",0x1F,
+		0x4720,"18LF14K50 rev%d\r\n",0x1F,
+		0x4740,"18F13K50 rev%d\r\n",0x1F,
+		0x4760,"18F14K50 rev%d\r\n",0x1F,
+		0x49C0,"18F6628 rev%d\r\n",0x1F,
+		0x49E0,"18F8628 rev%d\r\n",0x1F,
+		0x4A00,"18F6723 rev%d\r\n",0x1F,
+		0x4A20,"18F8723 rev%d\r\n",0x1F,
+		0x4C00,"18F24J50 rev%d\r\n",0x1F,
+		0x4C20,"18F25J50 rev%d\r\n",0x1F,
+		0x4C40,"18F26J50 rev%d\r\n",0x1F,
+		0x4C60,"18F44J50 rev%d\r\n",0x1F,
+		0x4C80,"18F45J50 rev%d\r\n",0x1F,
+		0x4D80,"18F24J11 rev%d\r\n",0x1F,
+		0x4DA0,"18F25J11 rev%d\r\n",0x1F,
+		0x4DC0,"18F26J11 rev%d\r\n",0x1F,
+		0x4DE0,"18F44J11 rev%d\r\n",0x1F,
+		0x4E00,"18F45J11 rev%d\r\n",0x1F,
+		0x4E20,"18F46J11 rev%d\r\n",0x1F,
+		0x4E60,"18LF25J11 rev%d\r\n",0x1F,
+		0x4E80,"18LF26J11 rev%d\r\n",0x1F,
+		0x4EA0,"18LF44J11 rev%d\r\n",0x1F,
+		0x4EC0,"18LF45J11 rev%d\r\n",0x1F,
+		0x4EE0,"18LF46J11 rev%d\r\n",0x1F,
+		0x5820,"18F26J53 rev%d\r\n",0x1F,
+		0x5860,"18F27J53 rev%d\r\n",0x1F,
+		0x58A0,"18F46J53 rev%d\r\n",0x1F,
+		0x58E0,"18F47J53 rev%d\r\n",0x1F,
+		0x5920,"18F26J13 rev%d\r\n",0x1F,
+		0x5960,"18F27J13 rev%d\r\n",0x1F,
+		0x59A0,"18F46J13 rev%d\r\n",0x1F,
+		0x59E0,"18F47J13 rev%d\r\n",0x1F,
+		0x5A20,"18LF26J53 rev%d\r\n",0x1F,
+		0x5A60,"18LF27J53 rev%d\r\n",0x1F,
+		0x5AA0,"18LF46J53 rev%d\r\n",0x1F,
+		0x5AE0,"18LF47J53 rev%d\r\n",0x1F,
+		0x5B20,"18LF26J13 rev%d\r\n",0x1F,
+		0x5B60,"18LF27J13 rev%d\r\n",0x1F,
+		0x5BA0,"18LF46J13 rev%d\r\n",0x1F,
+		0x5BE0,"18LF47J13 rev%d\r\n",0x1F,
+};
+
 #ifdef _MSC_VER
 	void COpenProgDlg::PIC18_ID(int id)
 #else
@@ -38,396 +176,45 @@ void PIC18_ID(int id)
 #endif
 {
 	char s[64];
-	switch(id>>5){
-		case 0x040>>1:
-			sprintf(s,"18F252/2539 rev%d\r\n",id&0x1F);
-			break;
-		case 0x042>>1:
-			sprintf(s,"18F452/4539 rev%d\r\n",id&0x1F);
-			break;
-		case 0x048>>1:
-			sprintf(s,"18F242/2439 rev%d\r\n",id&0x1F);
-			break;
-		case 0x04A>>1:
-			sprintf(s,"18F442/4439 rev%d\r\n",id&0x1F);
-			break;
-		case 0x050>>1:
-			sprintf(s,"18F2320 rev%d\r\n",id&0x1F);
-			break;
-		case 0x052>>1:
-			sprintf(s,"18F4320 rev%d\r\n",id&0x1F);
-			break;
-		case 0x058>>1:
-			sprintf(s,"18F2220 rev%d\r\n",id&0x1F);
-			break;
-		case 0x05A>>1:
-			sprintf(s,"18F4220 rev%d\r\n",id&0x1F);
-			break;
-		case 0x07C>>1:
-			sprintf(s,"18F1320 rev%d\r\n",id&0x1F);
-			break;
-		case 0x07E>>1:
-			sprintf(s,"18F1220 rev%d\r\n",id&0x1F);
-			break;
-		case 0x080>>1:
-			sprintf(s,"18F248 rev%d\r\n",id&0x1F);
-			break;
-		case 0x082>>1:
-			sprintf(s,"18F448 rev%d\r\n",id&0x1F);
-			break;
-		case 0x084>>1:
-			sprintf(s,"18F258 rev%d\r\n",id&0x1F);
-			break;
-		case 0x086>>1:
-			sprintf(s,"18F458 rev%d\r\n",id&0x1F);
-			break;
-		case 0x088>>1:
-			sprintf(s,"18F4431 rev%d\r\n",id&0x1F);
-			break;
-		case 0x08A>>1:
-			sprintf(s,"18F4331 rev%d\r\n",id&0x1F);
-			break;
-		case 0x08C>>1:
-			sprintf(s,"18F2431 rev%d\r\n",id&0x1F);
-			break;
-		case 0x08E>>1:
-			sprintf(s,"18F2331 rev%d\r\n",id&0x1F);
-			break;
-		case 0x0C0>>1:
-			sprintf(s,"18F4620 rev%d\r\n",id&0x1F);
-			break;
-		case 0x0C2>>1:
-			sprintf(s,"18F4610 rev%d\r\n",id&0x1F);
-			break;
-		case 0x0C4>>1:
-			sprintf(s,"18F4525 rev%d\r\n",id&0x1F);
-			break;
-		case 0x0C6>>1:
-			sprintf(s,"18F4515 rev%d\r\n",id&0x1F);
-			break;
-		case 0x0C8>>1:
-			sprintf(s,"18F2620 rev%d\r\n",id&0x1F);
-			break;
-		case 0x0CA>>1:
-			sprintf(s,"18F2610 rev%d\r\n",id&0x1F);
-			break;
-		case 0x0CC>>1:
-			sprintf(s,"18F2525 rev%d\r\n",id&0x1F);
-			break;
-		case 0x0CE>>1:
-			sprintf(s,"18F2515 rev%d\r\n",id&0x1F);
-			break;
-		case 0x0E8>>1:
-			sprintf(s,"18F4680 rev%d\r\n",id&0x1F);
-			break;
-		case 0x0EA>>1:
-			sprintf(s,"18F4585 rev%d\r\n",id&0x1F);
-			break;
-		case 0x0EC>>1:
-			sprintf(s,"18F2680 rev%d\r\n",id&0x1F);
-			break;
-		case 0x0EE>>1:
-			sprintf(s,"18F2585 rev%d\r\n",id&0x1F);
-			break;
-		case 0x108>>1:
-			if(id&0x10) sprintf(s,"18F4523 rev%d\r\n",id&0x1F);
-			else sprintf(s,"18F4520 rev%d\r\n",id&0x1F);
-			break;
-		case 0x10A>>1:
-			sprintf(s,"18F4510 rev%d\r\n",id&0x1F);
-			break;
-		case 0x10C>>1:
-			if(id&0x10) sprintf(s,"18F4423 rev%d\r\n",id&0x1F);
-			else sprintf(s,"18F4420 rev%d\r\n",id&0x1F);
-			break;
-		case 0x10E>>1:
-			sprintf(s,"18F4410 rev%d\r\n",id&0x1F);
-			break;
-		case 0x110>>1:
-			if(id&0x10) sprintf(s,"18F2523 rev%d\r\n",id&0x1F);
-			else sprintf(s,"18F2520 rev%d\r\n",id&0x1F);
-			break;
-		case 0x112>>1:
-			sprintf(s,"18F2510 rev%d\r\n",id&0x1F);
-			break;
-		case 0x114>>1:
-			if(id&0x10) sprintf(s,"18F2423 rev%d\r\n",id&0x1F);
-			else sprintf(s,"18F2420 rev%d\r\n",id&0x1F);
-			break;
-		case 0x116>>1:
-			sprintf(s,"18F2410 rev%d\r\n",id&0x1F);
-			break;
-		case 0x120>>1:
-			sprintf(s,"18F4550 rev%d\r\n",id&0x1F);
-			break;
-		case 0x122>>1:
-			sprintf(s,"18F4455 rev%d\r\n",id&0x1F);
-			break;
-		case 0x124>>1:
-			sprintf(s,"18F2550 rev%d\r\n",id&0x1F);
-			break;
-		case 0x126>>1:
-			sprintf(s,"18F2455 rev%d\r\n",id&0x1F);
-			break;
-		case 0x134>>1:
-			sprintf(s,"18F6527 rev%d\r\n",id&0x1F);
-			break;
-		case 0x136>>1:
-			sprintf(s,"18F8527 rev%d\r\n",id&0x1F);
-			break;
-		case 0x138>>1:
-			sprintf(s,"18F6622 rev%d\r\n",id&0x1F);
-			break;
-		case 0x13A>>1:
-			sprintf(s,"18F8622 rev%d\r\n",id&0x1F);
-			break;
-		case 0x13C>>1:
-			sprintf(s,"18F6627 rev%d\r\n",id&0x1F);
-			break;
-		case 0x13E>>1:
-			sprintf(s,"18F8627 rev%d\r\n",id&0x1F);
-			break;
-		case 0x140>>1:
-			sprintf(s,"18F6722 rev%d\r\n",id&0x1F);
-			break;
-		case 0x142>>1:
-			sprintf(s,"18F8722 rev%d\r\n",id&0x1F);
-			break;
-		case 0x1A8>>1:
-			sprintf(s,"18F4580 rev%d\r\n",id&0x1F);
-			break;
-		case 0x1AA>>1:
-			sprintf(s,"18F4480 rev%d\r\n",id&0x1F);
-			break;
-		case 0x1AC>>1:
-			sprintf(s,"18F2580 rev%d\r\n",id&0x1F);
-			break;
-		case 0x1AE>>1:
-			sprintf(s,"18F2480 rev%d\r\n",id&0x1F);
-			break;
-		case 0x1C0>>1:
-			sprintf(s,"18F25J10 rev%d\r\n",id&0x1F);
-			break;
-		case 0x1C2>>1:
-			sprintf(s,"18F45J10 rev%d\r\n",id&0x1F);
-			break;
-		case 0x1C4>>1:
-			sprintf(s,"18LF25J10 rev%d\r\n",id&0x1F);
-			break;
-		case 0x1C6>>1:
-			sprintf(s,"18LF45J10 rev%d\r\n",id&0x1F);
-			break;
-		case 0x1D0>>1:
-			sprintf(s,"18F24J10 rev%d\r\n",id&0x1F);
-			break;
-		case 0x1D2>>1:
-			sprintf(s,"18F44J10 rev%d\r\n",id&0x1F);
-			break;
-		case 0x1D4>>1:
-			sprintf(s,"18LF24J10 rev%d\r\n",id&0x1F);
-			break;
-		case 0x1D6>>1:
-			sprintf(s,"18LF44J10 rev%d\r\n",id&0x1F);
-			break;
-		case 0x1E0>>1:
-			sprintf(s,"18F1230 rev%d\r\n",id&0x1F);
-			break;
-		case 0x1E2>>1:
-			sprintf(s,"18F1330 rev%d\r\n",id&0x1F);
-			break;
-		case 0x1FE>>1:
-			sprintf(s,"18F1330-ICD rev%d\r\n",id&0x1F);
-			break;
-		case 0x200>>1:
-			sprintf(s,"18F46K20 rev%d\r\n",id&0x1F);
-			break;
-		case 0x202>>1:
-			sprintf(s,"18F26K20 rev%d\r\n",id&0x1F);
-			break;
-		case 0x204>>1:
-			sprintf(s,"18F45K20 rev%d\r\n",id&0x1F);
-			break;
-		case 0x206>>1:
-			sprintf(s,"18F25K20 rev%d\r\n",id&0x1F);
-			break;
-		case 0x208>>1:
-			sprintf(s,"18F44K20 rev%d\r\n",id&0x1F);
-			break;
-		case 0x20A>>1:
-			sprintf(s,"18F24K20 rev%d\r\n",id&0x1F);
-			break;
-		case 0x20C>>1:
-			sprintf(s,"18F43K20 rev%d\r\n",id&0x1F);
-			break;
-		case 0x20E>>1:
-			sprintf(s,"18F23K20 rev%d\r\n",id&0x1F);
-			break;
-		case 0x210>>1:
-			sprintf(s,"18F4321 rev%d\r\n",id&0x1F);
-			break;
-		case 0x212>>1:
-			sprintf(s,"18F2321 rev%d\r\n",id&0x1F);
-			break;
-		case 0x214>>1:
-			sprintf(s,"18F4221 rev%d\r\n",id&0x1F);
-			break;
-		case 0x216>>1:
-			sprintf(s,"18F2221 rev%d\r\n",id&0x1F);
-			break;
-		case 0x240>>1:
-			sprintf(s,"18F4450 rev%d\r\n",id&0x1F);
-			break;
-		case 0x242>>1:
-			sprintf(s,"18F2450 rev%d\r\n",id&0x1F);
-			break;
-		case 0x270>>1:
-			sprintf(s,"18F2682 rev%d\r\n",id&0x1F);
-			break;
-		case 0x272>>1:
-			sprintf(s,"18F2685 rev%d\r\n",id&0x1F);
-			break;
-		case 0x274>>1:
-			sprintf(s,"18F4682 rev%d\r\n",id&0x1F);
-			break;
-		case 0x276>>1:
-			sprintf(s,"18F4685 rev%d\r\n",id&0x1F);
-			break;
-		case 0x2A0>>1:
-			sprintf(s,"18F4553 rev%d\r\n",id&0x1F);
-			break;
-		case 0x2A2>>1:
-			sprintf(s,"18F4458 rev%d\r\n",id&0x1F);
-			break;
-		case 0x2A4>>1:
-			sprintf(s,"18F2553 rev%d\r\n",id&0x1F);
-			break;
-		case 0x2A6>>1:
-			sprintf(s,"18F2458 rev%d\r\n",id&0x1F);
-			break;
-		case 0x470>>1:
-			sprintf(s,"18LF13K50 rev%d\r\n",id&0x1F);
-			break;
-		case 0x472>>1:
-			sprintf(s,"18LF14K50 rev%d\r\n",id&0x1F);
-			break;
-		case 0x474>>1:
-			sprintf(s,"18F13K50 rev%d\r\n",id&0x1F);
-			break;
-		case 0x476>>1:
-			sprintf(s,"18F14K50 rev%d\r\n",id&0x1F);
-			break;
-		case 0x49C>>1:
-			sprintf(s,"18F6628 rev%d\r\n",id&0x1F);
-			break;
-		case 0x49E>>1:
-			sprintf(s,"18F8628 rev%d\r\n",id&0x1F);
-			break;
-		case 0x4A0>>1:
-			sprintf(s,"18F6723 rev%d\r\n",id&0x1F);
-			break;
-		case 0x4A2>>1:
-			sprintf(s,"18F8723 rev%d\r\n",id&0x1F);
-			break;
-		case 0x4C0>>1:
-			sprintf(s,"18F24J50 rev%d\r\n",id&0x1F);
-			break;
-		case 0x4C2>>1:
-			sprintf(s,"18F25J50 rev%d\r\n",id&0x1F);
-			break;
-		case 0x4C4>>1:
-			sprintf(s,"18F26J50 rev%d\r\n",id&0x1F);
-			break;
-		case 0x4C6>>1:
-			sprintf(s,"18F44J50 rev%d\r\n",id&0x1F);
-			break;
-		case 0x4C8>>1:
-			sprintf(s,"18F45J50 rev%d\r\n",id&0x1F);
-			break;
-		case 0x4D8>>1:
-			sprintf(s,"18F24J11 rev%d\r\n",id&0x1F);
-			break;
-		case 0x4DA>>1:
-			sprintf(s,"18F25J11 rev%d\r\n",id&0x1F);
-			break;
-		case 0x4DC>>1:
-			sprintf(s,"18F26J11 rev%d\r\n",id&0x1F);
-			break;
-		case 0x4DE>>1:
-			sprintf(s,"18F44J11 rev%d\r\n",id&0x1F);
-			break;
-		case 0x4E0>>1:
-			sprintf(s,"18F45J11 rev%d\r\n",id&0x1F);
-			break;
-		case 0x4E2>>1:
-			sprintf(s,"18F46J11 rev%d\r\n",id&0x1F);
-			break;
-		case 0x4E6>>1:
-			sprintf(s,"18LF25J11 rev%d\r\n",id&0x1F);
-			break;
-		case 0x4E8>>1:
-			sprintf(s,"18LF26J11 rev%d\r\n",id&0x1F);
-			break;
-		case 0x4EA>>1:
-			sprintf(s,"18LF44J11 rev%d\r\n",id&0x1F);
-			break;
-		case 0x4EC>>1:
-			sprintf(s,"18LF45J11 rev%d\r\n",id&0x1F);
-			break;
-		case 0x4EE>>1:
-			sprintf(s,"18LF46J11 rev%d\r\n",id&0x1F);
-			break;
-		case 0x582>>1:
-			sprintf(s,"18F26J53 rev%d\r\n",id&0x1F);
-			break;
-		case 0x586>>1:
-			sprintf(s,"18F27J53 rev%d\r\n",id&0x1F);
-			break;
-		case 0x58A>>1:
-			sprintf(s,"18F46J53 rev%d\r\n",id&0x1F);
-			break;
-		case 0x58E>>1:
-			sprintf(s,"18F47J53 rev%d\r\n",id&0x1F);
-			break;
-		case 0x592>>1:
-			sprintf(s,"18F26J13 rev%d\r\n",id&0x1F);
-			break;
-		case 0x596>>1:
-			sprintf(s,"18F27J13 rev%d\r\n",id&0x1F);
-			break;
-		case 0x59A>>1:
-			sprintf(s,"18F46J13 rev%d\r\n",id&0x1F);
-			break;
-		case 0x59E>>1:
-			sprintf(s,"18F47J13 rev%d\r\n",id&0x1F);
-			break;
-		case 0x5A2>>1:
-			sprintf(s,"18LF26J53 rev%d\r\n",id&0x1F);
-			break;
-		case 0x5A6>>1:
-			sprintf(s,"18LF27J53 rev%d\r\n",id&0x1F);
-			break;
-		case 0x5AA>>1:
-			sprintf(s,"18LF46J53 rev%d\r\n",id&0x1F);
-			break;
-		case 0x5AE>>1:
-			sprintf(s,"18LF47J53 rev%d\r\n",id&0x1F);
-			break;
-		case 0x5B2>>1:
-			sprintf(s,"18LF26J13 rev%d\r\n",id&0x1F);
-			break;
-		case 0x5B6>>1:
-			sprintf(s,"18LF27J13 rev%d\r\n",id&0x1F);
-			break;
-		case 0x5BA>>1:
-			sprintf(s,"18LF46J13 rev%d\r\n",id&0x1F);
-			break;
-		case 0x5BE>>1:
-			sprintf(s,"18LF47J13 rev%d\r\n",id&0x1F);
-			break;
-		default:
-			sprintf(s,"%s",strings[S_nodev]); //"Unknown device\r\n");
+	int i;
+	for(i=0;i<sizeof(PIC18LIST)/sizeof(PIC18LIST[0]);i++){
+		if(PIC18LIST[i].id==(id&~PIC18LIST[i].revmask)){
+			sprintf(s,PIC18LIST[i].device,id&PIC18LIST[i].revmask);
+			PrintMessage(s);
+			return;
+		}
 	}
+			sprintf(s,"%s",strings[S_nodev]); //"Unknown device\r\n");
 	PrintMessage(s);
+}
+
+#ifdef _MSC_VER
+void COpenProgDlg::DisplayCODE18F(int dim){
+#else
+void DisplayCODE18F(int dim){
+#endif
+// display  PIC18F CODE memory
+	char s[256]="",t[256]="";
+	char* aux=(char*)malloc((dim/COL+1)*(16+COL*6));
+	aux[0]=0;
+	int valid=0,empty=1,i,j;
+	for(i=0;i<dim&&i<size;i+=COL*2){
+		valid=0;
+		for(j=i;j<i+COL*2&&j<dim;j++){
+			sprintf(t,"%02X ",memCODE[j]);
+			strcat(s,t);
+			if(memCODE[j]<0xff) valid=1;
+	}
+		if(valid){
+			sprintf(t,"%04X: %s\r\n",i,s);
+			strcat(aux,t);
+			empty=0;
+		}
+		s[0]=0;
+	}
+	if(empty) PrintMessage(strings[S_Empty]);	//empty
+	else PrintMessage(aux);
+	free(aux);
 }
 
 #ifdef _MSC_VER
@@ -441,9 +228,6 @@ void Read18Fx(int dim,int dim2,int options){
 //   0 = vdd before vpp (12V)
 //   1 = vdd before vpp (9V)
 //   2 = low voltage entry with 32 bit key
-#ifdef _MSC_VER
-	CString str,aux;
-#endif
 	int k=0,k2=0,z=0,i,j;
 	int entry=options&0xF;
 	if(dim>0x1FFFFF||dim<0){
@@ -469,15 +253,10 @@ void Read18Fx(int dim,int dim2,int options){
 	}
 	size=dim;
 	sizeEE=dim2;
-#ifdef _MSC_VER
-	memCODE.RemoveAll();
-	memCODE.SetSize(dim);		//CODE
-	memEE.RemoveAll();
-	memEE.SetSize(dim2);		//EEPROM
-#else
-	memCODE=malloc(dim);		//CODE
-	memEE=malloc(dim2);			//EEPROM
-#endif
+	if(memCODE) free(memCODE);
+	memCODE=(unsigned char*)malloc(size);		//CODE
+	if(memEE) free(memEE);
+	memEE=(unsigned char*)malloc(sizeEE);			//EEPROM
 	for(j=0;j<8;j++) memID[j]=0xFF;
 	for(j=0;j<14;j++) memCONFIG[j]=0xFF;
 	unsigned int start=GetTickCount();
@@ -559,9 +338,7 @@ void Read18Fx(int dim,int dim2,int options){
 	}
 //****************** read code ********************
 	PrintMessage(strings[S_CodeReading1]);		//code read ...
-#ifdef _CMD
-	PrintMessage("   "); 
-#endif	
+	PrintStatusSetup();
 	for(i=0,j=1;i<dim;i+=DIMBUF-4){
 		bufferU[j++]=TBLR_INC_N;
 		bufferU[j++]=i<dim-(DIMBUF-4)?DIMBUF-4:dim-i;
@@ -580,9 +357,7 @@ void Read18Fx(int dim,int dim2,int options){
 			WriteLogIO();
 		}
 	}
-#ifdef _CMD
-	PrintMessage("\b\b\b");
-#endif
+	PrintStatusEnd();
 	if(k!=dim){
 		PrintMessage("\r\n");
 		PrintMessage2(strings[S_ReadCodeErr2],dim,k);	//"Error reading code area, requested %d bytes, read %d\r\n"
@@ -638,9 +413,7 @@ void Read18Fx(int dim,int dim2,int options){
 //****************** read eeprom ********************
 	if(dim2){
 		PrintMessage(strings[S_ReadEE]);		//read eeprom ...
-#ifdef _CMD
-		PrintMessage("   "); 
-#endif	
+		PrintStatusSetup();
 		bufferU[j++]=CORE_INS;
 		bufferU[j++]=0x9E;				//EEPGD=0
 		bufferU[j++]=0xA6;
@@ -693,9 +466,7 @@ void Read18Fx(int dim,int dim2,int options){
 				}
 			}
 		}
-#ifdef _CMD
-		PrintMessage("\b\b\b");
-#endif
+		PrintStatusEnd();
 		if(k2!=dim2){
 			PrintMessage("\r\n");
 			PrintMessage2(strings[S_ReadEEErr],dim2,k2);	//"Error reading EEPROM area, requested %d bytes, read %d\r\n"
@@ -716,9 +487,7 @@ void Read18Fx(int dim,int dim2,int options){
 	msDelay(1);
 	read();
 	unsigned int stop=GetTickCount();
-#ifdef _GUI
-	StatusBar.SetWindowText("");
-#endif
+	PrintStatusClear();
 //****************** visualize ********************
 	for(i=0;i<8;i+=2){
 		PrintMessage4(strings[S_ChipID2],i,memID[i],i+1,memID[i+1]);	//"ID%d: 0x%02X   ID%d: 0x%02X\r\n"
@@ -728,32 +497,7 @@ void Read18Fx(int dim,int dim2,int options){
 		PrintMessage2(strings[S_ConfigWordL],i+1,memCONFIG[i*2]);	//"CONFIG%dL: 0x%02X\r\n"
 	}
 	PrintMessage(strings[S_CodeMem]);	//"\r\nCode memory:\r\n"
-	char s[256],t[256];
-	s[0]=0;
-	int valid=0,empty=1;
-	for(i=0;i<dim;i+=COL*2){
-		valid=0;
-		for(j=i;j<i+COL*2&&j<dim;j++){
-			sprintf(t,"%02X ",memCODE[j]);
-			strcat(s,t);
-			if(memCODE[j]<0xff) valid=1;
-		}
-		if(valid){
-#ifdef _GUI
-			sprintf(t,"%04X: %s\r\n",i,s);
-			aux+=t;
-			empty=0;
-#else
-			PrintMessage("%04X: %s\r\n",i,s);
-			empty=0;
-#endif
-		}
-		s[0]=0;
-	}
-	if(empty) PrintMessage(strings[S_Empty]);	//empty
-#ifdef _GUI
-	else PrintMessage(aux);
-#endif
+	DisplayCODE18F(dim);
 	if(dim2){
 		DisplayEE();	//visualize
 	}
@@ -783,10 +527,6 @@ void Write18Fx(int dim,int dim2,int wbuf,int eraseW1,int eraseW2,int options)
 //     1 = 550ms erase delay, 1.2ms code write time, no config or EEPROM
 //     2 = 550ms erase delay, 3.4ms code write time, no config or EEPROM
 {
-#ifdef _MSC_VER
-	CString str;
-	int size=memCODE.GetSize(),sizeEE=memEE.GetSize();
-#endif
 	int k=0,k2,z=0,i,j;
 	int err=0,devID=0;
 	int EEalgo=(options>>4)&0xF,entry=options&0xF,optWrite=(options>>8)&0xF;
@@ -819,11 +559,7 @@ void Write18Fx(int dim,int dim2,int wbuf,int eraseW1,int eraseW2,int options)
 	if(dim%wbuf){			//grow to an integer number of rows
 		dim+=wbuf-dim%wbuf;
 		j=size;
-#ifdef _MSC_VER
-		if(j<dim)memCODE.SetSize(dim);
-#else
 		if(j<dim)size=dim;
-#endif
 		for(;j<dim;j++) memCODE[j]=0xFF;
 	}
 	if(dim2>sizeEE) dim2=sizeEE;
@@ -976,9 +712,7 @@ void Write18Fx(int dim,int dim2,int wbuf,int eraseW1,int eraseW2,int options)
 	PrintMessage(strings[S_Compl]);	//"completed\r\n"
 //****************** write code ********************
 	PrintMessage(strings[S_StartCodeProg]);	//"code write ... "
-#ifdef _CMD
-	PrintMessage("   "); 
-#endif	
+	PrintStatusSetup();
 	int ww;
 	double wdly=1.0;
 	if(optWrite==1) wdly=1.2;
@@ -1074,9 +808,7 @@ void Write18Fx(int dim,int dim2,int wbuf,int eraseW1,int eraseW2,int options)
 			WriteLogIO();
 		}
 	}
-#ifdef _CMD
-	PrintMessage("\b\b\b");
-#endif
+	PrintStatusEnd();
 	PrintMessage(strings[S_Compl]);	//"completed\r\n"
 //****************** write ID ********************
 	if(optWrite==0){
@@ -1125,9 +857,7 @@ void Write18Fx(int dim,int dim2,int wbuf,int eraseW1,int eraseW2,int options)
 //****************** write and verify EEPROM ********************
 	if(dim2&&optWrite==0){
 		PrintMessage(strings[S_EEAreaW]);	//"Write EEPROM ... "
-#ifdef _CMD
-		PrintMessage("   "); 
-#endif	
+		PrintStatusSetup();
 		int errEE=0;
 		bufferU[j++]=CORE_INS;
 		bufferU[j++]=0x9E;			//EEPGD=0
@@ -1212,17 +942,13 @@ void Write18Fx(int dim,int dim2,int wbuf,int eraseW1,int eraseW2,int options)
 				}
 			}
 		}
-#ifdef _CMD
-		PrintMessage("\b\b\b");
-#endif
+		PrintStatusEnd();
 		PrintMessage1(strings[S_ComplErr],errEE);	//"completed: %d errors \r\n"
 		err+=errEE;
 	}
 //****************** verify code ********************
 	PrintMessage(strings[S_CodeV]);	//"Verify code ... "
-#ifdef _CMD
-	PrintMessage("   "); 
-#endif	
+	PrintStatusSetup();
 	if(saveLog)fprintf(logfile,"VERIFY CODE\n");
 	bufferU[j++]=CORE_INS;
 	bufferU[j++]=0x8E;			//EEPGD=1
@@ -1305,9 +1031,7 @@ void Write18Fx(int dim,int dim2,int wbuf,int eraseW1,int eraseW2,int options)
 		}
 		if(err>=max_err) break;
 	}
-#ifdef _CMD
-	PrintMessage("\b\b\b");
-#endif
+	PrintStatusEnd();
 	if(i<dim){
 		PrintMessage2(strings[S_CodeVError2],dim,i);	//"Error verifying code area, requested %d bytes, read %d\r\n"
 	}
@@ -1459,9 +1183,7 @@ void Write18Fx(int dim,int dim2,int wbuf,int eraseW1,int eraseW2,int options)
 	msDelay(1);
 	read();
 	unsigned int stop=GetTickCount();
-#ifdef _GUI
-	StatusBar.SetWindowText("");
-#endif
+	PrintStatusClear();
 	PrintMessage3(strings[S_EndErr],(stop-start)/1000.0,err,err!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nEnd (%.2f s) %d %s\r\n\r\n"
 	if(saveLog) CloseLogFile();
 }

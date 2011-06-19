@@ -50,7 +50,7 @@
 #include "instructions.h"
 
 #define COL 16
-#define VERSION "0.7.8"
+#define VERSION "0.7.9"
 #define G (12.0/34*1024/5)		//=72,2823529412
 #define  LOCK	1
 #define  FUSE	2
@@ -107,20 +107,21 @@ int AVRlock=0x100,AVRfuse=0x100,AVRfuse_h=0x100,AVRfuse_x=0x100;
 int ICDenable=0,ICDaddr=0x1FF0;
 int FWVersion=0,HwID=0;
 FILE* logfile=0;
-char LogFileName[256]="";
-char loadfile[256]="",savefile[256]="";
-char loadfileEE[256]="",savefileEE[256]="";
-WORD *dati_hex;
-int size=0,sizeEE=0,sizeCONFIG=0;
-unsigned char *memCODE,*memEE,memID[8],memCONFIG[48];
+char LogFileName[512]="";
+char loadfile[512]="",savefile[512]="";
+char loadfileEE[512]="",savefileEE[512]="";
 int vid=0x04D8,pid=0x0100,info=0;
+
+WORD *dati_hex=0;
+int size=0,sizeW=0,sizeEE=0,sizeCONFIG=0;
+unsigned char *memCODE=0,*memEE=0,memID[8],memCONFIG[48];
 double hvreg=0;
 #if !defined _WIN32 && !defined __CYGWIN__
 int fd = -1;
 struct hiddev_report_info rep_info_i,rep_info_u;
 struct hiddev_usage_ref_multi ref_multi_i,ref_multi_u;
 int DIMBUF=64;
-char path[256]="/dev/usb/hiddev0";
+char path[256]="";
 #else
 unsigned char bufferU[128],bufferI[128];
 DWORD NumberOfBytesRead,BytesWritten;
@@ -140,7 +141,12 @@ int main (int argc, char **argv) {
 	opterr = 0;
 	int option_index = 0;
 	#include "strings.c"
+	#if defined _WIN32
+	int langID=GetUserDefaultLangID();
+	if((langID&0xFF)==0x10)strings=strings_it;
+	#else
 	if(getenv("LANG")&&strstr(getenv("LANG"),"it")!=0) strings=strings_it;
+	#endif
 	else strings=strings_en;
 	strncpy(LogFileName,strings[S_LogFile],sizeof(LogFileName));
 	if(argc==1){
@@ -181,7 +187,7 @@ int main (int argc, char **argv) {
 		{"path",          required_argument,       0, 'p'},
 #endif
 		{"pid",           required_argument,       0, 'P'},
-		{"rep" ,          required_argument,       0, 'r'},
+		{"rep" ,          required_argument,       0, 'R'},
 		{"reserved",      no_argument,              &r, 1},
 		{"r",             no_argument,              &r, 1},
 		{"save",          required_argument,       0, 's'},
@@ -255,7 +261,7 @@ int main (int argc, char **argv) {
 			case 'P':	//pid
 				sscanf(optarg, "%x", &pid);
 				break;
-			case 'r':	//USB HID report size
+			case 'R':	//USB HID report size
 				DIMBUF = atoi(optarg);
 				break;
 			case 's':	//save
@@ -622,7 +628,7 @@ int FindDevice(){
 	}
 	else{	//user supplied path
 		if ((fd = open(path, O_RDONLY )) < 0) {
-			printf("cannot open %s, make sure you have read permission on it",path);
+			printf(strings[S_DevPermission],path);
 			exit(1);
 		}
 		ioctl(fd, HIDIOCGDEVINFO, &device_info);
@@ -631,20 +637,8 @@ int FindDevice(){
 			return -1;
 		}
 	}
-	printf(strings[S_prog]);
+	printf(strings[S_progDev],path);
 
-/*	if ((fd = open(path, O_RDONLY )) < 0) {
-		perror("hiddev open");
-		exit(1);
-	}
-	struct hiddev_devinfo device_info;
-	ioctl(fd, HIDIOCGDEVINFO, &device_info);
-	if(device_info.vendor!=vid||device_info.product!=pid){
-		printf(strings[S_noprog]);
-		return -1;
-	}
-	else printf(strings[S_prog]);
-*/
 	rep_info_u.report_type=HID_REPORT_TYPE_OUTPUT;
 	rep_info_i.report_type=HID_REPORT_TYPE_INPUT;
 	rep_info_u.report_id=rep_info_i.report_id=HID_REPORT_ID_FIRST;

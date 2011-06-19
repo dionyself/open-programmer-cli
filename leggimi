@@ -5,6 +5,11 @@ Questi sorgenti sono distribuiti gratuitamente sotto licenza GNU General Public 
 
 Cambiamenti (per usare i dispositivi aggiunti è richiesto un programmatore con firmware corrispondente):
 
+V 0.7.9	giugno 2011:	aggiunti ATtiny11-12-24-26-261-44-48-461-4313-84-88-861, 
+						ATmega48-88-164A-168-324A-328-644A-1284, 16LF1902-3-4-6-7,
+						scrittura EEPROM seriali ottimizzata, 
+						varie modifiche minori e correzioni
+
 V 0.7.8	aprile 2011:	aggiornati algoritmi 16F87xA e 16F62xA,
 						16F1822 diventa 12F1822, aggiunti 30F1010, 30F2020, 30F2023, 16F1847, 12F1840
 						16F1516, 16F1517, 16F1518, 16F1519, 16F1526, 16F1527

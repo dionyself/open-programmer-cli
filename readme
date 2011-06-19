@@ -5,6 +5,11 @@ These sources are given free of charge under the GNU General Public License vers
 
 Changelog (to use new features the corresponding firmware is required):
 
+V 0.7.9	june 2011:		added ATtiny11-12-24-26-261-44-48-461-4313-84-88-861, 
+						ATmega48-88-164A-168-324A-328-644A-1284, 16LF1902-3-4-6-7,
+						EEPROM write optimization, 
+						various minor modifications and fixes
+
 V 0.7.8	april 2011:		updated algorithms for 16F87xA and 16F62xA,
 						16F1822 becomes 12F1822, added 30F1010, 30F2020, 30F2023, 16F1847, 12F1840
 						16F1516, 16F1517, 16F1518, 16F1519, 16F1526, 16F1527;

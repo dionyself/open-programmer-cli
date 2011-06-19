@@ -4,6 +4,7 @@ char *STR_ID[DIM];
 
 STR_ID[S_noprog]="S_noprog";
 STR_ID[S_prog]="S_prog";
+STR_ID[S_progDev]="S_progDev";
 STR_ID[S_nodev_r]="S_nodev_r";
 STR_ID[S_nodev_w]="S_nodev_w";
 STR_ID[S_nodev]="S_nodev";
@@ -28,6 +29,7 @@ STR_ID[S_IhexShort]="S_IhexShort";
 STR_ID[S_IhexChecksum]="S_IhexChecksum";
 STR_ID[S_InvHandle]="S_InvHandle";
 STR_ID[S_LogFile]="S_LogFile";
+STR_ID[S_FileSaved]="S_FileSaved";
 						//
 STR_ID[S_HVICSP]="S_HVICSP";
 STR_ID[S_StartRead]="S_StartRead";
@@ -179,6 +181,11 @@ STR_ID[S_NoConfigW4]="S_NoConfigW4";
 STR_ID[S_NoConfigW5]="S_NoConfigW5";
 STR_ID[S_Empty]="S_Empty";
 						//
+STR_ID[I_Fopen]="I_Fopen";
+STR_ID[I_Fsave]="I_Fsave";
+STR_ID[I_DevR]="I_DevR";
+STR_ID[I_DevW]="I_DevW";
+STR_ID[I_Info]="I_Info";
 STR_ID[I_Data]="I_Data";
 STR_ID[I_Opt]="I_Opt";
 STR_ID[I_Dev]="I_Dev";
@@ -225,6 +232,8 @@ STR_ID[L_DEV_RW]="L_DEV_RW";
 char *strings_it[DIM];
 strings_it[S_noprog]="Programmatore non rilevato\r\n";
 strings_it[S_prog]="Programmatore rilevato\r\n";
+strings_it[S_progDev]="Programmatore rilevato su %s\r\n";
+strings_it[S_DevPermission]="Impossibile aprire %s, assicurati di avere i diritti di lettura\n";
 strings_it[S_nodev_r]="Dispositivo non supportato in lettura\r\n";
 strings_it[S_nodev_w]="Dispositivo non supportato in scrittura\r\n";
 strings_it[S_nodev]="Dispositivo sconosciuto\r\n";
@@ -249,6 +258,7 @@ strings_it[S_IhexShort]="Linea Ihex8 troppo corta:\r\n%s\r\n";
 strings_it[S_IhexChecksum]="Errore di checksum nella linea Ihex8:\r\n%s\r\n";
 strings_it[S_InvHandle]="Handle invalido\r\n";
 strings_it[S_LogFile]="Registro.txt";
+strings_it[S_FileSaved]="Salvato %s\r\n";
 					//
 strings_it[S_HVICSP]="ICSP ad alta tensione\r\n";
 strings_it[S_StartRead]="Inizio lettura...\r\n";
@@ -400,6 +410,11 @@ strings_it[S_NoConfigW4]="Impossibile trovare la locazione CONFIG (0x2008)\r\nFi
 strings_it[S_NoConfigW5]="Impossibile trovare la locazione CONFIG (0x8007-0x8008)\r\nFine\r\n";
 strings_it[S_Empty]="(vuoto)\r\n";
 					//
+strings_it[I_Fopen]="Apri file";
+strings_it[I_Fsave]="Salva file";
+strings_it[I_DevR]="Leggi dispositivo";
+strings_it[I_DevW]="Scrivi dispositivo";
+strings_it[I_Info]="Informazioni";
 strings_it[I_Data]="Dati";
 strings_it[I_Opt]="Opzioni";
 strings_it[I_Dev]="Dispositivo";
@@ -484,6 +499,8 @@ strings_it[L_DEV_RW]="Dispositivi supportati in lettura e scrittura:";
 char *strings_en[DIM];
 strings_en[S_noprog]="Programmer not detected\r\n";
 strings_en[S_prog]="Programmer detected\r\n";
+strings_en[S_progDev]="Programmer detected on %s\r\n";
+strings_en[S_DevPermission]="Cannot open %s, make sure you have read permission on it\n";
 strings_en[S_nodev_r]="Device not supported for reading\r\n";
 strings_en[S_nodev_w]="Device not supported for writing\r\n";
 strings_en[S_nodev]="Unknown device\r\n";
@@ -508,6 +525,7 @@ strings_en[S_IhexShort]="Intel hex8 line too short:\r\n%s\r\n";
 strings_en[S_IhexChecksum]="Intel hex8 checksum error in line:\r\n%s\r\n";
 strings_en[S_InvHandle]="Invalid handle\r\n";
 strings_en[S_LogFile]="Log.txt";
+strings_en[S_FileSaved]="Saved file %s\r\n";
 	//
 strings_en[S_HVICSP]="High Voltage ICSP\r\n";
 strings_en[S_StartRead]="Reading ...\r\n";
@@ -659,6 +677,11 @@ strings_en[S_NoConfigW4]="Can't find CONFIG location (0x2008)\r\nEnd\r\n";
 strings_en[S_NoConfigW5]="Can't find CONFIG location (0x8007-0x8008)\r\nEnd\r\n";
 strings_en[S_Empty]="(empty)\r\n";
 	//
+strings_en[I_Fopen]="Open file";
+strings_en[I_Fsave]="Save file";
+strings_en[I_DevR]="Read device";
+strings_en[I_DevW]="Write device";
+strings_en[I_Info]="Info";
 strings_en[I_Data]="Data";
 strings_en[I_Opt]="Options";
 strings_en[I_Dev]="Device";

@@ -30,12 +30,19 @@
 	#define _CMD
 	#include "common.h"
 #endif
+#ifdef __GTK_H__
+#define _GTKGUI
+#endif
 
 #define EQ(s) !strncmp(s,dev,64)
 
 #ifdef _MSC_VER
 #define add(l,d) m_DispoPage.m_dispo.AddString(d);
 void COpenProgDlg::AddDevices(){
+#elif defined _GTKGUI
+extern	GtkWidget * devCombo;
+#define add(l,d) gtk_combo_box_append_text(GTK_COMBO_BOX(devCombo),d);
+void AddDevices(){
 #else
 void add(char* list, const char* dev){
 	static char last[8]="";
@@ -164,6 +171,11 @@ void AddDevices(char *list){		//make sure list is long enough
 	add(list,"16F1828");
 	add(list,"16F1829");
 	add(list,"16F1847");
+	add(list,"16LF1902");
+	add(list,"16LF1903");
+	add(list,"16LF1904");
+	add(list,"16LF1906");
+	add(list,"16LF1907");
 	add(list,"16F1933");
 	add(list,"16F1934");
 	add(list,"16F1936");
@@ -287,6 +299,10 @@ void AddDevices(char *list){		//make sure list is long enough
 	add(list,"24FJ16GA004");
 	add(list,"24FJ32GA002");
 	add(list,"24FJ32GA004");
+	add(list,"24FJ32GA102");
+	add(list,"24FJ32GA104");
+	add(list,"24FJ32GB002");
+	add(list,"24FJ32GB004");
 	add(list,"24FJ48GA002");
 	add(list,"24FJ48GA004");
 	add(list,"24FJ64GA002");
@@ -294,16 +310,6 @@ void AddDevices(char *list){		//make sure list is long enough
 	add(list,"24FJ64GA006");
 	add(list,"24FJ64GA008");
 	add(list,"24FJ64GA010");
-	add(list,"24FJ96GA006");
-	add(list,"24FJ96GA008");
-	add(list,"24FJ96GA010");
-	add(list,"24FJ128GA006");
-	add(list,"24FJ128GA008");
-	add(list,"24FJ128GA010");
-	add(list,"24FJ32GA102");
-	add(list,"24FJ32GA104");
-	add(list,"24FJ32GB002");
-	add(list,"24FJ32GB004");
 	add(list,"24FJ64GA102");
 	add(list,"24FJ64GA104");
 	add(list,"24FJ64GB002");
@@ -311,6 +317,12 @@ void AddDevices(char *list){		//make sure list is long enough
 	add(list,"24FJ64GB106");
 	add(list,"24FJ64GB108");
 	add(list,"24FJ64GB110");
+	add(list,"24FJ96GA006");
+	add(list,"24FJ96GA008");
+	add(list,"24FJ96GA010");
+	add(list,"24FJ128GA006");
+	add(list,"24FJ128GA008");
+	add(list,"24FJ128GA010");
 	add(list,"24FJ128GA106");
 	add(list,"24FJ128GB106");
 	add(list,"24FJ128GA108");
@@ -457,17 +469,33 @@ void AddDevices(char *list){		//make sure list is long enough
 	add(list,"AT90S2313");
 	add(list,"AT90S8515");
 	add(list,"AT90S8535");
+	add(list,"ATmega48");
 	add(list,"ATmega8");
-	add(list,"ATmega8A");
+	add(list,"ATmega88");
 	add(list,"ATmega8515");
 	add(list,"ATmega8535");
 	add(list,"ATmega16");
-	add(list,"ATmega16A");
+	add(list,"ATmega164A");
+	add(list,"ATmega168");
 	add(list,"ATmega32");
-	add(list,"ATmega32A");
+	add(list,"ATmega324A");
+	add(list,"ATmega328");
 	add(list,"ATmega64");
-	add(list,"ATmega64A");
+	add(list,"ATmega644A");
+	add(list,"ATmega1284");
+	add(list,"ATtiny12");
+	add(list,"ATtiny13");
+	add(list,"ATtiny24");
+	add(list,"ATtiny26");
+	add(list,"ATtiny261");
 	add(list,"ATtiny2313");
+	add(list,"ATtiny44");
+	add(list,"ATtiny48");
+	add(list,"ATtiny461");
+	add(list,"ATtiny4313");
+	add(list,"ATtiny84");
+	add(list,"ATtiny88");
+	add(list,"ATtiny861");
 	add(list,"2400");
 	add(list,"2401");
 	add(list,"2402");
@@ -513,7 +541,7 @@ void AddDevices(char *list){		//make sure list is long enough
 	void Write(char* dev,int ee)
 #endif
 {
-	if(!strncmp(dev,"16F1",4)||!strncmp(dev,"16F72",5));
+	if(!strncmp(dev,"16F1",4)||!strncmp(dev,"12F1",4)||!strncmp(dev,"16F72",5));
 	else if((!strncmp(dev,"10",2)||!strncmp(dev,"12",2)||!strncmp(dev,"16",2))&&hvreg!=13) hvreg=StartHVReg(13)>0?13:0;
 //-------------PIC10-16---------------------------------------------------------
 	if(!strncmp(dev,"10",2)||!strncmp(dev,"12",2)||!strncmp(dev,"16",2)){
@@ -565,6 +593,9 @@ void AddDevices(char *list){		//make sure list is long enough
 		else if(EQ("16F722")||EQ("16F722A")){
 			Write16F72x(0x800);								//2K, vpp, 3.3V
 		}
+		else if(EQ("16LF1902")){
+			Write16F1xxx(0x800,0,0);						//2K
+		}
 		else if(EQ("16F870")||EQ("16F871")||EQ("16F872")){
 			Write16F87x(0x800,ee?0x40:0);					//2K, 64
 		}
@@ -595,6 +626,9 @@ void AddDevices(char *list){		//make sure list is long enough
 		else if(EQ("16F737")||EQ("16F747")){
 			Write16F7x(0x1000,1);							//4K, vdd no delay
 		}
+		else if(EQ("16LF1903")||EQ("16LF1904")){
+			Write16F1xxx(0x1000,0,0);						//4K
+		}
 		else if(EQ("16F873")||EQ("16F874")){
 			Write16F87x(0x1000,ee?-0x80:0);					//4K, 128, ee@0x2200
 		}
@@ -621,6 +655,9 @@ void AddDevices(char *list){		//make sure list is long enough
 		}
 		else if(EQ("16F767")||EQ("16F777")){
 			Write16F7x(0x2000,1);							//8K, vdd no delay
+		}
+		else if(EQ("16LF1906")||EQ("16LF1907")){
+			Write16F1xxx(0x2000,0,0);						//8K
 		}
 		else if(EQ("16F916")||EQ("16F917")||EQ("16F946")){
 			Write12F6xx(0x2000,ee?0x100:0);					//8K, 256
@@ -902,29 +939,47 @@ void AddDevices(char *list){		//make sure list is long enough
 	}
 //-------------ATMEL---------------------------------------------------------
 	else if(!strncmp(dev,"AT",2)){
-		if(EQ("AT90S1200")){
+		if(EQ("AT90S1200")||EQ("ATtiny12")){	//*******aggiungere FUSE
 			WriteAT(0x400,ee?0x40:0);						//1K, 64
+		}
+		else if(EQ("ATtiny13")){
+			WriteATmega(0x400,ee?0x40:0,16,0);				//1K, 64
 		}
 		else if(EQ("AT90S2313")){
 			WriteAT(0x800,ee?0x80:0);						//2K, 128
 		}
-		else if(EQ("ATtiny2313")){
+		else if(EQ("ATtiny2313")||EQ("ATtiny26")){
 			WriteATmega(0x800,ee?0x80:0,16,SLOW);			//2K, 128
+		}
+		else if(EQ("ATtiny24")||EQ("ATtiny261")){
+			WriteATmega(0x800,ee?0x80:0,16,0);				//2K, 128
+		}
+		else if(EQ("ATtiny48")){
+			WriteATmega(0x1000,ee?0x40:0,32,0);				//4K, 64
+		}
+		else if(EQ("ATtiny44")||EQ("ATtiny461")||EQ("ATtiny4313")||EQ("ATmega48")){
+			WriteATmega(0x1000,ee?0x100:0,32,0);			//4K, 256
+		}
+		else if(EQ("ATtiny88")){
+			WriteATmega(0x2000,ee?0x40:0,32,0);				//8K, 64
 		}
 		else if(EQ("AT90S8515")||EQ("AT90S8535")){
 			WriteAT(0x2000,ee?0x100:0);						//8K, 256
 		}
-		else if(EQ("ATmega8")||EQ("ATmega8A")||EQ("ATmega8515")||EQ("ATmega8535")){
+		else if(EQ("ATmega8")||EQ("ATmega88")||EQ("ATmega8515")||EQ("ATmega8535")||EQ("ATtiny84")||EQ("ATtiny861")){
 			WriteATmega(0x2000,ee?0x200:0,32,0);				//8K, 512
 		}
-		else if(EQ("ATmega16")||EQ("ATmega16A")){
+		else if(EQ("ATmega16")||EQ("ATmega164A")||EQ("ATmega168")){
 			WriteATmega(0x4000,ee?0x200:0,64,0);				//16K, 512
 		}
-		else if(EQ("ATmega32")||EQ("ATmega32A")){
+		else if(EQ("ATmega32")||EQ("ATmega324A")||EQ("ATmega328")){
 			WriteATmega(0x8000,ee?0x400:0,64,0);				//32K, 1K
 		}
-		else if(EQ("ATmega64")||EQ("ATmega64A")){
+		else if(EQ("ATmega64")||EQ("ATmega644A")){
 			WriteATmega(0x10000,ee?0x800:0,128,0);			//64K, 2K
+		}
+		else if(EQ("ATmega1284")){
+			WriteATmega(0x20000,ee?0x1000:0,128,0);			//128K, 4K
 		}
 		else{
 			PrintMessage(strings[S_nodev_w]); //"Device not supported for writing\r\n");
@@ -933,47 +988,47 @@ void AddDevices(char *list){		//make sure list is long enough
 //-------------I2C---------------------------------------------------------
 	else if(!strncmp(dev,"24",2)||!strncmp(dev,"25",2)||!strncmp(dev,"93",2)){
 		if(EQ("2400")){
-			WriteI2C(0x10,0,1,10);			//16, 1B addr.
+			WriteI2C(0x10,0,1);			//16, 1B addr.
 		}
 		else if(EQ("2401")){
-			WriteI2C(0x80,0,8,10);			//128, 1B addr.
+			WriteI2C(0x80,0,8);			//128, 1B addr.
 		}
 		else if(EQ("2402")){
-			WriteI2C(0x100,0,8,10);			//256, 1B addr.
+			WriteI2C(0x100,0,8);			//256, 1B addr.
 		}
 		else if(EQ("2404")){
-			WriteI2C(0x200,0,16,10);		//512, 1B addr.
+			WriteI2C(0x200,0,16);		//512, 1B addr.
 		}
 		else if(EQ("2408")){
-			WriteI2C(0x400,0,16,10);		//1K, 1B addr.
+			WriteI2C(0x400,0,16);		//1K, 1B addr.
 		}
 		else if(EQ("2416")){
-			WriteI2C(0x800,0,16,10);		//2K, 1B addr.
+			WriteI2C(0x800,0,16);		//2K, 1B addr.
 		}
 		else if(EQ("2432")){
-			WriteI2C(0x1000,1,32,5);		//4K, 2B addr.
+			WriteI2C(0x1000,1,32);		//4K, 2B addr.
 		}
 		else if(EQ("2464")){
-			WriteI2C(0x2000,1,32,5);		//8K, 2B addr.
+			WriteI2C(0x2000,1,32);		//8K, 2B addr.
 		}
 		else if(EQ("24128")){
-			WriteI2C(0x4000,1,64,5);		//16K, 2B addr.
+			WriteI2C(0x4000,1,64);		//16K, 2B addr.
 		}
 		else if(EQ("24256")){
-			WriteI2C(0x8000,1,64,5);		//32K, 2B addr.
+			WriteI2C(0x8000,1,64);		//32K, 2B addr.
 		}
 		else if(EQ("24512")){
-			WriteI2C(0x10000,1,128,5);		//64K, 2B addr.
+			WriteI2C(0x10000,1,128);		//64K, 2B addr.
 		}
 		else if(EQ("241024")){
-			WriteI2C(0x20000,0x201,256,5);	//128K, 2B addr.
+			WriteI2C(0x20000,0x201,256);	//128K, 2B addr.
 		}
 		else if(EQ("241025")){
-			WriteI2C(0x20000,0x841,128,5);	//128K, 2B addr.
+			WriteI2C(0x20000,0x841,128);	//128K, 2B addr.
 		}
 //-------------Microwire EEPROM---------------------------------------------------------
 		else if(EQ("93S46")){
-			Write93Sx(0x80,6,8,10);							//128, 4W page, 10ms
+			Write93Sx(0x80,6,8);						//128, 4W page
 		}
 		else if(EQ("93x46")){
 			Write93Cx(0x80,6,0);							//128,
@@ -982,7 +1037,7 @@ void AddDevices(char *list){		//make sure list is long enough
 			Write93Cx(0x80,7,1);							//128, x8
 		}
 		else if(EQ("93S56")){
-			Write93Sx(0x100,8,8,10);						//256, 4W page, 10ms
+			Write93Sx(0x100,8,8);						//256, 4W page
 		}
 		else if(EQ("93x56")){
 			Write93Cx(0x100,8,0);							//256,
@@ -991,7 +1046,7 @@ void AddDevices(char *list){		//make sure list is long enough
 			Write93Cx(0x100,9,1);							//256, x8
 		}
 		else if(EQ("93S66")){
-			Write93Sx(0x200,8,8,10);						//512, 4W page, 10ms
+			Write93Sx(0x200,8,8);						//512, 4W page
 		}
 		else if(EQ("93x66")){
 			Write93Cx(0x200,8,0);						//512,
@@ -1013,37 +1068,37 @@ void AddDevices(char *list){		//make sure list is long enough
 		}
 //-------------SPI---------------------------------------------------------
 		else if(EQ("25010")){
-			Write25xx(0x80,16,10);								//128
+			Write25xx(0x80,16);									//128
 		}
 		else if(EQ("25020")){
-			Write25xx(0x100,16,10);								//256
+			Write25xx(0x100,16);								//256
 		}
 		else if(EQ("25040")){
-			Write25xx(0x200,16,10);								//512
+			Write25xx(0x200,16);								//512
 		}
 		else if(EQ("25080")){
-			Write25xx(0x400,16,5);								//1K
+			Write25xx(0x400,16);								//1K
 		}
 		else if(EQ("25160")){
-			Write25xx(0x800,16,5);								//2K
+			Write25xx(0x800,16);								//2K
 		}
 		else if(EQ("25320")){
-			Write25xx(0x1000,32,5);								//4K
+			Write25xx(0x1000,32);								//4K
 		}
 		else if(EQ("25640")){
-			Write25xx(0x2000,32,5);								//8K
+			Write25xx(0x2000,32);								//8K
 		}
 		else if(EQ("25128")){
-			Write25xx(0x4000,64,5);								//16K
+			Write25xx(0x4000,64);								//16K
 		}
 		else if(EQ("25256")){
-			Write25xx(0x8000,64,5);								//32K
+			Write25xx(0x8000,64);								//32K
 		}
 		else if(EQ("25512")){
-			Write25xx(0x10000,128,6);							//64K
+			Write25xx(0x10000,128);								//64K
 		}
 		else if(EQ("251024")){
-			Write25xx(0x20000,256,5);							//128K
+			Write25xx(0x20000,256);								//128K
 		}
 		else{
 			PrintMessage(strings[S_nodev_w]); //"Device not supported for writing\r\n");
@@ -1062,7 +1117,7 @@ void AddDevices(char *list){		//make sure list is long enough
 	void Read(char* dev,int ee,int r)
 #endif
 {
-	if(!strncmp(dev,"16F1",4));
+	if(!strncmp(dev,"16F1",4)||!strncmp(dev,"12F1",4));
 	else if(!strncmp(dev,"16F72",5)){
 		if(!CheckV33Regulator()){
 			PrintMessage(strings[S_noV33reg]);	//Can't find 3.3V expansion board
@@ -1136,6 +1191,9 @@ void AddDevices(char *list){		//make sure list is long enough
 		else if(EQ("16F616")){
 			Read16Fxxx(0x800,0,r?0x40:9,0);					//2K, vpp, cal1
 		}
+		else if(EQ("16LF1902")){
+			Read16F1xxx(0x800,0,r?0x200:11,0);				//2K, vpp
+		}
 		else if(EQ("16F870")||EQ("16F871")||EQ("16F872")){
 			Read16Fxxx(0x800,ee?0x40:0,r?0x100:8,1);		//2K, 64, vdd
 		}
@@ -1172,6 +1230,9 @@ void AddDevices(char *list){		//make sure list is long enough
 		else if(EQ("16F723")||EQ("16F723A")||EQ("16F724")){
 			Read16Fxxx(0x1000,0,r?0x100:11,0);				//4K, vpp, config1-2 + cal1-2, 3.3V
 		}
+		else if(EQ("16LF1903")||EQ("16LF1904")){
+			Read16F1xxx(0x1000,0,r?0x200:11,0);				//4K, vpp
+		}
 		else if(EQ("16F873A")||EQ("16F874A")){
 			Read16Fxxx(0x1000,ee?0x80:0,r?0x100:8,1);		//4K, 128, vdd
 		}
@@ -1207,6 +1268,9 @@ void AddDevices(char *list){		//make sure list is long enough
 		}
 		else if(EQ("16F726")||EQ("16F727")){
 			Read16Fxxx(0x2000,0,r?0x100:11,0);				//8K, vpp, config1-2 + cal1-2, 3.3V
+		}
+		else if(EQ("16LF1906")||EQ("16LF1907")){
+			Read16F1xxx(0x2000,0,r?0x200:11,0);				//8K, vpp
 		}
 		else if(EQ("16F876A")||EQ("16F877A")){
 			Read16Fxxx(0x2000,ee?0x100:0,r?0x100:8,1);		//8K, 256, vdd
@@ -1354,6 +1418,9 @@ void AddDevices(char *list){		//make sure list is long enough
 		else if(EQ("24FJ64GA002")||EQ("24FJ64GA004")||EQ("24FJ64GA006")||EQ("24FJ64GA008")||EQ("24FJ64GA010")){
 			Read24Fx(0xAC00,0,0,0x05BE,r?0x800:0);					//22KW
 		}
+		else if(EQ("24FJ64GA102")||EQ("24FJ64GA104")||EQ("24FJ64GB002")||EQ("24FJ64GB004")){
+			Read24Fx(0xAC00,0,0,0x07F0,r?0x800:0);					//22KW
+		}
 		else if(EQ("24FJ64GB106")||EQ("24FJ64GB108")||EQ("24FJ64GB110")){
 			Read24Fx(0xAC00,0,0x10,0x07F0,r?0x800:0);					//22KW
 		}
@@ -1429,26 +1496,59 @@ void AddDevices(char *list){		//make sure list is long enough
 		if(EQ("AT90S1200")){
 			ReadAT(0x400,ee?0x40:0,0);							//1K, 64
 		}
+		if(EQ("ATtiny12")){
+			ReadAT(0x400,ee?0x40:0,LOCK+FUSE+CAL);					//1K, 64
+		}
+		if(EQ("ATtiny13")){
+			ReadAT(0x400,ee?0x40:0,LOCK+FUSE+FUSE_H+CAL);			//1K, 64
+		}
 		else if(EQ("AT90S2313")){
 			ReadAT(0x800,ee?0x80:0,0);							//2K, 128
+		}
+		else if(EQ("ATtiny26")){
+			ReadAT(0x800,ee?0x80:0,LOCK+FUSE+FUSE_H+CAL+SLOW);			//2K, 128
+		}
+		else if(EQ("ATtiny261")||EQ("ATtiny24")){
+			ReadAT(0x800,ee?0x80:0,LOCK+FUSE+FUSE_H+FUSE_X+CAL);	//2K, 128
 		}
 		else if(EQ("ATtiny2313")){
 			ReadAT(0x800,ee?0x80:0,LOCK+FUSE+FUSE_H+FUSE_X+CAL+SLOW);//2K, 128
 		}
+		else if(EQ("ATtiny48")){
+			ReadAT(0x1000,ee?0x40:0,LOCK+FUSE+FUSE_H+FUSE_X+CAL);		//4K, 64
+		}
+		else if(EQ("ATtiny44")||EQ("ATtiny461")||EQ("ATtiny4313")||EQ("ATmega48")){
+			ReadAT(0x1000,ee?0x100:0,LOCK+FUSE+FUSE_H+FUSE_X+CAL);	//4K, 256
+		}
+		else if(EQ("ATtiny88")){
+			ReadAT(0x2000,ee?0x40:0,LOCK+FUSE+FUSE_H+FUSE_X+CAL);		//8K, 64
+		}
 		else if(EQ("AT90S8515")||EQ("AT90S8535")){
 			ReadAT(0x2000,ee?0x100:0,0);						//8K, 256
 		}
-		else if(EQ("ATmega8")||EQ("ATmega8A")||EQ("ATmega8515")||EQ("ATmega8535")){
+		else if(EQ("ATmega8")||EQ("ATmega8515")||EQ("ATmega8535")){
 			ReadAT(0x2000,ee?0x200:0,LOCK+FUSE+FUSE_H+CAL);		//8K, 512
 		}
-		else if(EQ("ATmega16")||EQ("ATmega16A")){
+		else if(EQ("ATmega88")||EQ("ATtiny84")||EQ("ATtiny861")){
+			ReadAT(0x2000,ee?0x200:0,LOCK+FUSE+FUSE_H+FUSE_X+CAL);	//8K, 512
+		}
+		else if(EQ("ATmega16")){
 			ReadAT(0x4000,ee?0x200:0,LOCK+FUSE+FUSE_H+CAL);		//16K, 512
 		}
-		else if(EQ("ATmega32")||EQ("ATmega32A")){
+		else if(EQ("ATmega164A")||EQ("ATmega168")){
+			ReadAT(0x4000,ee?0x200:0,LOCK+FUSE+FUSE_H+FUSE_X+CAL);	//16K, 512
+		}
+		else if(EQ("ATmega32")){
 			ReadAT(0x8000,ee?0x400:0,LOCK+FUSE+FUSE_H+CAL);		//32K, 1K
 		}
-		else if(EQ("ATmega64")||EQ("ATmega64A")){
+		else if(EQ("ATmega324A")||EQ("ATmega328")){
+			ReadAT(0x8000,ee?0x400:0,LOCK+FUSE+FUSE_H+FUSE_X+CAL);	//32K, 1K
+		}
+		else if(EQ("ATmega64")||EQ("ATmega644A")){
 			ReadAT(0x10000,ee?0x800:0,LOCK+FUSE+FUSE_H+FUSE_X+CAL);	//64K, 2K
+		}
+		else if(EQ("ATmega1284")){
+			ReadAT(0x20000,ee?0x1000:0,LOCK+FUSE+FUSE_H+FUSE_X+CAL);	//128K, 4K
 		}
 		else{
 			PrintMessage(strings[S_nodev_r]); //"Device not supported for reading\r\n");

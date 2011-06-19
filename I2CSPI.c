@@ -30,9 +30,15 @@
 	#define _CMD
 	#include "common.h"
 #endif
+#ifdef __GTK_H__
+#define _GTKGUI
+#endif
+
 
 #ifdef _MSC_VER
 	#define printM(id) m_I2CSPIPage.SetDlgItemText(IDC_STRU,id);
+#elif defined _GTKGUI
+	#define printM(id) PrintMessageI2C(id);
 #else
 	#define printM(id) printf(id);
 #endif
@@ -144,7 +150,7 @@
 			fflush(stdout);
 		}
 	}
-
+	else printM(strings[S_ComErr]);
 }
 
 #ifdef _MSC_VER
