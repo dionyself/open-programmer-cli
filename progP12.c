@@ -24,10 +24,8 @@
 
 //configure for GUI or command-line
 #ifdef _MSC_VER 
-	#define _GUI
 	#include "msvc_common.h"
 #else 
-	#define _CMD
 #include "common.h"
 #endif
 
@@ -47,8 +45,8 @@ void Read12F5xx(int dim,int dim2)
 	char s[256],t[256];
 	if(dim2<4) dim2=4;
 	sizeW=0x1000;
-	if(dati_hex) free(dati_hex);
-	dati_hex=(WORD*)malloc(sizeof(WORD)*sizeW);
+	if(memCODE_W) free(memCODE_W);
+	memCODE_W=(WORD*)malloc(sizeof(WORD)*sizeW);
 	if(saveLog){
 		OpenLogFile();	//"Log.txt"
 		fprintf(logfile,"Read12F5xx(%d,%d)\n",dim,dim2);
@@ -83,10 +81,10 @@ void Read12F5xx(int dim,int dim2)
 	if(saveLog)WriteLogIO();
 	for(z=0;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
 	if(z<DIMBUF-2){
-		dati_hex[0xfff]=(bufferI[z+1]<<8)+bufferI[z+2];
+		memCODE_W[0xfff]=(bufferI[z+1]<<8)+bufferI[z+2];
 		PrintMessage("\r\n");
-		PrintMessage1(strings[S_ConfigWord],dati_hex[0xfff]);	//"\r\nConfiguration word: 0x%03X\r\n"
-		switch(dati_hex[0xfff]&0x03){
+		PrintMessage1(strings[S_ConfigWord],memCODE_W[0xfff]);	//"\r\nConfiguration word: 0x%03X\r\n"
+		switch(memCODE_W[0xfff]&0x03){
 			case 0:
 				PrintMessage(strings[S_LPOsc]);	//"LP oscillator\r\n"
 				break;
@@ -100,11 +98,11 @@ void Read12F5xx(int dim,int dim2)
 				PrintMessage(strings[S_RCOsc]);	//"RC oscillator\r\n"
 				break;
 		}
-		if(dati_hex[0xfff]&0x04) PrintMessage(strings[S_WDTON]);	//"WDT ON\r\n"
+		if(memCODE_W[0xfff]&0x04) PrintMessage(strings[S_WDTON]);	//"WDT ON\r\n"
 		else PrintMessage(strings[S_WDTOFF]);	//"WDT OFF\r\n"
-		if(dati_hex[0xfff]&0x08) PrintMessage(strings[S_CPOFF]);	//"Code protection OFF\r\n"
+		if(memCODE_W[0xfff]&0x08) PrintMessage(strings[S_CPOFF]);	//"Code protection OFF\r\n"
 		else PrintMessage(strings[S_CPON]);	//"Code protection ON\r\n"
-		if(dati_hex[0xfff]&0x10) PrintMessage(strings[S_MCLRON]);	//"Master clear ON\r\n"
+		if(memCODE_W[0xfff]&0x10) PrintMessage(strings[S_MCLRON]);	//"Master clear ON\r\n"
 		else PrintMessage(strings[S_MCLROFF]);	//"Master clear OFF\r\n"
 	}
 	else PrintMessage(strings[S_NoConfigW]);	//"Impossible to read config word\r\n"
@@ -122,7 +120,7 @@ void Read12F5xx(int dim,int dim2)
 			read();
 			for(z=1;z<DIMBUF-2;z++){
 				if(bufferI[z]==READ_DATA_PROG){
-					dati_hex[k++]=(bufferI[z+1]<<8)+bufferI[z+2];
+					memCODE_W[k++]=(bufferI[z+1]<<8)+bufferI[z+2];
 					z+=2;
 				}
 			}
@@ -150,7 +148,7 @@ void Read12F5xx(int dim,int dim2)
 	read();
 	unsigned int stop=GetTickCount();
 	if(saveLog)CloseLogFile();
-	for(i=k;i<0xfff;i++) dati_hex[i]=0xfff;
+	for(i=k;i<0xfff;i++) memCODE_W[i]=0xfff;
 	if(k!=dim+dim2){
 		PrintMessage("\r\n");
 		PrintMessage2(strings[S_ReadErr],dim+dim2,k);	//"Error reading, requested %d words, read %d\r\n"
@@ -158,10 +156,10 @@ void Read12F5xx(int dim,int dim2)
 	else PrintMessage(strings[S_Compl]);
 //****************** visualize ********************
 	for(i=0;i<4;i+=2){
-		PrintMessage4(strings[S_ChipID],i,dati_hex[dim+i],i+1,dati_hex[dim+i+1]);	//"ID%d: 0x%03X   ID%d: 0x%03X\r\n"
+		PrintMessage4(strings[S_ChipID],i,memCODE_W[dim+i],i+1,memCODE_W[dim+i+1]);	//"ID%d: 0x%03X   ID%d: 0x%03X\r\n"
 	}
 	if(dim2>4){
-		PrintMessage1(strings[S_BKOsccal],dati_hex[dim+4]);	//"Backup OSCCAL: 0x%03X\r\n"
+		PrintMessage1(strings[S_BKOsccal],memCODE_W[dim+4]);	//"Backup OSCCAL: 0x%03X\r\n"
 	}
 	PrintMessage(strings[S_CodeMem]);	//"\r\nCode memory\r\n"
 	s[0]=0;
@@ -171,9 +169,9 @@ void Read12F5xx(int dim,int dim2)
 	for(i=0;i<dim;i+=COL){
 		valid=0;
 		for(j=i;j<i+COL&&j<dim;j++){
-			sprintf(t,"%03X ",dati_hex[j]);
+			sprintf(t,"%03X ",memCODE_W[j]);
 			strcat(s,t);
-			if(dati_hex[j]<0xfff) valid=1;
+			if(memCODE_W[j]<0xfff) valid=1;
 		}
 		if(valid){
 			sprintf(t,"%04X: %s\r\n",i,s);
@@ -194,9 +192,9 @@ void Read12F5xx(int dim,int dim2)
 		for(i=dim;i<dim+dim2;i+=COL){
 			valid=0;
 			for(j=i;j<i+COL&&j<dim+64;j++){
-				sprintf(t,"%03X ",dati_hex[j]);
+				sprintf(t,"%03X ",memCODE_W[j]);
 				strcat(s,t);
-				if(dati_hex[j]<0xfff) valid=1;
+				if(memCODE_W[j]<0xfff) valid=1;
 			}
 			if(valid){
 				sprintf(t,"%04X: %s\r\n",i,s);
@@ -242,7 +240,7 @@ void Write12F5xx(int dim,int OscAddr)
 		OpenLogFile();	//"Log.txt"
 		fprintf(logfile,"Write12F5xx(%d,%d)\n",dim,OscAddr);
 	}
-	for(i=0;i<sizeW;i++) dati_hex[i]&=0xFFF;
+	for(i=0;i<sizeW;i++) memCODE_W[i]&=0xFFF;
 	unsigned int start=GetTickCount();
 	bufferU[0]=0;
 	j=1;
@@ -376,14 +374,14 @@ void Write12F5xx(int dim,int OscAddr)
 	PrintStatusSetup();
 	int dim1=dim;
 	if(programID) dim1=dim+5;
-	if(dati_hex[dim+4]>=0xFFF) dati_hex[dim+4]=BKosccal;  //reload BKosccal if not present
-	if(use_BKosccal) dati_hex[OscAddr]=BKosccal;
-	else if(use_osccal) dati_hex[OscAddr]=osccal;
+	if(memCODE_W[dim+4]>=0xFFF) memCODE_W[dim+4]=BKosccal;  //reload BKosccal if not present
+	if(use_BKosccal) memCODE_W[OscAddr]=BKosccal;
+	else if(use_osccal) memCODE_W[OscAddr]=osccal;
 	for(i=k=w=0,j=1;i<dim1;i++){
-		if(dati_hex[i]<0xfff){
+		if(memCODE_W[i]<0xfff){
 			bufferU[j++]=LOAD_DATA_PROG;
-			bufferU[j++]=dati_hex[i]>>8;		//MSB
-			bufferU[j++]=dati_hex[i]&0xff;		//LSB
+			bufferU[j++]=memCODE_W[i]>>8;		//MSB
+			bufferU[j++]=memCODE_W[i]&0xff;		//LSB
 			bufferU[j++]=BEGIN_PROG;
 			bufferU[j++]=WAIT_T3;				//Tprogram 2ms
 			bufferU[j++]=END_PROG2;
@@ -401,11 +399,11 @@ void Write12F5xx(int dim,int OscAddr)
 			w=0;
 			read();
 			for(z=1;z<DIMBUF-7;z++){
-				if(bufferI[z]==INC_ADDR&&dati_hex[k]>=0xfff) k++;
+				if(bufferI[z]==INC_ADDR&&memCODE_W[k]>=0xfff) k++;
 				else if(bufferI[z]==LOAD_DATA_PROG&&bufferI[z+5]==READ_DATA_PROG){
-					if (dati_hex[k]!=(bufferI[z+6]<<8)+bufferI[z+7]){
+					if (memCODE_W[k]!=(bufferI[z+6]<<8)+bufferI[z+7]){
 						PrintMessage("\r\n");
-						PrintMessage3(strings[S_CodeWError],k,dati_hex[k],(bufferI[z+6]<<8)+bufferI[z+7]);	//"Errore in scrittura all'indirizzo %3X: scritto %03X, letto %03X\r\n"
+						PrintMessage3(strings[S_CodeWError],k,memCODE_W[k],(bufferI[z+6]<<8)+bufferI[z+7]);	//"Errore in scrittura all'indirizzo %3X: scritto %03X, letto %03X\r\n"
 						err++;
 						if(max_err&&err>max_err){
 							PrintMessage1(strings[S_MaxErr],err);	//"Exceeded maximum number of errors (%d), write interrupted\r\n"
@@ -449,8 +447,8 @@ void Write12F5xx(int dim,int OscAddr)
 	bufferU[j++]=EN_VPP_VCC;
 	bufferU[j++]=0x5;
 	bufferU[j++]=LOAD_DATA_PROG;	//config word
-	bufferU[j++]=dati_hex[0xfff]>>8;			//MSB
-	bufferU[j++]=dati_hex[0xfff]&0xff;			//LSB
+	bufferU[j++]=memCODE_W[0xfff]>>8;			//MSB
+	bufferU[j++]=memCODE_W[0xfff]&0xff;			//LSB
 	bufferU[j++]=BEGIN_PROG;
 	bufferU[j++]=WAIT_T3;			//Tprogram 2ms
 	bufferU[j++]=END_PROG2;
@@ -470,9 +468,9 @@ void Write12F5xx(int dim,int OscAddr)
 	read();
 	unsigned int stop=GetTickCount();
 	for(z=10;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
-	if (~dati_hex[0xfff]&((bufferI[z+1]<<8)+bufferI[z+2])){	//error if written 0 and read 1 (~W&R)
+	if (~memCODE_W[0xfff]&((bufferI[z+1]<<8)+bufferI[z+2])){	//error if written 0 and read 1 (~W&R)
 		PrintMessage("\r\n");
-		PrintMessage2(strings[S_ConfigWErr],dati_hex[0xfff],(bufferI[z+1]<<8)+bufferI[z+2]);	//"Errore in Write CONFIG:\r\ndato scritto %03X, letto %03X\r\n"
+		PrintMessage2(strings[S_ConfigWErr],memCODE_W[0xfff],(bufferI[z+1]<<8)+bufferI[z+2]);	//"Errore in Write CONFIG:\r\ndato scritto %03X, letto %03X\r\n"
 		err_c++;
 	}
 	err+=err_c;
@@ -514,7 +512,7 @@ void Write12C5xx(int dim)
 		OpenLogFile();	//"Log.txt"
 		fprintf(logfile,"Write12C5xx(%d)\n",dim);
 	}
-	for(i=0;i<sizeW;i++) dati_hex[i]&=0xFFF;
+	for(i=0;i<sizeW;i++) memCODE_W[i]&=0xFFF;
 	unsigned int start=GetTickCount();
 	bufferU[0]=0;
 	j=1;
@@ -590,17 +588,17 @@ void Write12C5xx(int dim)
 	int N,Nt=0,Nmin=255,Nmax=0,xN=0;
 	int dim1=dim;
 	if(programID) dim1=dim+5;
-	if(use_osccal) dati_hex[OscAddr]=osccal;
+	if(use_osccal) memCODE_W[OscAddr]=osccal;
 	for(i=k=0,j=1;i<dim1;i++){
-		if(dati_hex[i]<0xfff){
+		if(memCODE_W[i]<0xfff){
 			bufferU[j++]=PROG_C;				//prog&verify with 8 pulses and 11N overpulses
-			bufferU[j++]=dati_hex[i]>>8;		//MSB
-			bufferU[j++]=dati_hex[i]&0xff;		//LSB
+			bufferU[j++]=memCODE_W[i]>>8;		//MSB
+			bufferU[j++]=memCODE_W[i]&0xff;		//LSB
 			bufferU[j++]=READ_DATA_PROG;
 			bufferU[j++]=READ_ADC;
 			bufferU[j++]=INC_ADDR;
 		}
-		else for(;dati_hex[i]>=0xfff&&j<DIMBUF-3;i++) bufferU[j++]=INC_ADDR;
+		else for(;memCODE_W[i]>=0xfff&&j<DIMBUF-3;i++) bufferU[j++]=INC_ADDR;
 		PrintStatus(strings[S_CodeWriting],i*100/dim,i);	//"Write: %d%%, ind. %03X"
 		bufferU[j++]=FLUSH;
 		for(;j<DIMBUF;j++) bufferU[j]=0x0;
@@ -610,7 +608,7 @@ void Write12C5xx(int dim)
 		j=1;
 		if(saveLog)WriteLogIO();
 		for(z=1;z<DIMBUF;z++){
-			if(bufferI[z]==INC_ADDR&&dati_hex[k]>=0xfff) k++;
+			if(bufferI[z]==INC_ADDR&&memCODE_W[k]>=0xfff) k++;
 			else if(bufferI[z]==PROG_C&&bufferI[z+2]==READ_DATA_PROG){
 				N=bufferI[z+1];
 				if(N<0xF0){
@@ -619,9 +617,9 @@ void Write12C5xx(int dim)
 					if(N<Nmin)Nmin=N;
 					if(N>Nmax)Nmax=N;
 				}
-				if(dati_hex[k]!=(bufferI[z+3]<<8)+bufferI[z+4]){
+				if(memCODE_W[k]!=(bufferI[z+3]<<8)+bufferI[z+4]){
 					PrintMessage("\r\n");
-					PrintMessage3(strings[S_CodeWError],k,dati_hex[k],(bufferI[z+3]<<8)+bufferI[z+4]);	//"Errore in scrittura all'indirizzo %3X: scritto %03X, letto %03X\r\n"
+					PrintMessage3(strings[S_CodeWError],k,memCODE_W[k],(bufferI[z+3]<<8)+bufferI[z+4]);	//"Errore in scrittura all'indirizzo %3X: scritto %03X, letto %03X\r\n"
 					err++;
 					if(max_err&&err>max_err){
 						PrintMessage1(strings[S_MaxErr],err);	//"Exceeded maximum number of errors (%d), write interrupted\r\n"
@@ -661,7 +659,7 @@ void Write12C5xx(int dim)
 	PrintStatusEnd();
 	err+=i-k;
 	PrintMessage1(strings[S_ComplErr],err);	//"completed, %d errors\r\n"
-	PrintMessage3("Programming pulses: avg %.1f, min %d, max %d\r\n",Nt/xN,Nmin,Nmax);
+	PrintMessage3("Programming pulses: avg %.1f, min %d, max %d\r\n",(double)Nt/xN,Nmin,Nmax);
 //****************** write CONFIG ********************
 	PrintMessage(strings[S_ConfigW]);	//"Write CONFIG ... "
 	int err_c=0;
@@ -675,8 +673,8 @@ void Write12C5xx(int dim)
 	bufferU[j++]=EN_VPP_VCC;
 	bufferU[j++]=0x5;
 	bufferU[j++]=LOAD_DATA_PROG;	//config word
-	bufferU[j++]=dati_hex[0xfff]>>8;			//MSB
-	bufferU[j++]=dati_hex[0xfff]&0xff;			//LSB
+	bufferU[j++]=memCODE_W[0xfff]>>8;			//MSB
+	bufferU[j++]=memCODE_W[0xfff]&0xff;			//LSB
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
 	write();
@@ -715,9 +713,9 @@ void Write12C5xx(int dim)
 	if(saveLog)WriteLogIO();
 	unsigned int stop=GetTickCount();
 	for(z=10;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
-	if (~dati_hex[0xfff]&((bufferI[z+1]<<8)+bufferI[z+2])){	//error if written 0 and read 1 (~W&R)
+	if (~memCODE_W[0xfff]&((bufferI[z+1]<<8)+bufferI[z+2])){	//error if written 0 and read 1 (~W&R)
 		PrintMessage("\r\n");
-		PrintMessage2(strings[S_ConfigWErr],dati_hex[0xfff],(bufferI[z+1]<<8)+bufferI[z+2]);	//"Errore in Write CONFIG:\r\ndato scritto %03X, letto %03X\r\n"
+		PrintMessage2(strings[S_ConfigWErr],memCODE_W[0xfff],(bufferI[z+1]<<8)+bufferI[z+2]);	//"Errore in Write CONFIG:\r\ndato scritto %03X, letto %03X\r\n"
 		err_c++;
 	}
 	err+=err_c;
@@ -734,4 +732,3 @@ void Write12C5xx(int dim)
 	PrintMessage3(strings[S_EndErr],(stop-start)/1000.0,err,err!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nEnd (%.2f s) %d %s\r\n\r\n"
 	PrintStatusClear();			//clear status report
 }
-

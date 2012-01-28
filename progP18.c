@@ -36,137 +36,172 @@ struct ID18{
 	char *device;
 	int revmask;
 } PIC18LIST[]={
-		0x0400,"18F252/2539 rev%d\r\n",0x1F,
-		0x0420,"18F452/4539 rev%d\r\n",0x1F,
-		0x0480,"18F242/2439 rev%d\r\n",0x1F,
-		0x04A0,"18F442/4439 rev%d\r\n",0x1F,
-		0x0500,"18F2320 rev%d\r\n",0x1F,
-		0x0520,"18F4320 rev%d\r\n",0x1F,
-		0x0580,"18F2220 rev%d\r\n",0x1F,
-		0x05A0,"18F4220 rev%d\r\n",0x1F,
-		0x07C0,"18F1320 rev%d\r\n",0x1F,
-		0x07E0,"18F1220 rev%d\r\n",0x1F,
-		0x0800,"18F248 rev%d\r\n",0x1F,
-		0x0820,"18F448 rev%d\r\n",0x1F,
-		0x0840,"18F258 rev%d\r\n",0x1F,
-		0x0860,"18F458 rev%d\r\n",0x1F,
-		0x0880,"18F4431 rev%d\r\n",0x1F,
-		0x08A0,"18F4331 rev%d\r\n",0x1F,
-		0x08C0,"18F2431 rev%d\r\n",0x1F,
-		0x08E0,"18F2331 rev%d\r\n",0x1F,
-		0x0C00,"18F4620 rev%d\r\n",0x1F,
-		0x0C20,"18F4610 rev%d\r\n",0x1F,
-		0x0C40,"18F4525 rev%d\r\n",0x1F,
-		0x0C60,"18F4515 rev%d\r\n",0x1F,
-		0x0C80,"18F2620 rev%d\r\n",0x1F,
-		0x0CA0,"18F2610 rev%d\r\n",0x1F,
-		0x0CC0,"18F2525 rev%d\r\n",0x1F,
-		0x0CE0,"18F2515 rev%d\r\n",0x1F,
-		0x0E80,"18F4680 rev%d\r\n",0x1F,
-		0x0EA0,"18F4585 rev%d\r\n",0x1F,
-		0x0EC0,"18F2680 rev%d\r\n",0x1F,
-		0x0EE0,"18F2585 rev%d\r\n",0x1F,
-		0x1081,"18F4523 rev%d\r\n",0x0F,
-		0x1080,"18F4520 rev%d\r\n",0x0F,
-		0x10A0,"18F4510 rev%d\r\n",0x1F,
-		0x10C1,"18F4423 rev%d\r\n",0x0F,
-		0x10C0,"18F4420 rev%d\r\n",0x0F,
-		0x10E0,"18F4410 rev%d\r\n",0x1F,
-		0x1100,"18F2523 rev%d\r\n",0x0F,
-		0x1100,"18F2520 rev%d\r\n",0x0F,
-		0x1120,"18F2510 rev%d\r\n",0x1F,
-		0x1140,"18F2423 rev%d\r\n",0x0F,
-		0x1140,"18F2420 rev%d\r\n",0x0F,
-		0x1160,"18F2410 rev%d\r\n",0x1F,
-		0x1200,"18F4550 rev%d\r\n",0x1F,
-		0x1220,"18F4455 rev%d\r\n",0x1F,
-		0x1240,"18F2550 rev%d\r\n",0x1F,
-		0x1260,"18F2455 rev%d\r\n",0x1F,
-		0x1340,"18F6527 rev%d\r\n",0x1F,
-		0x1360,"18F8527 rev%d\r\n",0x1F,
-		0x1380,"18F6622 rev%d\r\n",0x1F,
-		0x13A0,"18F8622 rev%d\r\n",0x1F,
-		0x13C0,"18F6627 rev%d\r\n",0x1F,
-		0x13E0,"18F8627 rev%d\r\n",0x1F,
-		0x1400,"18F6722 rev%d\r\n",0x1F,
-		0x1420,"18F8722 rev%d\r\n",0x1F,
-		0x1A80,"18F4580 rev%d\r\n",0x1F,
-		0x1AA0,"18F4480 rev%d\r\n",0x1F,
-		0x1AC0,"18F2580 rev%d\r\n",0x1F,
-		0x1AE0,"18F2480 rev%d\r\n",0x1F,
-		0x1C00,"18F25J10 rev%d\r\n",0x1F,
-		0x1C20,"18F45J10 rev%d\r\n",0x1F,
-		0x1C40,"18LF25J10 rev%d\r\n",0x1F,
-		0x1C60,"18LF45J10 rev%d\r\n",0x1F,
-		0x1D00,"18F24J10 rev%d\r\n",0x1F,
-		0x1D20,"18F44J10 rev%d\r\n",0x1F,
-		0x1D40,"18LF24J10 rev%d\r\n",0x1F,
-		0x1D60,"18LF44J10 rev%d\r\n",0x1F,
-		0x1E00,"18F1230 rev%d\r\n",0x1F,
-		0x1E20,"18F1330 rev%d\r\n",0x1F,
-		0x1FE0,"18F1330-ICD rev%d\r\n",0x1F,
-		0x2000,"18F46K20 rev%d\r\n",0x1F,
-		0x2020,"18F26K20 rev%d\r\n",0x1F,
-		0x2040,"18F45K20 rev%d\r\n",0x1F,
-		0x2060,"18F25K20 rev%d\r\n",0x1F,
-		0x2080,"18F44K20 rev%d\r\n",0x1F,
-		0x20A0,"18F24K20 rev%d\r\n",0x1F,
-		0x20C0,"18F43K20 rev%d\r\n",0x1F,
-		0x20E0,"18F23K20 rev%d\r\n",0x1F,
-		0x2100,"18F4321 rev%d\r\n",0x1F,
-		0x2120,"18F2321 rev%d\r\n",0x1F,
-		0x2140,"18F4221 rev%d\r\n",0x1F,
-		0x2160,"18F2221 rev%d\r\n",0x1F,
-		0x2400,"18F4450 rev%d\r\n",0x1F,
-		0x2420,"18F2450 rev%d\r\n",0x1F,
-		0x2700,"18F2682 rev%d\r\n",0x1F,
-		0x2720,"18F2685 rev%d\r\n",0x1F,
-		0x2740,"18F4682 rev%d\r\n",0x1F,
-		0x2760,"18F4685 rev%d\r\n",0x1F,
-		0x2A00,"18F4553 rev%d\r\n",0x1F,
-		0x2A20,"18F4458 rev%d\r\n",0x1F,
-		0x2A40,"18F2553 rev%d\r\n",0x1F,
-		0x2A60,"18F2458 rev%d\r\n",0x1F,
-		0x4700,"18LF13K50 rev%d\r\n",0x1F,
-		0x4720,"18LF14K50 rev%d\r\n",0x1F,
-		0x4740,"18F13K50 rev%d\r\n",0x1F,
-		0x4760,"18F14K50 rev%d\r\n",0x1F,
-		0x49C0,"18F6628 rev%d\r\n",0x1F,
-		0x49E0,"18F8628 rev%d\r\n",0x1F,
-		0x4A00,"18F6723 rev%d\r\n",0x1F,
-		0x4A20,"18F8723 rev%d\r\n",0x1F,
-		0x4C00,"18F24J50 rev%d\r\n",0x1F,
-		0x4C20,"18F25J50 rev%d\r\n",0x1F,
-		0x4C40,"18F26J50 rev%d\r\n",0x1F,
-		0x4C60,"18F44J50 rev%d\r\n",0x1F,
-		0x4C80,"18F45J50 rev%d\r\n",0x1F,
-		0x4D80,"18F24J11 rev%d\r\n",0x1F,
-		0x4DA0,"18F25J11 rev%d\r\n",0x1F,
-		0x4DC0,"18F26J11 rev%d\r\n",0x1F,
-		0x4DE0,"18F44J11 rev%d\r\n",0x1F,
-		0x4E00,"18F45J11 rev%d\r\n",0x1F,
-		0x4E20,"18F46J11 rev%d\r\n",0x1F,
-		0x4E60,"18LF25J11 rev%d\r\n",0x1F,
-		0x4E80,"18LF26J11 rev%d\r\n",0x1F,
-		0x4EA0,"18LF44J11 rev%d\r\n",0x1F,
-		0x4EC0,"18LF45J11 rev%d\r\n",0x1F,
-		0x4EE0,"18LF46J11 rev%d\r\n",0x1F,
-		0x5820,"18F26J53 rev%d\r\n",0x1F,
-		0x5860,"18F27J53 rev%d\r\n",0x1F,
-		0x58A0,"18F46J53 rev%d\r\n",0x1F,
-		0x58E0,"18F47J53 rev%d\r\n",0x1F,
-		0x5920,"18F26J13 rev%d\r\n",0x1F,
-		0x5960,"18F27J13 rev%d\r\n",0x1F,
-		0x59A0,"18F46J13 rev%d\r\n",0x1F,
-		0x59E0,"18F47J13 rev%d\r\n",0x1F,
-		0x5A20,"18LF26J53 rev%d\r\n",0x1F,
-		0x5A60,"18LF27J53 rev%d\r\n",0x1F,
-		0x5AA0,"18LF46J53 rev%d\r\n",0x1F,
-		0x5AE0,"18LF47J53 rev%d\r\n",0x1F,
-		0x5B20,"18LF26J13 rev%d\r\n",0x1F,
-		0x5B60,"18LF27J13 rev%d\r\n",0x1F,
-		0x5BA0,"18LF46J13 rev%d\r\n",0x1F,
-		0x5BE0,"18LF47J13 rev%d\r\n",0x1F,
+	{0x0400,"18F252/2539 rev%d\r\n",0x1F},
+	{0x0420,"18F452/4539 rev%d\r\n",0x1F},
+	{0x0480,"18F242/2439 rev%d\r\n",0x1F},
+	{0x04A0,"18F442/4439 rev%d\r\n",0x1F},
+	{0x0500,"18F2320 rev%d\r\n",0x1F},
+	{0x0520,"18F4320 rev%d\r\n",0x1F},
+	{0x0580,"18F2220 rev%d\r\n",0x1F},
+	{0x05A0,"18F4220 rev%d\r\n",0x1F},
+	{0x0600,"18F8720 rev%d\r\n",0x1F},
+	{0x0620,"18F6720 rev%d\r\n",0x1F},
+	{0x0640,"18F8620 rev%d\r\n",0x1F},
+	{0x0660,"18F6620 rev%d\r\n",0x1F},
+	{0x07C0,"18F1320 rev%d\r\n",0x1F},
+	{0x07E0,"18F1220 rev%d\r\n",0x1F},
+	{0x0800,"18F248 rev%d\r\n",0x1F},
+	{0x0820,"18F448 rev%d\r\n",0x1F},
+	{0x0840,"18F258 rev%d\r\n",0x1F},
+	{0x0860,"18F458 rev%d\r\n",0x1F},
+	{0x0880,"18F4431 rev%d\r\n",0x1F},
+	{0x08A0,"18F4331 rev%d\r\n",0x1F},
+	{0x08C0,"18F2431 rev%d\r\n",0x1F},
+	{0x08E0,"18F2331 rev%d\r\n",0x1F},
+	{0x0B20,"18F6520 rev%d\r\n",0x1F},
+	{0x0B00,"18F8520 rev%d\r\n",0x1F},
+	{0x0C00,"18F4620 rev%d\r\n",0x1F},
+	{0x0C20,"18F4610 rev%d\r\n",0x1F},
+	{0x0C40,"18F4525 rev%d\r\n",0x1F},
+	{0x0C60,"18F4515 rev%d\r\n",0x1F},
+	{0x0C80,"18F2620 rev%d\r\n",0x1F},
+	{0x0CA0,"18F2610 rev%d\r\n",0x1F},
+	{0x0CC0,"18F2525 rev%d\r\n",0x1F},
+	{0x0CE0,"18F2515 rev%d\r\n",0x1F},
+	{0x0E80,"18F4680 rev%d\r\n",0x1F},
+	{0x0EA0,"18F4585 rev%d\r\n",0x1F},
+	{0x0EC0,"18F2680 rev%d\r\n",0x1F},
+	{0x0EE0,"18F2585 rev%d\r\n",0x1F},
+	{0x1081,"18F4523 rev%d\r\n",0x0F},
+	{0x1080,"18F4520 rev%d\r\n",0x0F},
+	{0x10A0,"18F4510 rev%d\r\n",0x1F},
+	{0x10C1,"18F4423 rev%d\r\n",0x0F},
+	{0x10C0,"18F4420 rev%d\r\n",0x0F},
+	{0x10E0,"18F4410 rev%d\r\n",0x1F},
+	{0x1100,"18F2523 rev%d\r\n",0x0F},
+	{0x1100,"18F2520 rev%d\r\n",0x0F},
+	{0x1120,"18F2510 rev%d\r\n",0x1F},
+	{0x1140,"18F2423 rev%d\r\n",0x0F},
+	{0x1140,"18F2420 rev%d\r\n",0x0F},
+	{0x1160,"18F2410 rev%d\r\n",0x1F},
+	{0x1200,"18F4550 rev%d\r\n",0x1F},
+	{0x1220,"18F4455 rev%d\r\n",0x1F},
+	{0x1240,"18F2550 rev%d\r\n",0x1F},
+	{0x1260,"18F2455 rev%d\r\n",0x1F},
+	{0x1340,"18F6527 rev%d\r\n",0x1F},
+	{0x1360,"18F8527 rev%d\r\n",0x1F},
+	{0x1380,"18F6622 rev%d\r\n",0x1F},
+	{0x13A0,"18F8622 rev%d\r\n",0x1F},
+	{0x13C0,"18F6627 rev%d\r\n",0x1F},
+	{0x13E0,"18F8627 rev%d\r\n",0x1F},
+	{0x1400,"18F6722 rev%d\r\n",0x1F},
+	{0x1420,"18F8722 rev%d\r\n",0x1F},
+	{0x1800,"18F66J60 rev%d\r\n",0x1F},
+	{0x1820,"18F86J60 rev%d\r\n",0x1F},
+	{0x1840,"18F96J60 rev%d\r\n",0x1F},
+	{0x1A80,"18F4580 rev%d\r\n",0x1F},
+	{0x1AA0,"18F4480 rev%d\r\n",0x1F},
+	{0x1AC0,"18F2580 rev%d\r\n",0x1F},
+	{0x1AE0,"18F2480 rev%d\r\n",0x1F},
+	{0x1C00,"18F25J10 rev%d\r\n",0x1F},
+	{0x1C20,"18F45J10 rev%d\r\n",0x1F},
+	{0x1C40,"18LF25J10 rev%d\r\n",0x1F},
+	{0x1C60,"18LF45J10 rev%d\r\n",0x1F},
+	{0x1D00,"18F24J10 rev%d\r\n",0x1F},
+	{0x1D20,"18F44J10 rev%d\r\n",0x1F},
+	{0x1D40,"18LF24J10 rev%d\r\n",0x1F},
+	{0x1D60,"18LF44J10 rev%d\r\n",0x1F},
+	{0x1E00,"18F1230 rev%d\r\n",0x1F},
+	{0x1E20,"18F1330 rev%d\r\n",0x1F},
+	{0x1F00,"18F66J65 rev%d\r\n",0x1F},
+	{0x1F20,"18F67J60 rev%d\r\n",0x1F},
+	{0x1F40,"18F86J65 rev%d\r\n",0x1F},
+	{0x1F60,"18F87J60 rev%d\r\n",0x1F},
+	{0x1F80,"18F96J65 rev%d\r\n",0x1F},
+	{0x1FA0,"18F97J60 rev%d\r\n",0x1F},
+	{0x1FE0,"18F1330-ICD rev%d\r\n",0x1F},
+	{0x2000,"18F46K20 rev%d\r\n",0x1F},
+	{0x2020,"18F26K20 rev%d\r\n",0x1F},
+	{0x2040,"18F45K20 rev%d\r\n",0x1F},
+	{0x2060,"18F25K20 rev%d\r\n",0x1F},
+	{0x2080,"18F44K20 rev%d\r\n",0x1F},
+	{0x20A0,"18F24K20 rev%d\r\n",0x1F},
+	{0x20C0,"18F43K20 rev%d\r\n",0x1F},
+	{0x20E0,"18F23K20 rev%d\r\n",0x1F},
+	{0x2100,"18F4321 rev%d\r\n",0x1F},
+	{0x2120,"18F2321 rev%d\r\n",0x1F},
+	{0x2140,"18F4221 rev%d\r\n",0x1F},
+	{0x2160,"18F2221 rev%d\r\n",0x1F},
+	{0x2400,"18F4450 rev%d\r\n",0x1F},
+	{0x2420,"18F2450 rev%d\r\n",0x1F},
+	{0x2700,"18F2682 rev%d\r\n",0x1F},
+	{0x2720,"18F2685 rev%d\r\n",0x1F},
+	{0x2740,"18F4682 rev%d\r\n",0x1F},
+	{0x2760,"18F4685 rev%d\r\n",0x1F},
+	{0x2A00,"18F4553 rev%d\r\n",0x1F},
+	{0x2A20,"18F4458 rev%d\r\n",0x1F},
+	{0x2A40,"18F2553 rev%d\r\n",0x1F},
+	{0x2A60,"18F2458 rev%d\r\n",0x1F},
+	{0x4700,"18LF13K50 rev%d\r\n",0x1F},
+	{0x4720,"18LF14K50 rev%d\r\n",0x1F},
+	{0x4740,"18F13K50 rev%d\r\n",0x1F},
+	{0x4760,"18F14K50 rev%d\r\n",0x1F},
+	{0x49C0,"18F6628 rev%d\r\n",0x1F},
+	{0x49E0,"18F8628 rev%d\r\n",0x1F},
+	{0x4A00,"18F6723 rev%d\r\n",0x1F},
+	{0x4A20,"18F8723 rev%d\r\n",0x1F},
+	{0x4C00,"18F24J50 rev%d\r\n",0x1F},
+	{0x4C20,"18F25J50 rev%d\r\n",0x1F},
+	{0x4C40,"18F26J50 rev%d\r\n",0x1F},
+	{0x4C60,"18F44J50 rev%d\r\n",0x1F},
+	{0x4C80,"18F45J50 rev%d\r\n",0x1F},
+	{0x4D80,"18F24J11 rev%d\r\n",0x1F},
+	{0x4DA0,"18F25J11 rev%d\r\n",0x1F},
+	{0x4DC0,"18F26J11 rev%d\r\n",0x1F},
+	{0x4DE0,"18F44J11 rev%d\r\n",0x1F},
+	{0x4E00,"18F45J11 rev%d\r\n",0x1F},
+	{0x4E20,"18F46J11 rev%d\r\n",0x1F},
+	{0x4E60,"18LF25J11 rev%d\r\n",0x1F},
+	{0x4E80,"18LF26J11 rev%d\r\n",0x1F},
+	{0x4EA0,"18LF44J11 rev%d\r\n",0x1F},
+	{0x4EC0,"18LF45J11 rev%d\r\n",0x1F},
+	{0x4EE0,"18LF46J11 rev%d\r\n",0x1F},
+	{0x4F20,"18F14K22 rev%d\r\n",0x1F},
+	{0x4F40,"18F13K22 rev%d\r\n",0x1F},
+	{0x4F60,"18LF14K22 rev%d\r\n",0x1F},
+	{0x4F80,"18LF13K22 rev%d\r\n",0x1F},
+	{0x5400,"18F46K22 rev%d\r\n",0x1F},
+	{0x5420,"18LF46K22 rev%d\r\n",0x1F},
+	{0x5440,"18F26K22 rev%d\r\n",0x1F},
+	{0x5460,"18LF26K22 rev%d\r\n",0x1F},
+	{0x5500,"18F45K22 rev%d\r\n",0x1F},
+	{0x5520,"18LF45K22 rev%d\r\n",0x1F},
+	{0x5540,"18F25K22 rev%d\r\n",0x1F},
+	{0x5560,"18LF25K22 rev%d\r\n",0x1F},
+	{0x5600,"18F44K22 rev%d\r\n",0x1F},
+	{0x5620,"18LF44K22 rev%d\r\n",0x1F},
+	{0x5640,"18F24K22 rev%d\r\n",0x1F},
+	{0x5660,"18LF24K22 rev%d\r\n",0x1F},
+	{0x5700,"18F43K22 rev%d\r\n",0x1F},
+	{0x5720,"18LF43K22 rev%d\r\n",0x1F},
+	{0x5740,"18F23K22 rev%d\r\n",0x1F},
+	{0x5760,"18LF23K22 rev%d\r\n",0x1F},
+	{0x5820,"18F26J53 rev%d\r\n",0x1F},
+	{0x5860,"18F27J53 rev%d\r\n",0x1F},
+	{0x58A0,"18F46J53 rev%d\r\n",0x1F},
+	{0x58E0,"18F47J53 rev%d\r\n",0x1F},
+	{0x5920,"18F26J13 rev%d\r\n",0x1F},
+	{0x5960,"18F27J13 rev%d\r\n",0x1F},
+	{0x59A0,"18F46J13 rev%d\r\n",0x1F},
+	{0x59E0,"18F47J13 rev%d\r\n",0x1F},
+	{0x5A20,"18LF26J53 rev%d\r\n",0x1F},
+	{0x5A60,"18LF27J53 rev%d\r\n",0x1F},
+	{0x5AA0,"18LF46J53 rev%d\r\n",0x1F},
+	{0x5AE0,"18LF47J53 rev%d\r\n",0x1F},
+	{0x5B20,"18LF26J13 rev%d\r\n",0x1F},
+	{0x5B60,"18LF27J13 rev%d\r\n",0x1F},
+	{0x5BA0,"18LF46J13 rev%d\r\n",0x1F},
+	{0x5BE0,"18LF47J13 rev%d\r\n",0x1F},
 };
 
 #ifdef _MSC_VER
@@ -512,8 +547,8 @@ void Write18Fx(int dim,int dim2,int wbuf,int eraseW1,int eraseW2,int options)
 #endif
 // write 16 bit PIC 18Fxxxx
 // dim=program size 	dim2=eeprom size	wbuf=write buffer size {<=64}
-// eraseW1=erase word @3C0005	(not used if > 0x10000)
-// eraseW2=erase word @3C0004	(not used if > 0x10000)
+// eraseW1=erase word @3C0005	(not used if >= 0x10000)
+// eraseW2=erase word @3C0004	(not used if >= 0x10000)
 // options:
 //	bit [3:0]
 //     0 = vdd before vpp (12V)
@@ -523,12 +558,12 @@ void Write18Fx(int dim,int dim2,int wbuf,int eraseW1,int eraseW2,int options)
 //     0 = normal eeprom write algoritm
 //     1 = with unlock sequence 55 AA
 //	bit [11:8]
-//     0 = 5ms erase delay, 1ms code write time, 5ms EE write delay, 5ms config write time
+//     0 = 15ms erase delay, 1ms code write time, 5ms EE write delay, 5ms config write time
 //     1 = 550ms erase delay, 1.2ms code write time, no config or EEPROM
 //     2 = 550ms erase delay, 3.4ms code write time, no config or EEPROM
 {
 	int k=0,k2,z=0,i,j;
-	int err=0,devID=0;
+	int err=0;
 	int EEalgo=(options>>4)&0xF,entry=options&0xF,optWrite=(options>>8)&0xF;
 	if(dim>0x1FFFFF||dim<0){
 		PrintMessage(strings[S_CodeLim]);	//"Code size out of limits\r\n"
@@ -559,8 +594,11 @@ void Write18Fx(int dim,int dim2,int wbuf,int eraseW1,int eraseW2,int options)
 	if(dim%wbuf){			//grow to an integer number of rows
 		dim+=wbuf-dim%wbuf;
 		j=size;
-		if(j<dim)size=dim;
+		if(j<dim){
+			size=dim;
+			memCODE=(unsigned char*)realloc(memCODE,size);
 		for(;j<dim;j++) memCODE[j]=0xFF;
+	}
 	}
 	if(dim2>sizeEE) dim2=sizeEE;
 	if(dim<1){
@@ -674,18 +712,14 @@ void Write18Fx(int dim,int dim2,int wbuf,int eraseW1,int eraseW2,int options)
 	bufferU[j++]=CORE_INS;		//NOP
 	bufferU[j++]=0x00;
 	bufferU[j++]=0x00;
-	if(optWrite==0){
-		bufferU[j++]=WAIT_T3;		//bulk erase delay
-	}
-	else{
 		bufferU[j++]=FLUSH;
 		for(;j<DIMBUF;j++) bufferU[j]=0x0;
 		write();
-		msDelay(550);
+	if(optWrite==0) msDelay(16);	//bulk erase delay
+	else msDelay(550);
 		read();
 		j=1;
 		if(saveLog)WriteLogIO();
-	}
 //****************** prepare write ********************
 	bufferU[j++]=CORE_INS;
 	bufferU[j++]=0x8E;			//EEPGD=1
@@ -705,7 +739,7 @@ void Write18Fx(int dim,int dim2,int wbuf,int eraseW1,int eraseW2,int options)
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
 	write();
-	msDelay(6);
+	msDelay(1);
 	read();
 	j=1;
 	if(saveLog)WriteLogIO();

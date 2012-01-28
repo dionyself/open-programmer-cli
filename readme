@@ -5,6 +5,12 @@ These sources are given free of charge under the GNU General Public License vers
 
 Changelog (to use new features the corresponding firmware is required):
 
+V 0.7.10 january 2012:	added 12F617,12F1501,16F1503-7-8-9,16F720-21,16F72,16F707,
+						18F13K22,18F14K22,18F23K22,18F43K22,18F24K22,18F44K22,18F25K22,
+						18F45K22,18F26K22,18F46K22,18F8520,18F66J60,18F66J65,18F67J60,
+						18F86J60,18F86J65,18F87J60,18F96J60,18F96J65,18F97J60,
+						fixed read/write binary files, various corrections
+
 V 0.7.9	june 2011:		added ATtiny11-12-24-26-261-44-48-461-4313-84-88-861, 
 						ATmega48-88-164A-168-324A-328-644A-1284, 16LF1902-3-4-6-7,
 						EEPROM write optimization, 

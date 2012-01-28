@@ -21,83 +21,24 @@
  */
 
 
-#if !defined _WIN32 && !defined __CYGWIN__
-#include <sys/ioctl.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <asm/types.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <linux/hiddev.h>
-#include <linux/input.h>
-#else
-#include <windows.h>
-#include <setupapi.h>
-#include <ddk/hidusage.h>
-#include <ddk/hidpi.h>
-#endif
 
-#include <sys/timeb.h>
-#include <wchar.h>
-#include <math.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <time.h>
-#include <ctype.h>
-#include <getopt.h>
-#include <string.h>
-#include "strings.h"
-#include "instructions.h"
+#include "common.h"
+#include "I2CSPI.h"
+#include "deviceRW.h"
+#include "fileIO.h"
 
-#define COL 16
-#define VERSION "0.7.9"
-#define G (12.0/34*1024/5)		//=72,2823529412
-#define  LOCK	1
-#define  FUSE	2
-#define  FUSE_H 4
-#define  FUSE_X	8
-#define  CAL	16
-#define  SLOW	256
 
-#if !defined _WIN32 && !defined __CYGWIN__
-    #define write() ioctl(fd, HIDIOCSUSAGES, &ref_multi_u); ioctl(fd,HIDIOCSREPORT, &rep_info_u);
-    #define read() ioctl(fd, HIDIOCGUSAGES, &ref_multi_i); ioctl(fd,HIDIOCGREPORT, &rep_info_i);
-    #define bufferU ref_multi_u.values
-    #define bufferI ref_multi_i.values
-
-#else
-	#define write()	Result=WriteFile(WriteHandle,bufferU,DIMBUF,&BytesWritten,NULL);
-	#define read()	Result = ReadFile(ReadHandle,bufferI,DIMBUF,&NumberOfBytesRead,(LPOVERLAPPED) &HIDOverlapped);\
-					Result = WaitForSingleObject(hEventObject,10);\
-					ResetEvent(hEventObject);\
-					if(Result!=WAIT_OBJECT_0){\
-						printf(strings[S_comTimeout]);	/*"comm timeout\r\n"*/\
-					}
-#endif
-
-typedef unsigned long DWORD;
-typedef unsigned short WORD;
-typedef unsigned char BYTE;
 #define CloseLogFile() if(logfile)fclose(logfile);
 
 #if !defined _WIN32 && !defined __CYGWIN__
 DWORD GetTickCount();
 #endif
 void msDelay(double delay);
-void Save(char* dev,char* savefile);
-int Load(char* dev,char* loadfile);
-void SaveEE(char* dev,char* savefile);
-void LoadEE(char* dev,char* loadfile);
-unsigned int htoi(const char *hex, int length);
-void Write(char* dev,int ee);
-void Read(char* dev,int ee,int r);
-void AddDevices(char *list);
 void TestHw();
 int StartHVReg(double V);
 void ProgID();
 void DisplayEE();
 int FindDevice();
-void OpenLogFile();
 
 char** strings;
 int saveLog=0,programID=0,MinDly=1,load_osccal=0,load_BKosccal=0;
@@ -112,7 +53,7 @@ char loadfile[512]="",savefile[512]="";
 char loadfileEE[512]="",savefileEE[512]="";
 int vid=0x04D8,pid=0x0100,info=0;
 
-WORD *dati_hex=0;
+WORD *memCODE_W=0;
 int size=0,sizeW=0,sizeEE=0,sizeCONFIG=0;
 unsigned char *memCODE=0,*memEE=0,memID[8],memCONFIG[48];
 double hvreg=0;
@@ -121,7 +62,7 @@ int fd = -1;
 struct hiddev_report_info rep_info_i,rep_info_u;
 struct hiddev_usage_ref_multi ref_multi_i,ref_multi_u;
 int DIMBUF=64;
-char path[256]="";
+char path[512]="";
 #else
 unsigned char bufferU[128],bufferI[128];
 DWORD NumberOfBytesRead,BytesWritten;
@@ -135,12 +76,13 @@ int DIMBUF=65;
 
 int main (int argc, char **argv) {
 
-	int v=0,ee=0,r=0,ver=0,c=0,support=0,i2c=0,spi_mode=0,i,j,testhw=0;
+	int ee=0,r=0,ver=0,c=0,support=0,i2c=0,spi_mode=0,i,j,testhw=0;
 	char dev[64]="null";
 	unsigned char tmpbuf[128];
 	opterr = 0;
 	int option_index = 0;
-	#include "strings.c"
+	//#include "strings.c"
+	strinit();
 	#if defined _WIN32
 	int langID=GetUserDefaultLangID();
 	if((langID&0xFF)==0x10)strings=strings_it;
@@ -327,6 +269,10 @@ Foundation; either version 2 of the License, or (at your option) any later versi
 	DWORD t0,t;
 	t=t0=GetTickCount();
 	ProgID();
+	if(testhw){
+		TestHw();
+		return 0;
+	}
 
 #define CS 8
 #define HLD 16
@@ -531,7 +477,7 @@ int CheckV33Regulator()
 	for(j=1;j<DIMBUF-3&&bufferI[j]!=READ_RAM;j++);
 	i=bufferI[j+3]&0x2;		//B1 should be high
 	for(j+=3;j<DIMBUF-3&&bufferI[j]!=READ_RAM;j++);
-	return (i+bufferI[j+3]&0x2)==2?1:0;
+	return (i+(bufferI[j+3]&0x2))==2?1:0;
 }
 
 void TestHw() {
@@ -539,6 +485,7 @@ void TestHw() {
 	bufferU[0]=0;
 	PrintMessage(strings[I_TestHW]);		//"Test hardware ..."
 	getchar();
+	StartHVReg(13);
 	bufferU[j++]=SET_CK_D;
 	bufferU[j++]=0x0;
 	bufferU[j++]=EN_VPP_VCC;		//VDD+VPP
@@ -683,7 +630,7 @@ int FindDevice(){
 	int LastDevice = FALSE;
 	int MemberIndex = 0;
 	LONG Result;
-	char UsageDescription[256];
+	//char UsageDescription[256];
 
 	Length=0;
 	detailData=NULL;
@@ -850,7 +797,6 @@ int FindDevice(){
 
 			//Is it the desired device?
 			MyDeviceDetected = FALSE;
-			char a[256];
 			if (Attributes.VendorID == vid)
 			{
 				if (Attributes.ProductID == pid)

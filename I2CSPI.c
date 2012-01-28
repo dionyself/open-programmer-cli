@@ -65,7 +65,7 @@
 	if(N>60) N=60;
 	if(mode<0) mode=0;
 	if(mode>5) mode=5;
-	int i=0;
+
 	if(saveLog){
 		OpenLogFile();	//"Log.txt"
 		fprintf(logfile,"I2C-SPI receive\tmode=%d\n",mode);

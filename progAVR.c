@@ -44,52 +44,52 @@ struct AVRID{
 	char *device;
 } AVRLIST[]={
 	//1K
-	0x9001,"AT90S1200",
-	0x9004,"ATtiny11",
-	0x9004,"ATtiny12",
-	0x9007,"ATtiny13",
+	{0x9001,"AT90S1200"},
+	{0x9004,"ATtiny11"},
+	{0x9004,"ATtiny12"},
+	{0x9007,"ATtiny13"},
 	//2K
-	0x9101,"AT90S2313",
-	0x9109,"ATtiny26",
-	0x910A,"ATtiny2313",
-	0x910B,"ATtiny24",
-	0x910C,"ATtiny261",
+	{0x9101,"AT90S2313"},
+	{0x9109,"ATtiny26"},
+	{0x910A,"ATtiny2313"},
+	{0x910B,"ATtiny24"},
+	{0x910C,"ATtiny261"},
 	//4K
-	0x9205,"ATmega48",
-	0x920A,"ATmega48PA",
-	0x9207,"ATtiny44",
-	0x9208,"ATtiny461",
-	0x9209,"ATtiny48",
-	0x920D,"ATtiny4313",
+	{0x9205,"ATmega48"},
+	{0x920A,"ATmega48PA"},
+	{0x9207,"ATtiny44"},
+	{0x9208,"ATtiny461"},
+	{0x9209,"ATtiny48"},
+	{0x920D,"ATtiny4313"},
 	//8K
-	0x9301,"AT90S8515",
-	0x9303,"AT90S8535",
-	0x9306,"ATmega8515",
-	0x9307,"ATmega8",
-	0x9308,"ATmega8535",
-	0x930A,"ATmega88",
-	0x930C,"ATtiny84",
-	0x930D,"ATtiny861",
-	0x930F,"ATmega88PA",
-	0x9311,"ATtiny88",
+	{0x9301,"AT90S8515"},
+	{0x9303,"AT90S8535"},
+	{0x9306,"ATmega8515"},
+	{0x9307,"ATmega8"},
+	{0x9308,"ATmega8535"},
+	{0x930A,"ATmega88"},
+	{0x930C,"ATtiny84"},
+	{0x930D,"ATtiny861"},
+	{0x930F,"ATmega88PA"},
+	{0x9311,"ATtiny88"},
 	//16K
-	0x9403,"ATmega16",
-	0x9406,"ATmega168",
-	0x940A,"ATmega164PA",
-	0x940B,"ATmega168PA",
-	0x940F,"ATmega164A",
+	{0x9403,"ATmega16"},
+	{0x9406,"ATmega168"},
+	{0x940A,"ATmega164PA"},
+	{0x940B,"ATmega168PA"},
+	{0x940F,"ATmega164A"},
 	//32K
-	0x950F,"ATmega328P",
-	0x9511,"ATmega324PA",
-	0x9514,"ATmega328",
-	0x9515,"ATmega324A",
+	{0x950F,"ATmega328P"},
+	{0x9511,"ATmega324PA"},
+	{0x9514,"ATmega328"},
+	{0x9515,"ATmega324A"},
 	//64K
-	0x9602,"ATmega64",
-	0x9609,"ATmega644A",
-	0x960A,"ATmega644PA",
+	{0x9602,"ATmega64"},
+	{0x9609,"ATmega644A"},
+	{0x960A,"ATmega644PA"},
 	//128K
-	0x9705,"ATmega1284P",
-	0x9706,"ATmega1284",
+	{0x9705,"ATmega1284P"},
+	{0x9706,"ATmega1284"},
 };
 
 #ifdef _MSC_VER
@@ -518,7 +518,7 @@ void WriteAT(int dim, int dim2)
 // dim=FLASH size in bytes, dim2=EEPROM size
 {
 	int k=0,z=0,i,j;
-	int err=0,errEE=0,ritenta=0,maxtent=0;
+	int err=0,ritenta=0,maxtent=0;
 	BYTE signature[]={0,0,0};
 	if(dim>0x8000||dim<0){
 		PrintMessage(strings[S_CodeLim]);	//"Code size out of limits\r\n"
@@ -829,7 +829,7 @@ void WriteATmega(int dim, int dim2, int page, int options)
 // options: SLOW=slow communication
 {
 	int k=0,z=0,i,j;
-	int err=0,errEE=0,ritenta=0,maxtent=0;
+	int err=0,ritenta=0,maxtent=0;
 	BYTE signature[]={0,0,0};
 	if(dim>0x10000||dim<0){
 		PrintMessage(strings[S_CodeLim]);	//"Code size out of limits\r\n"
@@ -998,7 +998,7 @@ void WriteATmega(int dim, int dim2, int page, int options)
 //****************** write code ********************
 	PrintMessage(strings[S_StartCodeProg]);	//"Write code ... "
 	PrintStatusSetup();
-	int w,v,c,Rtry;
+	int w=0,v,c,Rtry;
 	for(i=0;i<dim;i+=page*2){
 		for(z=i,v=0;z<i+page*2;z++) if(memCODE[z]<0xFF)v=1;
 		if(v){
