@@ -316,8 +316,9 @@ void Save(char* dev,char* savefile)
 		}
 		fprintf(f,":00000001FF\n");
 	}
-//**************** 24xxx / 93xxx / 25xxx *******************************************
-	else if(!strncmp(dev,"24",2)||!strncmp(dev,"93",2)||!strncmp(dev,"25",2)){
+//**************** 24xxx / 93xxx / 25xxx / DSxxxx *******************************************
+	else if(!strncmp(dev,"24",2)||!strncmp(dev,"93",2)||!strncmp(dev,"25",2)||\
+		!strncmp(dev,"DS",2)||!strncmp(dev,"11",2)){
 		if(strstr(savefile,".bin")||strstr(savefile,".BIN")){
 			#ifdef _MSC_VER
 			//brain-damaged op. systems need this to avoid messing with some bytes
@@ -683,8 +684,9 @@ int Load(char*dev,char*loadfile){
 		DisplayCODEAVR(size);
 		PrintMessage("\r\n");
 	}
-//**************** 24xxx / 93xxx / 25xxx **************************************
-	else if(!strncmp(dev,"24",2)||!strncmp(dev,"93",2)||!strncmp(dev,"25",2)){
+//**************** 24xxx / 93xxx / 25xxx / DSxxxx /11xxx *******************************
+	else if(!strncmp(dev,"24",2)||!strncmp(dev,"93",2)||!strncmp(dev,"25",2)||\
+		!strncmp(dev,"DS",2)||!strncmp(dev,"11",2)){
 		if(strstr(loadfile,".bin")||strstr(loadfile,".BIN")){
 			#ifdef _MSC_VER
 			//brain-damaged op. systems need this to avoid messing with some bytes

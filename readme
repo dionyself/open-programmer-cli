@@ -5,6 +5,13 @@ These sources are given free of charge under the GNU General Public License vers
 
 Changelog (to use new features the corresponding firmware is required):
 
+V 0.8.0 june 2012:		added one-wire memories DS2430,DS2431,DS2433,DS28EC20, thermometer DS1820;
+						added UNIO memories 11010-20-40-80-160;
+						fixed algorithms for 24x1024/5 and 251024, 
+						added SPI FLASH 251005,252005,254005,258005,251605,25X10,25X20,25X40,25X80,
+						25X16,25X32,25X64;
+						added 16F1782-3-4-6-7,12C508-9
+
 V 0.7.10 january 2012:	added 12F617,12F1501,16F1503-7-8-9,16F720-21,16F72,16F707,
 						18F13K22,18F14K22,18F23K22,18F43K22,18F24K22,18F44K22,18F25K22,
 						18F45K22,18F26K22,18F46K22,18F8520,18F66J60,18F66J65,18F67J60,

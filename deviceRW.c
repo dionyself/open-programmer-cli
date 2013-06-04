@@ -124,9 +124,12 @@ char* devices[]={
 "2400","2401","2402","2404","2408","2416","2432","2464","24128","24256",
 "24512","241024","241025",
 "25010","25020","25040","25080","25160","25320","25640","25128","25256",
-"25512","251024",
+"25512","251024","251005","252005","254005","258005","251605",
+"25X10","25X20","25X40","25X80","25X16","25X32","25X64",
 "93S46","93x46","93x46A","93S56","93x56","93x56A","93S66","93x66",
-"93x66A","93x76","93x76A","93x86","93x86A"
+"93x66A","93x76","93x76A","93x86","93x86A",
+"DS2430","DS2431","DS2433","DS28EC20","DS1820",
+"11010","11020","11040","11080","11160"
 };
 
 int Ndevices=sizeof(devices)/sizeof(char*);
@@ -172,6 +175,9 @@ void AddDevices(char *list){		//make sure list is long enough
 		if(EQ("10F200")||EQ("10F204")||EQ("10F220")){
 			Write12F5xx(0x100,0xFF);						//256
 		}
+		else if(EQ("12C508")||EQ("12C508A")){
+			Write12C5xx(0x200);								//512
+		}
 		else if(EQ("12F508")||EQ("10F202")||EQ("10F206")||EQ("10F222")){
 			Write12F5xx(0x200,0x1FF);						//512
 		}
@@ -180,6 +186,9 @@ void AddDevices(char *list){		//make sure list is long enough
 		}
 		else if(EQ("16C83")||EQ("16F83")||EQ("16F83A")){
 			Write16F8x(0x200,ee?0x40:0);					//512, 64
+		}
+		else if(EQ("12C509")||EQ("12C509A")){
+			Write12C5xx(0x400);								//1K
 		}
 		else if(EQ("12F509")||EQ("12F510")||EQ("16F505")||EQ("16F506")){
 			Write12F5xx(0x400,0x3FF);						//1K
@@ -223,7 +232,7 @@ void AddDevices(char *list){		//make sure list is long enough
 		else if(EQ("16F720")||EQ("16F722")||EQ("16F722A")){
 			Write16F72x(0x800);								//2K, vpp, 3.3V
 		}
-		else if(EQ("16LF1902")||EQ("16F1503")||EQ("16F1507")){
+		else if(EQ("16LF1902")||EQ("16F1503")||EQ("16F1507")||EQ("16F1782")){
 			Write16F1xxx(0x800,0,0);						//2K
 		}
 		else if(EQ("16F870")||EQ("16F871")||EQ("16F872")){
@@ -256,7 +265,7 @@ void AddDevices(char *list){		//make sure list is long enough
 		else if(EQ("16F737")||EQ("16F747")){
 			Write16F7x(0x1000,1);							//4K, vdd no delay
 		}
-		else if(EQ("16LF1903")||EQ("16LF1904")||EQ("16F1508")){
+		else if(EQ("16LF1903")||EQ("16LF1904")||EQ("16F1508")||EQ("16F1783")||EQ("16F1784")){
 			Write16F1xxx(0x1000,0,0);						//4K
 		}
 		else if(EQ("16F873")||EQ("16F874")){
@@ -286,7 +295,7 @@ void AddDevices(char *list){		//make sure list is long enough
 		else if(EQ("16F767")||EQ("16F777")){
 			Write16F7x(0x2000,1);							//8K, vdd no delay
 		}
-		else if(EQ("16LF1906")||EQ("16LF1907")||EQ("16F1509")){
+		else if(EQ("16LF1906")||EQ("16LF1907")||EQ("16F1509")||EQ("16F1786")||EQ("16F1787")){
 			Write16F1xxx(0x2000,0,0);						//8K
 		}
 		else if(EQ("16F916")||EQ("16F917")||EQ("16F946")){
@@ -637,7 +646,8 @@ void AddDevices(char *list){		//make sure list is long enough
 		}
 	}
 //-------------I2C---------------------------------------------------------
-	else if(!strncmp(dev,"24",2)||!strncmp(dev,"25",2)||!strncmp(dev,"93",2)){
+	else if(!strncmp(dev,"24",2)||!strncmp(dev,"93",2)||!strncmp(dev,"25",2)||\
+		!strncmp(dev,"DS",2)||!strncmp(dev,"11",2)){
 		if(EQ("2400")){
 			WriteI2C(0x10,0,1);			//16, 1B addr.
 		}
@@ -751,6 +761,56 @@ void AddDevices(char *list){		//make sure list is long enough
 		else if(EQ("251024")){
 			Write25xx(0x20000,256);								//128K
 		}
+		else if(EQ("251005")||EQ("25X10")){
+			Write25xx(0x20000,0x1000+256);						//128K Flash
+		}
+		else if(EQ("252005")||EQ("25X20")){
+			Write25xx(0x40000,0x1000+256);						//256K Flash
+		}
+		else if(EQ("254005")||EQ("25X40")){
+			Write25xx(0x80000,0x1000+256);						//512K Flash
+		}
+		else if(EQ("258005")||EQ("25X80")){
+			Write25xx(0x100000,0x1000+256);						//1M Flash
+		}
+		else if(EQ("251605")||EQ("25X16")){
+			Write25xx(0x200000,0x1000+256);						//2M Flash
+		}
+		else if(EQ("25X32")){
+			Write25xx(0x400000,0x1000+256);						//4M Flash
+		}
+		else if(EQ("25X64")){
+			Write25xx(0x800000,0x1000+256);						//8M Flash
+		}
+//-------------One wire devices---------------------------------------------------------
+		else if(EQ("DS2430")){
+			WriteOneWireMem(0x20,1);				//32
+		}
+		else if(EQ("DS2431")){
+			WriteOneWireMem(0x80,0);				//128
+		}
+		else if(EQ("DS2433")){
+			WriteOneWireMem(0x200,1);				//512
+		}
+		else if(EQ("DS28EC20")){
+			WriteOneWireMem(0xA00,1);				//2560
+		}
+//-------------UNIO devices---------------------------------------------------------
+		else if(EQ("11010")){
+			Write11xx(0x80,16);							//128
+		}
+		else if(EQ("11020")){
+			Write11xx(0x100,16);						//256
+		}
+		else if(EQ("11040")){
+			Write11xx(0x200,16);						//512
+		}
+		else if(EQ("11080")){
+			Write11xx(0x400,16);						//1K
+		}
+		else if(EQ("11160")){
+			Write11xx(0x800,16);						//2K
+		}
 		else{
 			PrintMessage(strings[S_nodev_w]); //"Device not supported for writing\r\n");
 		}
@@ -848,7 +908,7 @@ void AddDevices(char *list){		//make sure list is long enough
 		else if(EQ("16F616")||EQ("12F617")){
 			Read16Fxxx(0x800,0,r?0x40:9,0);					//2K, vpp, cal1
 		}
-		else if(EQ("16LF1902")||EQ("16F1503")||EQ("16F1507")){
+		else if(EQ("16LF1902")||EQ("16F1503")||EQ("16F1507")||EQ("16F1782")){
 			Read16F1xxx(0x800,0,r?0x200:11,0);				//2K, vpp
 		}
 		else if(EQ("16F870")||EQ("16F871")||EQ("16F872")){
@@ -887,7 +947,7 @@ void AddDevices(char *list){		//make sure list is long enough
 		else if(EQ("16F721")||EQ("16F723")||EQ("16F723A")||EQ("16F724")){
 			Read16Fxxx(0x1000,0,r?0x100:11,0);				//4K, vpp, config1-2 + cal1-2, 3.3V
 		}
-		else if(EQ("16LF1903")||EQ("16LF1904")||EQ("16F1508")){
+		else if(EQ("16LF1903")||EQ("16LF1904")||EQ("16F1508")||EQ("16F1783")||EQ("16F1784")){
 			Read16F1xxx(0x1000,0,r?0x200:11,0);				//4K, vpp
 		}
 		else if(EQ("16F873A")||EQ("16F874A")){
@@ -926,7 +986,7 @@ void AddDevices(char *list){		//make sure list is long enough
 		else if(EQ("16F726")||EQ("16F727")||EQ("16F707")){
 			Read16Fxxx(0x2000,0,r?0x100:11,0);				//8K, vpp, config1-2 + cal1-2, 3.3V
 		}
-		else if(EQ("16LF1906")||EQ("16LF1907")||EQ("16F1509")){
+		else if(EQ("16LF1906")||EQ("16LF1907")||EQ("16F1509")||EQ("16F1786")||EQ("16F1787")){
 			Read16F1xxx(0x2000,0,r?0x200:11,0);				//8K, vpp
 		}
 		else if(EQ("16F876A")||EQ("16F877A")){
@@ -1218,7 +1278,8 @@ void AddDevices(char *list){		//make sure list is long enough
 		}
 	}
 //-------------I2C---------------------------------------------------------
-	else if(!strncmp(dev,"24",2)||!strncmp(dev,"25",2)||!strncmp(dev,"93",2)){
+	else if(!strncmp(dev,"24",2)||!strncmp(dev,"93",2)||!strncmp(dev,"25",2)||\
+		!strncmp(dev,"DS",2)||!strncmp(dev,"11",2)){
 		if(EQ("2400")){
 			ReadI2C(0x10,0);						//16, 1B addr.
 		}
@@ -1322,6 +1383,59 @@ void AddDevices(char *list){		//make sure list is long enough
 		}
 		else if(EQ("251024")){
 			Read25xx(0x20000);						//128K
+		}
+		else if(EQ("251005")||EQ("25X10")){
+			Read25xx(0x20000);						//128K Flash
+		}
+		else if(EQ("252005")||EQ("25X20")){
+			Read25xx(0x40000);						//256K Flash
+		}
+		else if(EQ("254005")||EQ("25X40")){
+			Read25xx(0x80000);						//512K Flash
+		}
+		else if(EQ("258005")||EQ("25X80")){
+			Read25xx(0x100000);						//1M Flash
+		}
+		else if(EQ("251605")||EQ("25X16")){
+			Read25xx(0x200000);						//2M Flash
+		}
+		else if(EQ("25X32")){
+			Read25xx(0x400000);						//4M Flash
+		}
+		else if(EQ("25X64")){
+			Read25xx(0x800000);						//8M Flash
+		}
+//-------------One wire devices---------------------------------------------------------
+		else if(EQ("DS2430")){
+			ReadOneWireMem(0x20,1);				//32
+		}
+		else if(EQ("DS2431")){
+			ReadOneWireMem(0x80,2);				//128
+		}
+		else if(EQ("DS2433")){
+			ReadOneWireMem(0x200,0);			//512
+		}
+		else if(EQ("DS28EC20")){
+			ReadOneWireMem(0xA00,2);			//2560
+		}
+		else if(EQ("DS1820")){
+			ReadDS1820();						//digital thermometer
+		}
+//-------------UNIO devices---------------------------------------------------------
+		else if(EQ("11010")){
+			Read11xx(0x80);							//128
+		}
+		else if(EQ("11020")){
+			Read11xx(0x100);						//256
+		}
+		else if(EQ("11040")){
+			Read11xx(0x200);						//512
+		}
+		else if(EQ("11080")){
+			Read11xx(0x400);						//1K
+		}
+		else if(EQ("11160")){
+			Read11xx(0x800);						//2K
 		}
 		else{
 			PrintMessage(strings[S_nodev_r]); //"Device not supported for reading\r\n");

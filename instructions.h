@@ -1,16 +1,16 @@
-// programmer instructions v0.7.0
-#define NOP 				0x00	
+// programmer instructions v0.8.0
+#define NOP 				0x00
 #define PROG_RST 			0x01	//		->10B
 #define PROG_ID 			0x02	//		->6B
 #define CHECK_INS 			0x03	//+1B 	->1B
-#define FLUSH				0x04	//no echo	
-#define VREG_EN				0x05	
+#define FLUSH				0x04	//no echo
+#define VREG_EN				0x05
 #define VREG_DIS			0x06
 #define SET_PARAMETER		0x07	//+3B: 1B parameter, 2B data
 	#define SET_T1T2 	0	//T1, T2
 	#define SET_T3		1 	//T3(H,L)
 	#define SET_timeout	2	//timeout(H,L)
-	#define SET_MN		3	//M, N	
+	#define SET_MN		3	//M, N
 #define WAIT_T1				0x08
 #define WAIT_T2				0x09
 #define WAIT_T3				0x0A
@@ -64,12 +64,17 @@
 #define RX16				0x3A	//+1	->1+2NB
 #define uW_INIT				0x3B	//
 #define uWTX				0x3C	//+1+NB
-#define uWRX				0x3D	//+1+NB
+#define uWRX				0x3D	//+1    ->+1+NB
 #define SIX_LONG			0x3E	//+3B
-#define SIX_N				0x3F	//1+3NB ->1B
+#define SIX_N				0x3F	//+1+3NB ->1B
+#define OW_RESET			0x40	//      ->1B
+#define OW_WRITE			0x41	//+1+NB
+#define OW_READ				0x42	//+1    ->1+NB
+#define UNIO_STBY			0x43	//
+#define UNIO_COM			0x44	//+2+NB ->1+NB
 // special ins.
 #define SPI_TEST			0xEF	//+2B	->2B
 #define READ_RAM			0xF0	//+2B	->3B
 #define WRITE_RAM			0xF1	//+3B	->3B
 #define LOOP				0xF2
-#define MAX_INS 			0x3F	//last instruction
+#define MAX_INS 			0x44	//last instruction

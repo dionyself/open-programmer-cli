@@ -42,7 +42,7 @@ typedef unsigned char BYTE;
 #define	PrintStatusEnd() printf("\b\b\b\b");
 #define	PrintStatusClear() //only for GUI
 #define COL 16
-#define VERSION "0.7.10"
+#define VERSION "0.8.0"
 #define G (12.0/34*1024/5)		//=72,2823529412
 #define LOCK	1
 #define FUSE	2

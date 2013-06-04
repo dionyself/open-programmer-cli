@@ -166,6 +166,16 @@ struct ID16{
 	{0x286>>1,"16LF1825 rev%d\r\n",0x1F},		//10 1000 011x xxxx
 	{0x288>>1,"16LF1826 rev%d\r\n",0x1F},		//10 1000 100x xxxx
 	{0x28A>>1,"16LF1827 rev%d\r\n",0x1F},		//10 1000 101x xxxx
+	{0x2A0>>1,"16F1782 rev%d\r\n",0x1F},		//10 1010 000x xxxx
+	{0x2A2>>1,"16F1783 rev%d\r\n",0x1F},		//10 1010 001x xxxx
+	{0x2A4>>1,"16F1784 rev%d\r\n",0x1F},		//10 1010 010x xxxx
+	{0x2A6>>1,"16F1786 rev%d\r\n",0x1F},		//10 1010 011x xxxx
+	{0x2A8>>1,"16F1787 rev%d\r\n",0x1F},		//10 1010 100x xxxx
+	{0x2AA>>1,"16LF1782 rev%d\r\n",0x1F},		//10 1010 101x xxxx
+	{0x2AC>>1,"16LF1783 rev%d\r\n",0x1F},		//10 1010 110x xxxx
+	{0x2AE>>1,"16LF1784 rev%d\r\n",0x1F},		//10 1010 111x xxxx
+	{0x2B0>>1,"16LF1786 rev%d\r\n",0x1F},		//10 1011 000x xxxx
+	{0x2B2>>1,"16LF1787 rev%d\r\n",0x1F},		//10 1011 001x xxxx
 	{0x2C0>>1,"16LF1903 rev%d\r\n",0x1F},		//10 1100 000x xxxx
 	{0x2C2>>1,"16LF1902 rev%d\r\n",0x1F},		//10 1100 001x xxxx
 	{0x2C4>>1,"16LF1907 rev%d\r\n",0x1F},		//10 1100 010x xxxx

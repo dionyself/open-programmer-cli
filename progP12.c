@@ -403,7 +403,7 @@ void Write12F5xx(int dim,int OscAddr)
 				else if(bufferI[z]==LOAD_DATA_PROG&&bufferI[z+5]==READ_DATA_PROG){
 					if (memCODE_W[k]!=(bufferI[z+6]<<8)+bufferI[z+7]){
 						PrintMessage("\r\n");
-						PrintMessage3(strings[S_CodeWError],k,memCODE_W[k],(bufferI[z+6]<<8)+bufferI[z+7]);	//"Errore in scrittura all'indirizzo %3X: scritto %03X, letto %03X\r\n"
+						PrintMessage3(strings[S_CodeWError],k,memCODE_W[k],(bufferI[z+6]<<8)+bufferI[z+7]);	//"Error writing address %3X: written %03X, read %03X"
 						err++;
 						if(max_err&&err>max_err){
 							PrintMessage1(strings[S_MaxErr],err);	//"Exceeded maximum number of errors (%d), write interrupted\r\n"
@@ -470,7 +470,7 @@ void Write12F5xx(int dim,int OscAddr)
 	for(z=10;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
 	if (~memCODE_W[0xfff]&((bufferI[z+1]<<8)+bufferI[z+2])){	//error if written 0 and read 1 (~W&R)
 		PrintMessage("\r\n");
-		PrintMessage2(strings[S_ConfigWErr],memCODE_W[0xfff],(bufferI[z+1]<<8)+bufferI[z+2]);	//"Errore in Write CONFIG:\r\ndato scritto %03X, letto %03X\r\n"
+		PrintMessage2(strings[S_ConfigWErr],memCODE_W[0xfff],(bufferI[z+1]<<8)+bufferI[z+2]);	//"Error writing CONFIG:\r\nwritten %03X, read %03X\r\n"
 		err_c++;
 	}
 	err+=err_c;
@@ -504,6 +504,10 @@ void Write12C5xx(int dim)
 	int err=0;
 	WORD osccal=-1;
 	int OscAddr=dim-1;
+	if(FWVersion<0x800){
+		PrintMessage1(strings[S_FWver2old],"0.8.0");	//"This firmware is too old. Version %s is required\r\n"
+		return;
+	}
 	if(sizeW<0x1000){
 		PrintMessage(strings[S_NoConfigW2]);	//"Can't find CONFIG (0xFFF)\r\n"
 		return;
@@ -598,7 +602,10 @@ void Write12C5xx(int dim)
 			bufferU[j++]=READ_ADC;
 			bufferU[j++]=INC_ADDR;
 		}
-		else for(;memCODE_W[i]>=0xfff&&j<DIMBUF-3;i++) bufferU[j++]=INC_ADDR;
+		else{
+			for(;memCODE_W[i]>=0xfff&&j<DIMBUF-1&&i<dim1;i++) bufferU[j++]=INC_ADDR;
+			i--;
+		}
 		PrintStatus(strings[S_CodeWriting],i*100/dim,i);	//"Write: %d%%, ind. %03X"
 		bufferU[j++]=FLUSH;
 		for(;j<DIMBUF;j++) bufferU[j]=0x0;
@@ -607,19 +614,17 @@ void Write12C5xx(int dim)
 		read();
 		j=1;
 		if(saveLog)WriteLogIO();
-		for(z=1;z<DIMBUF;z++){
-			if(bufferI[z]==INC_ADDR&&memCODE_W[k]>=0xfff) k++;
-			else if(bufferI[z]==PROG_C&&bufferI[z+2]==READ_DATA_PROG){
-				N=bufferI[z+1];
+		if(bufferI[1]==PROG_C&&bufferI[3]==READ_DATA_PROG){
+			N=bufferI[2];
 				if(N<0xF0){
 					Nt+=N;
 					xN++;
 					if(N<Nmin)Nmin=N;
 					if(N>Nmax)Nmax=N;
 				}
-				if(memCODE_W[k]!=(bufferI[z+3]<<8)+bufferI[z+4]){
+			if(memCODE_W[k]!=(bufferI[4]<<8)+bufferI[5]){
 					PrintMessage("\r\n");
-					PrintMessage3(strings[S_CodeWError],k,memCODE_W[k],(bufferI[z+3]<<8)+bufferI[z+4]);	//"Errore in scrittura all'indirizzo %3X: scritto %03X, letto %03X\r\n"
+				PrintMessage3(strings[S_CodeWError],k,memCODE_W[k],(bufferI[4]<<8)+bufferI[5]);	//"Error writing address %3X: written %03X, read %03X"
 					err++;
 					if(max_err&&err>max_err){
 						PrintMessage1(strings[S_MaxErr],err);	//"Exceeded maximum number of errors (%d), write interrupted\r\n"
@@ -629,38 +634,20 @@ void Write12C5xx(int dim)
 					}
 				}
 				k++;
-				if(bufferI[z+5]==READ_ADC){		//make sure VPP hasn't dropped too much
-					int v=(bufferI[z+6]<<8)+bufferI[z+7];
-					if(HwID==3) v>>=2;		//if 12 bit ADC
-					DWORD t0,t;
-					t=t0=GetTickCount();
-					j=1;
-					bufferU[j++]=READ_ADC;
-					bufferU[j++]=FLUSH;
-					for(;j<DIMBUF;j++) bufferU[j]=0x0;
-					for(;(v<11.5*G)&&(t<t0+300);t=GetTickCount()){
-						write();
-						msDelay(2);
-						read();
-						if(saveLog)WriteLogIO();
-						for(z=1;z<DIMBUF-2&&bufferI[z]!=READ_ADC;z++);
-						v=(bufferI[z+1]<<8)+bufferI[z+2];
-						if(HwID==3) v>>=2;		//if 12 bit ADC
-						//printf("v=%d=%fV\n",v,v/G);
-					}
-					j=1;
 				}
-			}
+		else for(z=1;z<DIMBUF;z++){
+			if(bufferI[z]==INC_ADDR&&memCODE_W[k]>=0xfff) k++;
 		}
 		if(saveLog){
-			fprintf(logfile,strings[S_Log8],i,i,k,k,err);	//"i=%d, k=%d, errori=%d\n"
+			fprintf(logfile,strings[S_Log8],i,i,k,k,err);	//"i=%d, k=%d, errors=%d\n"
 		}
 	}
 	PrintStatusEnd();
 	err+=i-k;
 	PrintMessage1(strings[S_ComplErr],err);	//"completed, %d errors\r\n"
-	PrintMessage3("Programming pulses: avg %.1f, min %d, max %d\r\n",(double)Nt/xN,Nmin,Nmax);
+	if(saveLog && xN) fprintf(logfile,"Programming pulses: avg %.1f, min %d, max %d\r\n",(double)Nt/xN,Nmin,Nmax);
 //****************** write CONFIG ********************
+	if(memCODE_W[0xfff]<0xfff){
 	PrintMessage(strings[S_ConfigW]);	//"Write CONFIG ... "
 	int err_c=0;
 	bufferU[j++]=EN_VPP_VCC;		//exit program mode
@@ -697,7 +684,22 @@ void Write12C5xx(int dim)
 		if(saveLog)WriteLogIO();
 	}
 	bufferU[j++]=READ_DATA_PROG;
-	bufferU[j++]=NOP;				//exit program mode
+		bufferU[j++]=FLUSH;
+		for(;j<DIMBUF;j++) bufferU[j]=0x0;
+		write();
+		msDelay(2);
+		read();
+		j=1;
+		if(saveLog)WriteLogIO();
+		if (~memCODE_W[0xfff]&((bufferI[2]<<8)+bufferI[3])){	//error if written 0 and read 1 (~W&R)
+			PrintMessage("\r\n");
+			PrintMessage2(strings[S_ConfigWErr],memCODE_W[0xfff],(bufferI[2]<<8)+bufferI[3]);	//"Error writing CONFIG:\r\nwritten %03X, read %03X\r\n"
+			err_c++;
+		}
+		err+=err_c;
+	}
+	PrintMessage1(strings[S_ComplErr],err);	//"completed, %d errors\r\n"
+//****************** exit ********************
 	bufferU[j++]=EN_VPP_VCC;
 	bufferU[j++]=0x1;
 	bufferU[j++]=EN_VPP_VCC;
@@ -712,18 +714,6 @@ void Write12C5xx(int dim)
 	j=1;
 	if(saveLog)WriteLogIO();
 	unsigned int stop=GetTickCount();
-	for(z=10;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
-	if (~memCODE_W[0xfff]&((bufferI[z+1]<<8)+bufferI[z+2])){	//error if written 0 and read 1 (~W&R)
-		PrintMessage("\r\n");
-		PrintMessage2(strings[S_ConfigWErr],memCODE_W[0xfff],(bufferI[z+1]<<8)+bufferI[z+2]);	//"Errore in Write CONFIG:\r\ndato scritto %03X, letto %03X\r\n"
-		err_c++;
-	}
-	err+=err_c;
-	if (z>DIMBUF-2){
-		PrintMessage("\r\n");
-		PrintMessage(strings[S_ConfigWErr2]);	//"Error writing CONFIG"
-	}
-	PrintMessage1(strings[S_ComplErr],err_c);	//"completed, %d errors\r\n"
 	if(saveLog){
 		fprintf(logfile,strings[S_Log8],i,i,k,k,err);	//"i=%d, k=%d, errors=%d\n"
 		WriteLogIO();

@@ -236,7 +236,7 @@ int main (int argc, char **argv) {
 	for(j=0,i = optind; i < argc&&i<128; i++,j++) sscanf(argv[i], "%x", &tmpbuf[j]);
 	for(;j<128;j++) tmpbuf[j]=0;
 	if (ver){
-		printf("OP v%s\nCopyright (C) Alberto Maccioni 2009-2011\
+		printf("OP v%s\nCopyright (C) Alberto Maccioni 2009-2012\
 \n	For detailed info see http://openprog.altervista.org/\
 \nThis program is free software; you can redistribute it and/or modify it under \
 the terms of the GNU General Public License as published by the Free Software \
