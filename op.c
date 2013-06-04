@@ -32,6 +32,22 @@
 
 #if !defined _WIN32 && !defined __CYGWIN__
 DWORD GetTickCount();
+#include <sys/select.h>
+int kbhit()
+{
+	struct timeval tv;
+	fd_set read_fd;
+	tv.tv_sec=0;
+	tv.tv_usec=0;
+	FD_ZERO(&read_fd);
+	FD_SET(0,&read_fd);
+	if(select(1, &read_fd, NULL, NULL, &tv) == -1) return 0;
+	if(FD_ISSET(0,&read_fd)) return 1;
+	return 0;
+}
+#define getch getchar
+#else
+#include "conio.h"
 #endif
 void msDelay(double delay);
 void TestHw();
@@ -39,6 +55,7 @@ int StartHVReg(double V);
 void ProgID();
 void DisplayEE();
 int FindDevice();
+int CheckS1();
 
 char** strings;
 int saveLog=0,programID=0,MinDly=1,load_osccal=0,load_BKosccal=0;
@@ -47,6 +64,7 @@ int load_calibword=0,max_err=200;
 int AVRlock=0x100,AVRfuse=0x100,AVRfuse_h=0x100,AVRfuse_x=0x100;
 int ICDenable=0,ICDaddr=0x1FF0;
 int FWVersion=0,HwID=0;
+int skipV33check=0;
 FILE* logfile=0;
 char LogFileName[512]="";
 char loadfile[512]="",savefile[512]="";
@@ -54,8 +72,8 @@ char loadfileEE[512]="",savefileEE[512]="";
 int vid=0x04D8,pid=0x0100,info=0;
 
 WORD *memCODE_W=0;
-int size=0,sizeW=0,sizeEE=0,sizeCONFIG=0;
-unsigned char *memCODE=0,*memEE=0,memID[8],memCONFIG[48];
+int size=0,sizeW=0,sizeEE=0,sizeCONFIG=0,sizeUSERID=0;
+unsigned char *memCODE=0,*memEE=0,memID[8],memCONFIG[48],memUSERID[8];
 double hvreg=0;
 #if !defined _WIN32 && !defined __CYGWIN__
 int fd = -1;
@@ -76,40 +94,32 @@ int DIMBUF=65;
 
 int main (int argc, char **argv) {
 
-	int ee=0,r=0,ver=0,c=0,support=0,i2c=0,spi_mode=0,i,j,testhw=0;
+	int ee=0,r=0,ver=0,c=0,support=0,i2c=0,spi_mode=0,i,j,testhw=0,s1=0;
+	int spi_speed=0,command=0,langfile=0,help=0,CW1_force=-1,CW2_force=-1;
 	char dev[64]="null";
+	char lang[32]="";
 	unsigned char tmpbuf[128];
 	opterr = 0;
 	int option_index = 0;
-	//#include "strings.c"
-	strinit();
-	#if defined _WIN32
-	int langID=GetUserDefaultLangID();
-	if((langID&0xFF)==0x10)strings=strings_it;
-	#else
-	if(getenv("LANG")&&strstr(getenv("LANG"),"it")!=0) strings=strings_it;
-	#endif
-	else strings=strings_en;
-	strncpy(LogFileName,strings[S_LogFile],sizeof(LogFileName));
-	if(argc==1){
-		printf(strings[L_HELP]);
-		exit(1);
-	}
+	char* langid=0;
+
+
 	struct option long_options[] =
 	{
 		{"BKosccal",      no_argument,  &load_BKosccal, 1},
 		{"calib",         no_argument, &load_calibword, 1},
+		{"command",       no_argument,        &command, 1},
+		{"cw1",           required_argument,       0, '1'},
+		{"cw2",           required_argument,       0, '2'},
 		{"d",             required_argument,       0, 'd'},
 		{"device",        required_argument,       0, 'd'},
-		{"D",             required_argument,       0, 'D'},
-		{"delay",         required_argument,       0, 'D'},
 		{"ee",            no_argument,             &ee, 1},
 		{"err",           required_argument,       0, 'e'},
 		{"fuse",          required_argument,       0, 'f'},
 		{"fuseh",         required_argument,       0, 'F'},
 		{"fusex",         required_argument,       0, 'X'},
-		{"h",             no_argument,             0, 'h'},
-		{"help",          no_argument,             0, 'h'},
+		{"h",             no_argument,            &help,1},
+		{"help",          no_argument,            &help,1},
 		{"HWtest",        no_argument,         &testhw, 1},
 		{"info",          no_argument,           &info, 1},
 		{"i",             no_argument,           &info, 1},
@@ -117,12 +127,16 @@ int main (int argc, char **argv) {
 		{"i2c_r2",        no_argument,            &i2c, 2},
 		{"i2c_w",         no_argument,            &i2c, 3},
 		{"i2c_w2",        no_argument,            &i2c, 4},
+		{"i2cspeed",      required_argument,       0, 'D'},
 		{"id",            no_argument,      &programID, 1},
 		{"icd",           required_argument,       0, 'I'},
 		{"l",             optional_argument,       0, 'l'}, //-l=val
 		{"log",           optional_argument,       0, 'l'},
+		{"lang",          required_argument,       0, 'n'},
+		{"langfile",      no_argument,       &langfile, 1},
 		{"lock",          required_argument,       0, 'L'},
 		{"mode",          required_argument,       0, 'm'},
+		{"nolvcheck",     no_argument,   &skipV33check, 1},
 		{"osccal",        no_argument,    &load_osccal, 1},
 #if !defined _WIN32 && !defined __CYGWIN__
 		{"p",             required_argument,       0, 'p'},
@@ -132,12 +146,15 @@ int main (int argc, char **argv) {
 		{"rep" ,          required_argument,       0, 'R'},
 		{"reserved",      no_argument,              &r, 1},
 		{"r",             no_argument,              &r, 1},
+		{"s1",            no_argument,             &s1, 1},
+		{"S1",            no_argument,             &s1, 1},
 		{"save",          required_argument,       0, 's'},
 		{"s",             required_argument,       0, 's'},
 		{"saveEE",        required_argument,       0, 'S'},
 		{"se",            required_argument,       0, 'S'},
 		{"spi_r",         no_argument,            &i2c, 5},
 		{"spi_w",         no_argument,            &i2c, 6},
+		{"spispeed",      required_argument,       0, 'D'},
 		{"support",       no_argument,        &support, 1},
 		{"use_BKosccal",  no_argument,   &use_BKosccal, 1},
 		{"version",       no_argument,            &ver, 1},
@@ -156,18 +173,24 @@ int main (int argc, char **argv) {
 		exit(0);*/
 		switch (c)
 		{
-			case 'h':	//help
-				printf(strings[L_HELP]);
-				return 1 ;
+			case '1':	//force config word 1
+				i=sscanf(optarg, "%x", &CW1_force);
+				if(i!=1||CW1_force<0||CW1_force>0x3FFF) CW1_force=-1;
+				break;
+			case '2':	//force config word 2
+				i=sscanf(optarg, "%x", &CW2_force);
+				if(i!=1||CW2_force<0||CW2_force>0x3FFF) CW2_force=-1;
 				break;
 			case 'd':	//device
 				strncpy(dev,optarg,sizeof(dev)-1);
 				break;
-			case 'D':	//minimum delay
-				//MinDly = atoi(optarg);
-				break;
 			case 'e':	//max write errors
 				max_err = atoi(optarg);
+				break;
+			case 'D':	//spi speed
+				spi_speed = atoi(optarg);
+				if(spi_speed<0)spi_speed=0;
+				if(spi_speed>3)spi_speed=3;
 				break;
 			case 'f':	//Atmel FUSE low
 				i=sscanf(optarg, "%x", &AVRfuse);
@@ -194,6 +217,9 @@ int main (int argc, char **argv) {
 				spi_mode = atoi(optarg);
 				if(spi_mode<0) spi_mode=0;
 				if(spi_mode>3) spi_mode=3;
+				break;
+			case 'n':	//language
+				strncpy(lang,optarg,sizeof(lang)-1);
 				break;
 #if !defined _WIN32 && !defined __CYGWIN__
 			case 'p':	//hiddev path
@@ -235,8 +261,58 @@ int main (int argc, char **argv) {
 
 	for(j=0,i = optind; i < argc&&i<128; i++,j++) sscanf(argv[i], "%x", &tmpbuf[j]);
 	for(;j<128;j++) tmpbuf[j]=0;
+
+	strinit();
+	i=0;
+	if(lang[0]){	//explicit language selection
+		if(lang[0]=='i'&&langid[1]=='t'){  //built-in
+			strings=strings_it;
+			i=1;
+		}
+		else if(lang[0]=='e'&&lang[1]=='n'){  //built-in
+			strings=strings_en;
+			i=1;
+		}
+		else i=strfind(lang,"languages.rc"); //file look-up
+	}
+	if(i==0){
+		#if defined _WIN32
+		langid=malloc(19);
+		int n=GetLocaleInfo(LOCALE_USER_DEFAULT,LOCALE_SISO639LANGNAME,langid,9);
+		langid[n-1] = '-';
+		GetLocaleInfo(LOCALE_USER_DEFAULT,LOCALE_SISO3166CTRYNAME,langid+n, 9);
+		//printf("%d >%s<\n",n,langid);
+		#else
+		langid=getenv("LANG");
+		#endif
+		if(langid){
+			if(langid[0]=='i'&&langid[1]=='t') strings=strings_it;
+			else if(langid[0]=='e'&&langid[1]=='n') strings=strings_en;
+			else if(strfind(langid,"languages.rc")); //first try full code
+			else {	//then only first language code
+				char* p=strchr(langid,'-');
+				if(p) *p=0;
+				if(!strfind(langid,"languages.rc")) strings=strings_en;
+			}
+		}
+		else strings=strings_en;
+	}
+
+	strncpy(LogFileName,strings[S_LogFile],sizeof(LogFileName));
+	if(argc==1){
+		printf(strings[L_HELP]);
+		exit(1);
+	}
+
+	if(help){
+		printf(strings[L_HELP]);
+		return 1;
+	}
+
+	if(langfile) GenerateLangFile(langid,"languages.rc");
+
 	if (ver){
-		printf("OP v%s\nCopyright (C) Alberto Maccioni 2009-2012\
+		printf("OP v%s\nCopyright (C) Alberto Maccioni 2009-2013\
 \n	For detailed info see http://openprog.altervista.org/\
 \nThis program is free software; you can redistribute it and/or modify it under \
 the terms of the GNU General Public License as published by the Free Software \
@@ -274,26 +350,40 @@ Foundation; either version 2 of the License, or (at your option) any later versi
 		return 0;
 	}
 
+	if(command){
+		bufferU[0]=0;
+		for(i=1;i<DIMBUF;i++) bufferU[i]=(char) tmpbuf[i-1];
+		write();
+		msDelay(100);
+		read();
+		printf("> ");
+		for(i=1;i<DIMBUF;i++) printf("%02X ",bufferU[i]);
+		printf("\n< ");
+		for(i=1;i<DIMBUF;i++) printf("%02X ",bufferI[i]);
+		printf("\n");
+		return 0;
+	}
+
 #define CS 8
 #define HLD 16
 	if(i2c){	//I2C, SPI
 		if(i2c==1){							//I2C receive 8 bit mode
-			I2CReceive(0,tmpbuf[0],tmpbuf+1);
+			I2CReceive(0,spi_speed,tmpbuf[0],tmpbuf+1);
 		}
 		else if(i2c==2){					//I2C receive 16 bit mode
-			I2CReceive(1,tmpbuf[0],tmpbuf+1);
+			I2CReceive(1,spi_speed,tmpbuf[0],tmpbuf+1);
 		}
 		else if(i2c==3){					//I2C transmit 8 bit mode
-			I2CSend(0,tmpbuf[0],tmpbuf+1);
+			I2CSend(0,spi_speed,tmpbuf[0],tmpbuf+1);
 		}
 		else if(i2c==4){					//I2C transmit 16 bit mode
-			I2CSend(1,tmpbuf[0],tmpbuf+1);
+			I2CSend(1,spi_speed,tmpbuf[0],tmpbuf+1);
 		}
 		else if(i2c==5){					//SPI receive
-			I2CReceive(2+spi_mode,tmpbuf[0],tmpbuf+1);
+			I2CReceive(2+spi_mode,spi_speed,tmpbuf[0],tmpbuf+1);
 		}
 		else if(i2c==6){					//SPI receive
-			I2CSend(2+spi_mode,tmpbuf[0],tmpbuf+1);
+			I2CSend(2+spi_mode,spi_speed,tmpbuf[0],tmpbuf+1);
 		}
 		return 0 ;
 	}
@@ -309,10 +399,51 @@ Foundation; either version 2 of the License, or (at your option) any later versi
 			exit(-1);
 		}
 		if(!strncmp(dev,"AT",2)&&loadfileEE[0]) LoadEE(dev,loadfileEE);
-		Write(dev,ee);	//choose the right function
+		if(CW1_force!=-1||CW2_force!=-1){
+			if((!strncmp(dev,"16F1",4)||!strncmp(dev,"12F1",4))){		//16F1xxx
+				if(CW1_force!=-1&&sizeW>0x8007) memCODE_W[0x8007]=CW1_force;
+				if(CW2_force!=-1&&sizeW>0x8008) memCODE_W[0x8008]=CW2_force;
+			}
+			else if((!strncmp(dev,"16F",3)||!strncmp(dev,"12F6",4))&&strncmp(dev,"16F5",4)){	//16Fxxx
+				if(CW1_force!=-1&&sizeW>0x2007) memCODE_W[0x2007]=CW1_force;
+				if(CW2_force!=-1&&sizeW>0x2008) memCODE_W[0x2008]=CW2_force;
+			}
+			else if((!strncmp(dev,"12F",3)||!strncmp(dev,"10F",3)||!strncmp(dev,"16F5",4))){	//12Fxxx
+				if(CW1_force!=-1&&sizeW>0xFFF) memCODE_W[0xFFF]=CW1_force&0xFFF;
+			}
+			if(CW1_force!=-1) PrintMessage1(strings[S_ForceConfigW1],CW1_force); //"forcing config word1 (0x%04X)"
+			if(CW2_force!=-1) PrintMessage1(strings[S_ForceConfigW2],CW2_force); //"forcing config word2 (0x%04X)"
+		}
+		if(s1){
+			PrintMessage(strings[S_WaitS1W]);	//"Press S1 to program, any key to exit"
+			fflush(stdout);
+			for(;!kbhit();msDelay(50)){
+				if(CheckS1()){	//wait for S1
+					Write(dev,ee);	//choose the right function
+					PrintMessage(strings[S_WaitS1W]);	//"Press S1 to program, any key to exit"
+					fflush(stdout);
+					for(;CheckS1();msDelay(50));	//wait for S1 open
+				}
+			}
+			getch();
+		}
+		else Write(dev,ee);	//choose the right function
 	}
 	else{		//read
-		Read(dev,ee,r);	//choose the right function
+		if(s1){
+			PrintMessage(strings[S_WaitS1R]);	//"Press S1 to read, any key to exit"
+			fflush(stdout);
+			for(;!kbhit();msDelay(50)){
+				if(CheckS1()){	//wait for S1
+					Read(dev,ee,r);	//choose the right function
+					PrintMessage(strings[S_WaitS1R]);	//"Press S1 to read, any key to exit"
+					fflush(stdout);
+					for(;CheckS1();msDelay(50));	//wait for S1 open
+				}
+			}
+			getch();
+		}
+		else Read(dev,ee,r);	//choose the right function
 
 		if(savefile[0]) Save(dev,savefile);
 		if(!strncmp(dev,"AT",2)&&savefileEE[0]) SaveEE(dev,savefileEE);
@@ -449,6 +580,7 @@ void ProgID()
 int CheckV33Regulator()
 {
 	int i,j=1;
+	if(skipV33check) return 1;
 	bufferU[j++]=WRITE_RAM;
 	bufferU[j++]=0x0F;
 	bufferU[j++]=0x93;
@@ -478,6 +610,22 @@ int CheckV33Regulator()
 	i=bufferI[j+3]&0x2;		//B1 should be high
 	for(j+=3;j<DIMBUF-3&&bufferI[j]!=READ_RAM;j++);
 	return (i+(bufferI[j+3]&0x2))==2?1:0;
+}
+
+int CheckS1()
+{
+	int i,j=1;
+	bufferU[j++]=READ_RAM;
+	bufferU[j++]=0x0F;
+	bufferU[j++]=0x84;	//READ PORTE
+	bufferU[j++]=FLUSH;
+	for(;j<DIMBUF;j++) bufferU[j]=0x0;
+	write();
+	msDelay(2);
+	read();
+	for(j=1;j<DIMBUF-3&&bufferI[j]!=READ_RAM;j++);
+	i=bufferI[j+3]&0x8;		//i=E3
+	return i?0:1;			//S1 open -> E3=1
 }
 
 void TestHw() {

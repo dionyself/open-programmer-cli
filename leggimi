@@ -5,6 +5,14 @@ Questi sorgenti sono distribuiti gratuitamente sotto licenza GNU General Public 
 
 Cambiamenti (per usare i dispositivi aggiunti è richiesto un programmatore con firmware corrispondente):
 
+V 0.8.1 giugno 2013:	inizio programmazione con S1; selezione velocità I2C/SPI; opzione -command;
+						supporto multi-lingue; può forzare config word; può evitare controllo LV;
+						corretta scrittura EEPROM quando è attiva la protezione codice/dati per 16F83-84,
+						12F629,12F675,16F627-28,16F630,16F676,16F870-1-2,16F873-74,16F876-77;
+						corretta lettura file > 1MB;
+						modificata entrata prog mode AVR
+						scrittura 93Sx6 protette
+
 V 0.8.0 giugno 2012:	supporto bus one-wire e memorie DS2430,DS2431,DS2433,DS28EC20, termometro DS1820;
 						supporto bus UNIO e memorie 11010-20-40-80-160;
 						corretti algoritmi 24x1024/5 e 251024, 

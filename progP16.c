@@ -1,6 +1,6 @@
 /*
  * progP16.c - algorithms to program the PIC16 (14 bit word) family of microcontrollers
- * Copyright (C) 2009-2010 Alberto Maccioni
+ * Copyright (C) 2009-2013 Alberto Maccioni
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1033,10 +1033,10 @@ void Write12F6xx(int dim,int dim2)
 		bufferU[j++]=LOAD_CONF;			//counter at 0x2000
 		bufferU[j++]=0xFF;				//fake config
 		bufferU[j++]=0xFF;				//fake config
-		bufferU[j++]=INC_ADDR_N;
+		bufferU[j++]=INC_ADDR_N;		//use only INC_ADDR_N so verification does not look at it
 		bufferU[j++]=1;
 		bufferU[j++]=INC_ADDR_N;
-		bufferU[j++]=0x2100-0x2001;		//clear EEPROM counter
+		bufferU[j++]=0x2100-0x2001;		//EEPROM area: counter at 0x2100  
 		for(w=2,i=k=0x2100;i<0x2100+dim2;i++){
 			if(memCODE_W[i]<0xff){
 				bufferU[j++]=LOAD_DATA_DATA;
@@ -1235,13 +1235,13 @@ void Write16F8x (int dim,int dim2)
 // erase if not protected and DevID=16F84A:
 // LOAD_DATA_PROG (0010)(0x3FFF) + BULK_ERASE_PROG (1001) +10ms
 // LOAD_DATA_DATA (0011)(0xFF) + BULK_ERASE_DATA (1011) + BEGIN_PROG (1000) + 10ms
-// erase erase if not protected and DevID!=16F84A:
+// erase if not protected and DevID!=16F84A:
 // LOAD_DATA_PROG (0010)(0x3FFF) + CUST_CMD (0001) + CUST_CMD (0111)
 // + BEGIN_PROG (1000) + 10ms + CUST_CMD (0001) + CUST_CMD (0111)
 // LOAD_DATA_DATA (0011)(0xFF) + CUST_CMD (0001) + CUST_CMD (0111)
 // + BEGIN_PROG (1000) + 10ms + CUST_CMD (0001) + CUST_CMD (0111)
-// write: LOAD_DATA_PROG (0010) + BEGIN_PROG (1000) + 20ms o 8ms(16F84A)
-// write eeprom: LOAD_DATA_DATA (0011) + BEGIN_PROG (1000) + 20ms o 8ms(16F84A)
+// write: LOAD_DATA_PROG (0010) + BEGIN_PROG (1000) + 20ms or 8ms(16F84A)
+// write eeprom: LOAD_DATA_DATA (0011) + BEGIN_PROG (1000) + 20ms or 8ms(16F84A)
 // verify during write
 {
 	int err=0;
@@ -1473,6 +1473,65 @@ void Write16F8x (int dim,int dim2)
 	err+=i-k;
 	PrintStatusEnd();
 	PrintMessage1(strings[S_ComplErr],err);	//"completed, %d errors\r\n"
+//****************** write eeprom ********************
+	if(dim2){
+		PrintMessage(strings[S_EEAreaW]);	//"Writing EEPROM ... "
+		PrintStatusSetup();
+		j=1;
+		bufferU[j++]=LOAD_CONF;			//counter at 0x2000
+		bufferU[j++]=0xFF;				//fake config
+		bufferU[j++]=0xFF;				//fake config
+		bufferU[j++]=INC_ADDR_N;		//use only INC_ADDR_N so verification does not look at it
+		bufferU[j++]=0xFF;		
+		bufferU[j++]=INC_ADDR_N;	//EEPROM: counter at 0x2100
+		bufferU[j++]=1;		
+		for(w=0,i=k=0x2100;i<0x2100+dim2;i++){
+			if(memCODE_W[i]<0xff){
+				bufferU[j++]=LOAD_DATA_DATA;
+				bufferU[j++]=memCODE_W[i]&0xff;
+				bufferU[j++]=BEGIN_PROG;			//internally timed
+				bufferU[j++]=WAIT_T3;				//Tprogram
+				bufferU[j++]=READ_DATA_DATA;
+				w++;
+			}
+			bufferU[j++]=INC_ADDR;
+			if(j>DIMBUF-10||i==0x2100+dim2-1){
+				PrintStatus(strings[S_CodeWriting],(i-0x2100+dim)*100/(dim+dim2),i);	//"Writing: %d%%, add. %03X"
+				bufferU[j++]=FLUSH;
+				for(;j<DIMBUF;j++) bufferU[j]=0x0;
+				write();
+				msDelay(w*r+5);
+				w=0;
+				read();
+				for(z=1;z<DIMBUF-4;z++){
+					if(bufferI[z]==INC_ADDR&&memCODE_W[k]>=0xff) k++;
+					else if(bufferI[z]==LOAD_DATA_DATA&&bufferI[z+3]==READ_DATA_DATA){
+						if (memCODE_W[k]!=bufferI[z+4]){
+							PrintMessage("\r\n");
+							PrintMessage3(strings[S_CodeWError3],k,memCODE_W[k],bufferI[z+4]);	//"Error writing address %4X: written %02X, read %02X\r\n"
+							err++;
+							if(max_err&&err>max_err){
+								PrintMessage1(strings[S_MaxErr],err);	//"Exceeded maximum number of errors (%d), write interrupted\r\n"
+								PrintMessage(strings[S_IntW]);	//"Write interrupted"
+								i=0x2200;
+								z=DIMBUF;
+							}
+						}
+						k++;
+						z+=5;
+					}
+				}
+				j=1;
+				if(saveLog){
+					fprintf(logfile,strings[S_Log8],i,i,k,k,err);	//"i=%d, k=%d, errors=%d \n"
+					WriteLogIO();
+				}
+			}
+		}
+		err+=i-k;
+		PrintStatusEnd();
+		PrintMessage1(strings[S_ComplErr],i-k);	//"completed, %d errors\r\n"
+	}
 //****************** write ID, CONFIG ********************
 	PrintMessage(strings[S_ConfigAreaW]);	//"Writing CONFIG area ... "
 	int err_c=0;
@@ -1529,60 +1588,6 @@ void Write16F8x (int dim,int dim2)
 	if(saveLog){
 		fprintf(logfile,strings[S_Log9],err);	//"Area config. 	errors=%d \n"
 		WriteLogIO();
-	}
-//****************** write eeprom ********************
-	if(dim2){
-		PrintMessage(strings[S_EEAreaW]);	//"Writing EEPROM ... "
-		PrintStatusSetup();
-		j=1;
-		bufferU[j++]=INC_ADDR_N;
-		bufferU[j++]=0x2100-0x2008;		//clear EEPROM counter
-		for(w=0,i=k=0x2100;i<0x2100+dim2;i++){
-			if(memCODE_W[i]<0xff){
-				bufferU[j++]=LOAD_DATA_DATA;
-				bufferU[j++]=memCODE_W[i]&0xff;
-				bufferU[j++]=BEGIN_PROG;			//internally timed
-				bufferU[j++]=WAIT_T3;				//Tprogram
-				bufferU[j++]=READ_DATA_DATA;
-				w++;
-			}
-			bufferU[j++]=INC_ADDR;
-			if(j>DIMBUF-10||i==0x2100+dim2-1){
-				PrintStatus(strings[S_CodeWriting],(i-0x2100+dim)*100/(dim+dim2),i);	//"Writing: %d%%, add. %03X"
-				bufferU[j++]=FLUSH;
-				for(;j<DIMBUF;j++) bufferU[j]=0x0;
-				write();
-				msDelay(w*r+5);
-				w=0;
-				read();
-				for(z=1;z<DIMBUF-4;z++){
-					if(bufferI[z]==INC_ADDR&&memCODE_W[k]>=0xff) k++;
-					else if(bufferI[z]==LOAD_DATA_DATA&&bufferI[z+3]==READ_DATA_DATA){
-						if (memCODE_W[k]!=bufferI[z+4]){
-							PrintMessage("\r\n");
-							PrintMessage3(strings[S_CodeWError3],k,memCODE_W[k],bufferI[z+4]);	//"Error writing address %4X: written %02X, read %02X\r\n"
-							err++;
-							if(max_err&&err>max_err){
-								PrintMessage1(strings[S_MaxErr],err);	//"Exceeded maximum number of errors (%d), write interrupted\r\n"
-								PrintMessage(strings[S_IntW]);	//"Write interrupted"
-								i=0x2200;
-								z=DIMBUF;
-							}
-						}
-						k++;
-						z+=5;
-					}
-				}
-				j=1;
-				if(saveLog){
-					fprintf(logfile,strings[S_Log8],i,i,k,k,err);	//"i=%d, k=%d, errors=%d \n"
-					WriteLogIO();
-				}
-			}
-		}
-		err+=i-k;
-		PrintStatusEnd();
-		PrintMessage1(strings[S_ComplErr],i-k);	//"completed, %d errors\r\n"
 	}
 //****************** exit ********************
 	j=1;
@@ -1815,6 +1820,67 @@ void Write16F62x (int dim,int dim2)
 	err+=i-k;
 	PrintStatusEnd();
 	PrintMessage1(strings[S_ComplErr],err);	//"completed, %d errors\r\n"
+//****************** write eeprom ********************
+	if(dim2){
+		PrintMessage(strings[S_EEAreaW]);	//"Writing EEPROM ... "
+		PrintStatusSetup();
+		j=1;
+		bufferU[j++]=LOAD_CONF;			//counter at 0x2000
+		bufferU[j++]=0xFF;				//fake config
+		bufferU[j++]=0xFF;				//fake config
+		bufferU[j++]=INC_ADDR_N;		//use only INC_ADDR_N so verification does not look at it
+		bufferU[j++]=0xFF;		//20FF
+		bufferU[j++]=INC_ADDR_N;
+		bufferU[j++]=0xFF;		//21FE
+		bufferU[j++]=INC_ADDR_N;
+		bufferU[j++]=0x2;		//EEPROM: counter at 0x2200
+		for(w=0,i=k=0x2100;i<0x2100+dim2;i++){
+			if(memCODE_W[i]<0xff){
+				bufferU[j++]=LOAD_DATA_DATA;
+				bufferU[j++]=memCODE_W[i]&0xff;
+				bufferU[j++]=BEGIN_PROG2;			//internally timed
+				bufferU[j++]=WAIT_T3;				//Tprogram=8ms
+				bufferU[j++]=READ_DATA_DATA;
+				w++;
+			}
+			bufferU[j++]=INC_ADDR;
+			if(j>DIMBUF-10||i==0x2100+dim2-1){
+				PrintStatus(strings[S_CodeWriting],(i-0x2100+dim)*100/(dim+dim2),i);	//"Writing: %d%%, add. %03X"
+				bufferU[j++]=FLUSH;
+				for(;j<DIMBUF;j++) bufferU[j]=0x0;
+				write();
+				msDelay(w*14+1);
+				w=0;
+				read();
+				for(z=1;z<DIMBUF-4;z++){
+					if(bufferI[z]==INC_ADDR&&memCODE_W[k]>=0xff) k++;
+					else if(bufferI[z]==LOAD_DATA_DATA&&bufferI[z+3]==READ_DATA_DATA){
+						if (memCODE_W[k]!=bufferI[z+4]){
+							PrintMessage("\r\n");
+							PrintMessage3(strings[S_CodeWError3],k,memCODE_W[k],bufferI[z+4]);	//"Error writing address %4X: written %02X, read %02X\r\n"
+							err++;
+							if(max_err&&err>max_err){
+								PrintMessage1(strings[S_MaxErr],err);	//"Exceeded maximum number of errors (%d), write interrupted\r\n"
+								PrintMessage(strings[S_IntW]);	//"Write interrupted"
+								i=0x2200;
+								z=DIMBUF;
+							}
+						}
+						k++;
+						z+=5;
+					}
+				}
+				j=1;
+				if(saveLog){
+					fprintf(logfile,strings[S_Log8],i,i,k,k,err);	//"i=%d, k=%d, errors=%d \n"
+					WriteLogIO();
+				}
+			}
+		}
+		err+=i-k;
+		PrintStatusEnd();
+		PrintMessage1(strings[S_ComplErr],i-k);	//"completed, %d errors\r\n"
+	}
 //****************** write ID, CONFIG ********************
 	PrintMessage(strings[S_ConfigAreaW]);	//"Writing CONFIG area ... "
 	int err_c=0;
@@ -1870,62 +1936,6 @@ void Write16F62x (int dim,int dim2)
 	if(saveLog){
 		fprintf(logfile,strings[S_Log9],err);	//"Area config. 	errors=%d\n"
 		WriteLogIO();
-	}
-//****************** write eeprom ********************
-	if(dim2){
-		PrintMessage(strings[S_EEAreaW]);	//"Writing EEPROM ... "
-		PrintStatusSetup();
-		j=1;
-		bufferU[j++]=INC_ADDR_N;
-		bufferU[j++]=0x2102-0x2008;		//clear EEPROM counter
-		bufferU[j++]=INC_ADDR_N;
-		bufferU[j++]=0x2200-0x2102;		//clear EEPROM counter
-		for(w=0,i=k=0x2100;i<0x2100+dim2;i++){
-			if(memCODE_W[i]<0xff){
-				bufferU[j++]=LOAD_DATA_DATA;
-				bufferU[j++]=memCODE_W[i]&0xff;
-				bufferU[j++]=BEGIN_PROG2;			//internally timed
-				bufferU[j++]=WAIT_T3;				//Tprogram=8ms
-				bufferU[j++]=READ_DATA_DATA;
-				w++;
-			}
-			bufferU[j++]=INC_ADDR;
-			if(j>DIMBUF-10||i==0x2100+dim2-1){
-				PrintStatus(strings[S_CodeWriting],(i-0x2100+dim)*100/(dim+dim2),i);	//"Writing: %d%%, add. %03X"
-				bufferU[j++]=FLUSH;
-				for(;j<DIMBUF;j++) bufferU[j]=0x0;
-				write();
-				msDelay(w*14+1);
-				w=0;
-				read();
-				for(z=1;z<DIMBUF-4;z++){
-					if(bufferI[z]==INC_ADDR&&memCODE_W[k]>=0xff) k++;
-					else if(bufferI[z]==LOAD_DATA_DATA&&bufferI[z+3]==READ_DATA_DATA){
-						if (memCODE_W[k]!=bufferI[z+4]){
-							PrintMessage("\r\n");
-							PrintMessage3(strings[S_CodeWError3],k,memCODE_W[k],bufferI[z+4]);	//"Error writing address %4X: written %02X, read %02X\r\n"
-							err++;
-							if(max_err&&err>max_err){
-								PrintMessage1(strings[S_MaxErr],err);	//"Exceeded maximum number of errors (%d), write interrupted\r\n"
-								PrintMessage(strings[S_IntW]);	//"Write interrupted"
-								i=0x2200;
-								z=DIMBUF;
-							}
-						}
-						k++;
-						z+=5;
-					}
-				}
-				j=1;
-				if(saveLog){
-					fprintf(logfile,strings[S_Log8],i,i,k,k,err);	//"i=%d, k=%d, errors=%d \n"
-					WriteLogIO();
-				}
-			}
-		}
-		err+=i-k;
-		PrintStatusEnd();
-		PrintMessage1(strings[S_ComplErr],i-k);	//"completed, %d errors\r\n"
 	}
 //****************** exit ********************
 	j=1;
@@ -2138,6 +2148,72 @@ void Write12F62x(int dim,int dim2)
 	PrintStatusEnd();
 	err+=i-k;
 	PrintMessage1(strings[S_ComplErr],err);	//"completed, %d errors\r\n"
+//****************** write eeprom ********************
+	if(dim2){
+		PrintMessage(strings[S_EEAreaW]);	//"Writing EEPROM ... "
+		PrintStatusSetup();
+		j=1;
+		bufferU[j++]=SET_PARAMETER;
+		bufferU[j++]=SET_T3;
+		bufferU[j++]=6000>>8;
+		bufferU[j++]=6000&0xff;
+		bufferU[j++]=LOAD_CONF;			//counter at 0x2000
+		bufferU[j++]=0xFF;				//fake config
+		bufferU[j++]=0xFF;				//fake config
+		bufferU[j++]=INC_ADDR_N;		//use only INC_ADDR_N so verification does not look at it
+		bufferU[j++]=0xFF;		
+		bufferU[j++]=INC_ADDR_N;	//EEPROM: counter at 0x2100
+		bufferU[j++]=1;		
+		bufferU[j++]=BULK_ERASE_DATA;
+		bufferU[j++]=WAIT_T3;			// delay=12ms
+		bufferU[j++]=WAIT_T3;
+		for(w=3,i=k=0x2100;i<0x2100+dim2;i++){
+			if(memCODE_W[i]<0xff){
+				bufferU[j++]=LOAD_DATA_DATA;
+				bufferU[j++]=memCODE_W[i]&0xff;
+				bufferU[j++]=BEGIN_PROG;			//internally timed, T=6ms
+				bufferU[j++]=WAIT_T3;				//Tprogram 6ms
+				bufferU[j++]=READ_DATA_DATA;
+				w++;
+			}
+			bufferU[j++]=INC_ADDR;
+			if(j>DIMBUF-10||i==0x2100+dim2-1){
+				PrintStatus(strings[S_CodeWriting],(i-0x2100+dim)*100/(dim+dim2),i);	//"Writing: %d%%, add. %03X"
+				bufferU[j++]=FLUSH;
+				for(;j<DIMBUF;j++) bufferU[j]=0x0;
+				write();
+				msDelay(w*7+2);
+				w=0;
+				read();
+				for(z=1;z<DIMBUF-4;z++){
+					if(bufferI[z]==INC_ADDR&&memCODE_W[k]>=0xff) k++;
+					else if(bufferI[z]==LOAD_DATA_DATA&&bufferI[z+3]==READ_DATA_DATA){
+						if (memCODE_W[k]!=bufferI[z+4]){
+							PrintMessage("\r\n");
+							PrintMessage3(strings[S_CodeWError3],k,memCODE_W[k],bufferI[z+4]);	//"Error writing address %4X: written %02X, read %02X\r\n"
+							err++;
+							if(max_err&&err>max_err){
+								PrintMessage1(strings[S_MaxErr],err);	//"Exceeded maximum number of errors (%d), write interrupted\r\n"
+								PrintMessage(strings[S_IntW]);	//"Write interrupted"
+								i=0x2200;
+								z=DIMBUF;
+							}
+						}
+						k++;
+						z+=5;
+					}
+				}
+				j=1;
+				if(saveLog){
+					fprintf(logfile,strings[S_Log8],i,i,k,k,err);	//"i=%d, k=%d, errors=%d \n"
+					WriteLogIO();
+				}
+			}
+		}
+		err+=i-k;
+		PrintStatusEnd();
+		PrintMessage1(strings[S_ComplErr],i-k);	//"completed, %d errors\r\n"
+	}
 //****************** write ID, CONFIG, CALIB ********************
 	PrintMessage(strings[S_ConfigAreaW]);	//"Writing CONFIG area ... "
 	int err_c=0;
@@ -2191,67 +2267,6 @@ void Write12F62x(int dim,int dim2)
 	if(saveLog){
 		fprintf(logfile,strings[S_Log9],err);	//"Area config. 	errors=%d \n"
 		WriteLogIO();
-	}
-//****************** write eeprom ********************
-	if(dim2){
-		PrintMessage(strings[S_EEAreaW]);	//"Writing EEPROM ... "
-		PrintStatusSetup();
-		j=1;
-		bufferU[j++]=SET_PARAMETER;
-		bufferU[j++]=SET_T3;
-		bufferU[j++]=6000>>8;
-		bufferU[j++]=6000&0xff;
-		bufferU[j++]=INC_ADDR_N;
-		bufferU[j++]=0x2100-0x2007;		//clear EEPROM counter
-		bufferU[j++]=BULK_ERASE_DATA;
-		bufferU[j++]=WAIT_T3;			// delay=12ms
-		bufferU[j++]=WAIT_T3;
-		for(w=3,i=k=0x2100;i<0x2100+dim2;i++){
-			if(memCODE_W[i]<0xff){
-				bufferU[j++]=LOAD_DATA_DATA;
-				bufferU[j++]=memCODE_W[i]&0xff;
-				bufferU[j++]=BEGIN_PROG;			//internally timed, T=6ms
-				bufferU[j++]=WAIT_T3;				//Tprogram 6ms
-				bufferU[j++]=READ_DATA_DATA;
-				w++;
-			}
-			bufferU[j++]=INC_ADDR;
-			if(j>DIMBUF-10||i==0x2100+dim2-1){
-				PrintStatus(strings[S_CodeWriting],(i-0x2100+dim)*100/(dim+dim2),i);	//"Writing: %d%%, add. %03X"
-				bufferU[j++]=FLUSH;
-				for(;j<DIMBUF;j++) bufferU[j]=0x0;
-				write();
-				msDelay(w*7+2);
-				w=0;
-				read();
-				for(z=1;z<DIMBUF-4;z++){
-					if(bufferI[z]==INC_ADDR&&memCODE_W[k]>=0xff) k++;
-					else if(bufferI[z]==LOAD_DATA_DATA&&bufferI[z+3]==READ_DATA_DATA){
-						if (memCODE_W[k]!=bufferI[z+4]){
-							PrintMessage("\r\n");
-							PrintMessage3(strings[S_CodeWError3],k,memCODE_W[k],bufferI[z+4]);	//"Error writing address %4X: written %02X, read %02X\r\n"
-							err++;
-							if(max_err&&err>max_err){
-								PrintMessage1(strings[S_MaxErr],err);	//"Exceeded maximum number of errors (%d), write interrupted\r\n"
-								PrintMessage(strings[S_IntW]);	//"Write interrupted"
-								i=0x2200;
-								z=DIMBUF;
-							}
-						}
-						k++;
-						z+=5;
-					}
-				}
-				j=1;
-				if(saveLog){
-					fprintf(logfile,strings[S_Log8],i,i,k,k,err);	//"i=%d, k=%d, errors=%d \n"
-					WriteLogIO();
-				}
-			}
-		}
-		err+=i-k;
-		PrintStatusEnd();
-		PrintMessage1(strings[S_ComplErr],i-k);	//"completed, %d errors\r\n"
 	}
 //****************** exit ********************
 	j=1;
@@ -2518,6 +2533,73 @@ void Write16F87x (int dim,int dim2)
 	err+=i-k;
 	PrintStatusEnd();
 	PrintMessage1(strings[S_ComplErr],err);	//"completed, %d errors\r\n"
+//****************** write eeprom ********************
+	if(dim2){
+		int err_e=0;
+		PrintMessage(strings[S_EEAreaW]);	//"Writing EEPROM ... "
+		PrintStatusSetup();
+		j=1;
+		bufferU[j++]=LOAD_CONF;			//counter at 0x2000
+		bufferU[j++]=0xFF;				//fake config
+		bufferU[j++]=0xFF;				//fake config
+		bufferU[j++]=INC_ADDR_N;		//use only INC_ADDR_N so verification does not look at it
+		bufferU[j++]=0xFF;		
+		bufferU[j++]=INC_ADDR_N;
+		bufferU[j++]=1;					//EEPROM: counter at 0x2100
+		if(ee2200){		//eeprom at 0x2200
+			bufferU[j++]=INC_ADDR_N;
+			bufferU[j++]=0xFF;
+			bufferU[j++]=INC_ADDR_N;
+			bufferU[j++]=1;
+		}
+		for(w=0,i=k=0x2100;i<0x2100+dim2;i++){
+			if(memCODE_W[i]<0xff){
+				bufferU[j++]=LOAD_DATA_DATA;
+				bufferU[j++]=memCODE_W[i]&0xff;
+				bufferU[j++]=BEGIN_PROG2;			//internally timed ?????
+				bufferU[j++]=WAIT_T3;				//Tprogram         ?????
+				bufferU[j++]=READ_DATA_DATA;
+				w++;
+			}
+			bufferU[j++]=INC_ADDR;
+			if(j>DIMBUF-10||i==0x2100+dim2-1){
+				PrintStatus(strings[S_CodeWriting],(i-0x2100+dim)*100/(dim+dim2),i);	//"Writing: %d%%, add. %03X"
+				bufferU[j++]=FLUSH;
+				for(;j<DIMBUF;j++) bufferU[j]=0x0;
+				write();
+				msDelay(w*8+5);
+				w=0;
+				read();
+				for(z=1;z<DIMBUF;z++){
+					if(bufferI[z]==INC_ADDR&&memCODE_W[k]>=0xff) k++;
+					else if(bufferI[z]==LOAD_DATA_DATA&&bufferI[z+3]==READ_DATA_DATA){
+						if (memCODE_W[k]!=bufferI[z+4]){
+							PrintMessage("\r\n");
+							PrintMessage3(strings[S_CodeWError3],k,memCODE_W[k],bufferI[z+4]);	//"Error writing address %4X: written %02X, read %02X\r\n"
+							err_e++;
+							if(max_err&&err+err_e>max_err){
+								PrintMessage1(strings[S_MaxErr],err+err_e);	//"Exceeded maximum number of errors (%d), write interrupted\r\n"
+								PrintMessage(strings[S_IntW]);	//"Write interrupted"
+								i=0x2200;
+								z=DIMBUF;
+							}
+						}
+						k++;
+						z+=5;
+					}
+				}
+				j=1;
+				if(saveLog){
+					fprintf(logfile,strings[S_Log8],i,i,k,k,err);	//"i=%d, k=%d, errors=%d \n"
+					WriteLogIO();
+				}
+			}
+		}
+		err_e+=i-k;
+		err+=err_e;
+		PrintStatusEnd();
+		PrintMessage1(strings[S_ComplErr],err_e);	//"completed, %d errors\r\n"
+	}
 //****************** write ID, CONFIG, CALIB ********************
 	PrintMessage(strings[S_ConfigAreaW]);	//"Writing CONFIG area ... "
 	int err_c=0;
@@ -2592,68 +2674,6 @@ void Write16F87x (int dim,int dim2)
 	if(saveLog){
 		fprintf(logfile,strings[S_Log9],err);	//"Area config. 	errors=%d \n"
 		WriteLogIO();
-	}
-//****************** write eeprom ********************
-	if(dim2){
-		int err_e=0;
-		PrintMessage(strings[S_EEAreaW]);	//"Writing EEPROM ... "
-		PrintStatusSetup();
-		j=1;
-		if(ee2200){		//eeprom a 0x2200
-			bufferU[j++]=INC_ADDR_N;
-			bufferU[j++]=0xFF;
-			bufferU[j++]=INC_ADDR_N;
-			bufferU[j++]=1;
-		}
-		bufferU[j++]=INC_ADDR_N;
-		bufferU[j++]=0x2100-0x2007;		//clear EEPROM counter
-		for(w=0,i=k=0x2100;i<0x2100+dim2;i++){
-			if(memCODE_W[i]<0xff){
-				bufferU[j++]=LOAD_DATA_DATA;
-				bufferU[j++]=memCODE_W[i]&0xff;
-				bufferU[j++]=BEGIN_PROG2;			//internally timed ?????
-				bufferU[j++]=WAIT_T3;				//Tprogram         ?????
-				bufferU[j++]=READ_DATA_DATA;
-				w++;
-			}
-			bufferU[j++]=INC_ADDR;
-			if(j>DIMBUF-10||i==0x2100+dim2-1){
-				PrintStatus(strings[S_CodeWriting],(i-0x2100+dim)*100/(dim+dim2),i);	//"Writing: %d%%, add. %03X"
-				bufferU[j++]=FLUSH;
-				for(;j<DIMBUF;j++) bufferU[j]=0x0;
-				write();
-				msDelay(w*8+5);
-				w=0;
-				read();
-				for(z=1;z<DIMBUF-4;z++){
-					if(bufferI[z]==INC_ADDR&&memCODE_W[k]>=0xff) k++;
-					else if(bufferI[z]==LOAD_DATA_DATA&&bufferI[z+3]==READ_DATA_DATA){
-						if (memCODE_W[k]!=bufferI[z+4]){
-							PrintMessage("\r\n");
-							PrintMessage3(strings[S_CodeWError3],k,memCODE_W[k],bufferI[z+4]);	//"Error writing address %4X: written %02X, read %02X\r\n"
-							err_e++;
-							if(max_err&&err+err_e>max_err){
-								PrintMessage1(strings[S_MaxErr],err+err_e);	//"Exceeded maximum number of errors (%d), write interrupted\r\n"
-								PrintMessage(strings[S_IntW]);	//"Write interrupted"
-								i=0x2200;
-								z=DIMBUF;
-							}
-						}
-						k++;
-						z+=5;
-					}
-				}
-				j=1;
-				if(saveLog){
-					fprintf(logfile,strings[S_Log8],i,i,k,k,err);	//"i=%d, k=%d, errors=%d \n"
-					WriteLogIO();
-				}
-			}
-		}
-		err_e+=i-k;
-		err+=err_e;
-		PrintStatusEnd();
-		PrintMessage1(strings[S_ComplErr],err_e);	//"completed, %d errors\r\n"
 	}
 //****************** exit ********************
 	j=1;
@@ -2827,7 +2847,7 @@ void Write16F87xA (int dim,int dim2,int seq)
 			bufferU[j++]=FLUSH;
 			for(;j<DIMBUF;j++) bufferU[j]=0x0;
 			write();
-			msDelay(w*1.5+2);
+			msDelay(w*1.5+(6-w)*0.2+2);
 			w=0;
 			read();
 			for(z=1;z<DIMBUF-6;z++){
@@ -2871,9 +2891,9 @@ void Write16F87xA (int dim,int dim2,int seq)
 		bufferU[j++]=LOAD_CONF;			//counter at 0x2000
 		bufferU[j++]=0xFF;				//fake config
 		bufferU[j++]=0xFF;				//fake config
-		bufferU[j++]=INC_ADDR_N;
-		bufferU[j++]=0xFF;				//clear EEPROM counter
-		bufferU[j++]=INC_ADDR_N;
+		bufferU[j++]=INC_ADDR_N;		//use only INC_ADDR_N so verification does not look at it
+		bufferU[j++]=0xFF;
+		bufferU[j++]=INC_ADDR_N;		//EEPROM: counter at 0x2100
 		bufferU[j++]=1;
 		for(w=0,i=k=0x2100;i<0x2100+dim2;i++){
 			if(memCODE_W[i]<0xff){
@@ -3921,9 +3941,9 @@ void Write16F88x(int dim,int dim2)
 		bufferU[j++]=0xFF;				//fake config
 		bufferU[j++]=BULK_ERASE_DATA;
 		bufferU[j++]=WAIT_T3;			// delay T3=6ms
-		bufferU[j++]=INC_ADDR_N;
-		bufferU[j++]=0xFF;				//clear EEPROM counter
-		bufferU[j++]=INC_ADDR_N;
+		bufferU[j++]=INC_ADDR_N;		//use only INC_ADDR_N so verification does not look at it
+		bufferU[j++]=0xFF;
+		bufferU[j++]=INC_ADDR_N;		//EEPROM: counter at 0x2100
 		bufferU[j++]=1;
 		for(w=2,i=k=0x2100;i<0x2100+dim2;i++){
 			if(memCODE_W[i]<0xff){

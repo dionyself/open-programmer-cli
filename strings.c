@@ -1,4 +1,4 @@
-// Strings.c v0.7.10
+// Strings.c v0.8.1
 
 //This cannot be executed conditionally on MSVC
 //#include "stdafx.h"
@@ -7,14 +7,9 @@
 //configure for GUI or command-line
 #ifdef _MSC_VER
 	#include "msvc_common.h"
-#else
-	#include "strings.h"
-#endif
-
-
-#if defined _WIN32 || defined __CYGWIN__
 	#define NL "\r\n"
 #else
+	#include "common.h"
 	#define NL "\n"
 #endif
 
@@ -22,13 +17,79 @@ char *STR_ID[DIM];
 char *strings_it[DIM];
 char *strings_en[DIM];
 
+#ifndef _MSC_VER 
+
+int strfind(const char* langid,const char* langfile){
+	FILE* f=fopen(langfile,"r");
+	char line[4096],*id,*string,*p;
+	char temp[32];
+	int i=0;
+//	printf("file %s f=%d\n",langfile, f); fflush(stdout);
+	if(f){
+		temp[0]=0;
+		for(;fgets(line,sizeof(line),f);){
+			if(sscanf(line,"[%[^]]",temp)&&!strncmp(langid,temp,sizeof(temp))){
+				strings=malloc(DIM*sizeof(char*));
+				for(i=0;i<DIM;i++) strings[i]=0;
+				for(;fgets(line,sizeof(line),f);){
+					if(strlen(line)>0&&line[0]=='[') break; //start of new table
+					id=strtok(line," \t");
+					string=strtok(0,"\n");
+					for(i=0;string&&i<DIM;i++){
+						if(!strcmp(id,STR_ID[i])){
+							for(;string&&string[0]&&string[0]=='\t';string++);
+							for(;(p=strstr(string,"\\n"));){
+								for(p[0]='\n';p[1];p++) p[1]=p[2];
+							}
+							for(;(p=strstr(string,"\\r"));){
+								for(p[0]='\r';p[1];p++) p[1]=p[2];
+							}
+							strings[i]=malloc(strlen(string)+1);
+							strcpy(strings[i],string);
+							i=DIM;
+						}
+					}
+				}
+				for(i=0;i<DIM;i++){
+					if(strings[i]==0){
+						strings[i]=malloc(strlen(strings_en[i])+1);
+						strcpy(strings[i],strings_en[i]);
+					}
+				}
+			}
+		}
+		fclose(f);
+	}
+	return i;	//i=0 if language table was not found
+}
+
+void GenerateLangFile(const char* langid,const char* langfile){
+	FILE* f=fopen(langfile,"a");
+	int i,j;
+	if(f){
+		fprintf(f,"\n\n[%s]\n",langid?langid:"x");
+		for(i=1;i<DIM;i++){
+			fprintf(f,"%s\t\t",STR_ID[i]);
+			for(j=0;strings_en[i][j];j++){
+				if(strings_en[i][j]=='\n') fprintf(f,"%s","\\n");
+				else if(strings_en[i][j]=='\r') fprintf(f,"%s","\\r");
+				else fprintf(f,"%c",strings_en[i][j]);
+			}
+			fprintf(f,"\n");
+		}
+		fclose(f);
+	}
+}
+#endif
+
 #ifdef _MSC_VER
 void COpenProgDlg::strinit()
 #else
 void strinit()
 #endif
 {
-	#ifdef _MSC_VER
+//	#ifdef _MSC_VER
+	STR_ID[S_NL]=(char*) "S_NL";
 	STR_ID[S_noprog]=(char*) "S_noprog";
 	STR_ID[S_prog]="S_prog";
 	STR_ID[S_progDev]="S_progDev";
@@ -200,6 +261,9 @@ void strinit()
 	STR_ID[S_NoConfigW5]="S_NoConfigW5";
 	STR_ID[S_Empty]="S_Empty";
 	STR_ID[S_NextIns]="S_NextIns";
+	STR_ID[S_ForceConfigW]="S_ForceConfigW";
+	STR_ID[S_ForceConfigW1]="S_ForceConfigW2";
+	STR_ID[S_ForceConfigW1]="S_ForceConfigW2";
 	STR_ID[I_Fopen]="I_Fopen";
 	STR_ID[I_Fsave]="I_Fsave";
 	STR_ID[I_DevR]="I_DevR";
@@ -209,6 +273,7 @@ void strinit()
 	STR_ID[I_Opt]="I_Opt";
 	STR_ID[I_Dev]="I_Dev";
 	STR_ID[I_Type]="I_Type";
+	STR_ID[I_Speed]="I_Speed";
 	STR_ID[I_ReadRes]="I_ReadRes";
 	STR_ID[I_ID_BKo_W]="I_ID_BKo_W";
 	STR_ID[I_EE]="I_EE";
@@ -219,8 +284,10 @@ void strinit()
 	STR_ID[I_OSCF]="I_OSCF";
 	STR_ID[I_CONN]="I_CONN";
 	STR_ID[I_LOG]="I_LOG";
+	STR_ID[I_CK_V33]="I_CK_V33";
 	STR_ID[I_LANG]="I_LANG";
 	STR_ID[I_MAXERR]="I_MAXERR";
+	STR_ID[I_ADDR]="I_ADDR";
 	STR_ID[I_USBD]="I_USBD";
 	STR_ID[I_I2CDATAOUT]="I_I2CDATAOUT";
 	STR_ID[I_I2CDATATR]="I_I2CDATATR";
@@ -230,13 +297,17 @@ void strinit()
 	STR_ID[I_I2CReceive]="I_I2CReceive";
 	STR_ID[I_TestHW]="I_TestHW";
 	STR_ID[I_TestHWB]="I_TestHWB";
+	STR_ID[I_IO_Enable]="I_IO_Enable";
 	STR_ID[I_PIC_CONFIG]="I_PIC_CONFIG";
+	STR_ID[I_PIC_FORCECW]="I_PIC_FORCECW";
 	STR_ID[I_AT_CONFIG]="I_AT_CONFIG";
 	STR_ID[I_AT_FUSE]="I_AT_FUSE";
 	STR_ID[I_AT_FUSEH]="I_AT_FUSEH";
 	STR_ID[I_AT_FUSEX]="I_AT_FUSEX";
 	STR_ID[I_AT_LOCK]="I_AT_LOCK";
 	STR_ID[I_W_LANGFILE]="I_W_LANGFILE";
+	STR_ID[I_WAITS1]="I_WAITS1";
+	STR_ID[I_PRESSS1]="I_PRESSS1";
 	STR_ID[I_ICD_ENABLE]="I_ICD_ENABLE";
 	STR_ID[I_ICD_ADDRESS]="I_ICD_ADDRESS";
 	STR_ID[I_LOAD_COFF]="I_LOAD_COFF";
@@ -258,6 +329,7 @@ void strinit()
 	STR_ID[I_ICD_SOURCE]="I_ICD_SOURCE";
 	STR_ID[I_ICD_STATUS]="I_ICD_STATUS";
 	STR_ID[I_ICD_HELP_TXT]="I_ICD_HELP_TXT";
+	STR_ID[I_GUI_CMD_HELP]="I_GUI_CMD_HELP";
 	STR_ID[L_HELP]="L_HELP";
 	STR_ID[L_OPTERR]="L_OPTERR";
 	STR_ID[L_INFO1]="L_INFO1";
@@ -266,8 +338,9 @@ void strinit()
 	STR_ID[L_NAME]="L_NAME";
 	STR_ID[L_DEV_RO]="L_DEV_RO";
 	STR_ID[L_DEV_RW]="L_DEV_RW";
-	#endif
+//	#endif
 
+	strings_it[S_NL]=NL;
 	strings_it[S_noprog]="Programmatore non rilevato" NL;
 	strings_it[S_prog]="Programmatore rilevato" NL;
 	strings_it[S_progDev]="Programmatore rilevato su %s" NL;
@@ -446,6 +519,9 @@ void strinit()
 	strings_it[S_NoConfigW5]="Impossibile trovare la locazione CONFIG (0x8007-0x8008)" NL "Fine" NL;
 	strings_it[S_Empty]="(vuoto)" NL;
 	strings_it[S_NextIns]="Prossima istruzione";
+	strings_it[S_ForceConfigW]="Forzo config word1 (0x%04X) e config word2 (0x%04X)" NL;
+	strings_it[S_ForceConfigW1]="Forzo config word1 (0x%04X)" NL;
+	strings_it[S_ForceConfigW2]="Forzo config word2 (0x%04X)" NL;
 					//
 	strings_it[I_Fopen]="Apri file";
 	strings_it[I_Fsave]="Salva file";
@@ -456,6 +532,7 @@ void strinit()
 	strings_it[I_Opt]="Opzioni";
 	strings_it[I_Dev]="Dispositivo";
 	strings_it[I_Type]="Filtra per tipo";
+	strings_it[I_Speed]="VelocitÃ ";
 	strings_it[I_ReadRes]="Leggi area riservata";
 	strings_it[I_ID_BKo_W]="Programma ID e BKosccal";
 	strings_it[I_EE]="Leggi e programma EEPROM";
@@ -466,8 +543,10 @@ void strinit()
 	strings_it[I_OSCF]="Da File";
 	strings_it[I_CONN]="Riconnetti";
 	strings_it[I_LOG]="Registra eventi su file";
+	strings_it[I_CK_V33]="Non richiedere espansioni LV";
 	strings_it[I_LANG]="Lingua";
 	strings_it[I_MAXERR]="Max errori in scrittura";
+	strings_it[I_ADDR]="Indirizzo";
 	strings_it[I_USBD]="Ritardo minimo USB (ms)";
 	strings_it[I_I2CDATAOUT]="Dati da scrivere";
 	strings_it[I_I2CDATATR]="Dati trasferiti";
@@ -477,13 +556,19 @@ void strinit()
 	strings_it[I_I2CReceive]="Ricevi";
 	strings_it[I_TestHW]="Test hardware: rimuovere eventuali dispositivi dal programmatore";
 	strings_it[I_TestHWB]="Test hardware";
+	strings_it[I_IO_Enable]="Abilita IO";
 	strings_it[I_PIC_CONFIG]="Configurazione PIC";
+	strings_it[I_PIC_FORCECW]="Forza config word";
 	strings_it[I_AT_CONFIG]="Configurazione Atmel";
 	strings_it[I_AT_FUSE]="Scrivi Fuse Low";
 	strings_it[I_AT_FUSEH]="Scrivi Fuse High";
 	strings_it[I_AT_FUSEX]="Scrivi Extended Fuse";
 	strings_it[I_AT_LOCK]="Scrivi Lock";
 	strings_it[I_W_LANGFILE]="Scrivi file linguaggio";
+	strings_it[I_WAITS1]="Inizia a scrivere/leggere con S1";
+	strings_it[I_PRESSS1]="Premi S1 per iniziare" NL;
+	strings_it[S_WaitS1W]="Premi S1 per programmare, un tasto per uscire" NL;
+	strings_it[S_WaitS1R]="Premi S1 per leggere, un tasto per uscire" NL;
 	strings_it[I_ICD_ENABLE]="Abilita ICD";
 	strings_it[I_ICD_ADDRESS]="Indirizzo routine ICD";
 	strings_it[I_LOAD_COFF]="Carica file COFF ...";
@@ -535,12 +620,24 @@ void strinit()
 		" version             leggi versione debugger" NL
 		" w[atch] variabile   aggiungi/rimuovi variabile alla lista di osservazione" NL
 		" w[atch] 0x<ind>     aggiungi/rimuovi variabile all'indirizzo <ind> alla lista di osservazione" NL;
+	strings_it[I_GUI_CMD_HELP]=
+		"Opzioni da linea di comando:" NL
+		" ?,h,help            guida comandi" NL
+		" command <messaggio> invia <messaggio> al programmatore ed esci." NL
+		"                     Il messaggio Ã¨ composto da byte esadecimali separati da uno spazio," NL
+		"                     fino a un massimo di 64; quelli non specificati vengono posti a 0" NL
+		" lang <lingua>       carica <lingua>" NL
+		" langfile            scrivi tutte le stringhe su file" NL;
 	strings_it[L_HELP]=
 		"op [opzioni]" NL NL
 		"-BKosccal                   carica BKosccal da file" NL
 		"-calib                      carica calibration da file" NL
+		"-command <messaggio>        invia <messaggio> al programmatore ed esci." NL
+		"                            Il messaggio è composto da byte esadecimali separati da uno spazio," NL
+		"                            fino a un massimo di 64; quelli non specificati vengono posti a 0" NL
+		"-cw1 <cw1>                  forza config word 1" NL
+		"-cw2 <cw2>                  forza config word 2" NL
 		"-d, device <disp.>          dispositivo" NL
-		"-delay <ms>                 ritardo minimo [2]" NL
 		"-ee                         usa eeprom" NL
 		"-err <max>                  imposta massimo errori in scrittura" NL
 		"-fuse <val>                 scrive il byte fuse low (solo Atmel)" NL
@@ -554,19 +651,25 @@ void strinit()
 		"-i2c_r2 <N Ctr Ind(2)>      leggi N byte dal bus I2C (indirizzi 16b)" NL
 		"-i2c_w <N Ctr Ind Dati>     scrivi N byte sul bus I2C" NL
 		"-i2c_w2 <N Ctr Ind(2) Dati> scrivi N byte sul bus I2C (indirizzi 16b)" NL
+		"-i2cspeed <s>               cambia velocità I2C: 0=100k,1=200k,2=500k,3=800k" NL
 		"-id                         usa ID" NL
-		"-l, log [=file]              salva registro" NL
+		"-l, log [=file]             salva registro" NL
+		"-lang <lingua>              carica <lingua>" NL
+		"-langfile                   scrivi tutte le stringhe su file" NL
 		"-lock <val>                 scrive il byte lock (solo Atmel)" NL
 		"-mode <mode>                SPI mode: 00,01,10,11" NL
+		"-nolvcheck                  non richiedere espansioni LV" NL
 		"-osccal                     carica osccal da file invece che dal valore salvato prima della cancellazione" NL
 		"-p, path <percorso>         percorso programmatore [/dev/usb/hiddev0]" NL
 		"-pid <pid>                  pid programmatore [0x100]" NL
 		"-r, reserved                leggi area riservata" NL
 		"-rep <n>                    dimensione report [64]" NL
+		"-s1, S1                     Programmazione multipla comandata da S1" NL
 		"-s, save <file>             salva su file Ihex" NL
 		"-se, saveEE <file>          salva EEPROM su file Ihex (solo ATxxxx)" NL
 		"-spi_r <N>                  leggi N byte dal bus SPI" NL
 		"-spi_w <N Dati>             scrivi N byte sul bus SPI" NL
+		"-spispeed <s>               cambia velocità SPI: 0=100k,1=200k,2=300k,3=500k" NL
 		"-support                    dispositivi supportati" NL
 		"-use_BKosccal               copia BKosccal su osccal" NL
 		"-v, version                 versione" NL
@@ -582,8 +685,9 @@ void strinit()
 	strings_it[L_NAME]="Il dispositivo su %s si chiama %s" NL;
 	strings_it[L_DEV_RO]="Dispositivi supportati in sola lettura:";
 	strings_it[L_DEV_RW]="Dispositivi supportati in lettura e scrittura:";
-	
-	
+
+// ENGLISH strings
+	strings_en[S_NL]=NL;
 	strings_en[S_noprog]="Programmer not detected" NL;
 	strings_en[S_prog]="Programmer detected" NL;
 	strings_en[S_progDev]="Programmer detected on %s" NL;
@@ -764,6 +868,9 @@ void strinit()
 	strings_en[S_NoConfigW5]="Can't find CONFIG location (0x8007-0x8008)" NL "End" NL;
 	strings_en[S_Empty]="(empty)" NL;
 	strings_en[S_NextIns]="Next instruction";
+	strings_en[S_ForceConfigW]="Forcing config word1 (0x%04X) and config word2 (0x%04X)" NL;
+	strings_en[S_ForceConfigW1]="Forcing config word1 (0x%04X)" NL;
+	strings_en[S_ForceConfigW2]="Forcing config word2 (0x%04X)" NL;
 	//
 	strings_en[I_Fopen]="Open file";
 	strings_en[I_Fsave]="Save file";
@@ -774,6 +881,7 @@ void strinit()
 	strings_en[I_Opt]="Options";
 	strings_en[I_Dev]="Device";
 	strings_en[I_Type]="Filter by type";
+	strings_en[I_Speed]="Speed";
 	strings_en[I_ReadRes]="Read reserved area";
 	strings_en[I_ID_BKo_W]="Write ID and BKosccal";
 	strings_en[I_EE]="Read and write EEPROM";
@@ -784,8 +892,10 @@ void strinit()
 	strings_en[I_OSCF]="From File";
 	strings_en[I_CONN]="Reconnect";
 	strings_en[I_LOG]="Log activity";
+	strings_en[I_CK_V33]="Don't require LV boards";
 	strings_en[I_LANG]="Language";
-	strings_en[I_MAXERR]="Max errors in writing";
+	strings_en[I_MAXERR]="Max errors during write";
+	strings_en[I_ADDR]="Address";
 	strings_en[I_USBD]="Min USB delay (ms)";
 	strings_en[I_I2CDATAOUT]="Data to send";
 	strings_en[I_I2CDATATR]="Data transferred";
@@ -795,13 +905,19 @@ void strinit()
 	strings_en[I_I2CReceive]="Receive";
 	strings_en[I_TestHW]="Hardware test: remove any device from programmer";
 	strings_en[I_TestHWB]="Hardware test";
+	strings_en[I_IO_Enable]="Enable IO";
 	strings_en[I_PIC_CONFIG]="PIC configuration";
+	strings_en[I_PIC_FORCECW]="Force config word";
 	strings_en[I_AT_CONFIG]="Atmel configuration";
 	strings_en[I_AT_FUSE]="Write Fuse Low";
 	strings_en[I_AT_FUSEH]="Write Fuse High";
 	strings_en[I_AT_FUSEX]="Write Extended Fuse";
 	strings_en[I_AT_LOCK]="Write Lock";
 	strings_en[I_W_LANGFILE]="Write language file";
+	strings_en[I_WAITS1]="Wait for S1 before read/write";
+	strings_en[I_PRESSS1]="Press S1 to start" NL;
+	strings_en[S_WaitS1W]="Press S1 to program, any key to exit";
+	strings_en[S_WaitS1R]="Press S1 to read, any key to exit";
 	strings_en[I_ICD_ENABLE]="Enable ICD";
 	strings_en[I_ICD_ADDRESS]="ICD routine address";
 	strings_en[I_LOAD_COFF]="Load COFF file ...";
@@ -852,11 +968,23 @@ void strinit()
 		" version             read debugger version" NL
 		" w[atch] variable    add/remove watch for variable" NL
 		" w[atch] 0x<addr>    add/remove watch at address <addr>" NL;
+	strings_en[I_GUI_CMD_HELP]=
+		"Command line options:" NL
+		" ?,h,help            this help" NL
+		" command <message>   send <message> to the programmer and exit." NL
+		"                     The message is composed of up to 64 hexadecimal bytes separated by a space;" NL
+		"                     those not specified are 0" NL
+		" lang <language>     load <language> strings" NL
+		" langfile            write all strings to file" NL;
 	strings_en[L_HELP]="op [options]" NL
 		"-BKosccal                   load BKosccal from file" NL
 		"-calib                      load calibration from file" NL
+		"-command <message>          send <message> to the programmer and exit." NL
+		"                            The message is composed of up to 64 hexadecimal bytes separated by a space;" NL
+		"                            those not specified are 0" NL
+		"-cw1 <cw1>                  force config word 1" NL
+		"-cw2 <cw2>                  force config word 2" NL
 		"-d, device <dev.>           device" NL
-		"-delay <ms>                 minimum delay [2]" NL
 		"-ee                         use eeprom" NL
 		"-err <max>                  max errors during writing" NL
 		"-fuse <val>                 write fuse low byte (Atmel only)" NL
@@ -869,20 +997,26 @@ void strinit()
 		"-i2c_r2 <N Ctr Addr(2)>     read N bytes from I2C bus (16b address)" NL
 		"-i2c_w <N Ctr Addr Data>    write N bytes to I2C bus" NL
 		"-i2c_w2 <N Ctr Addr(2) D.>  write N bytes to I2C bus (16b address)" NL
+		"-i2cspeed <s>               set I2C speed: 0=100k,1=200k,2=500k,3=800k" NL
 		"-id                         use ID" NL
 		"-icd <val>                  enable ICD (goto address)" NL
 		"-l, log [=file]             save log" NL
+		"-lang <language>            load <language> strings" NL
+		"-langfile                   write all strings to file" NL
 		"-lock <val>                 write lock byte (Atmel only)" NL
 		"-mode <mode>                SPI mode: 00,01,10,11" NL
+		"-nolvcheck                  don't require LV boards" NL
 		"-osccal                     loads osccal from file instead of using the value saved before erase" NL
 		"-p, path <path>             programmer path [/dev/usb/hiddev0]" NL
 		"-pid <pid>                  programmer pid [0x100]" NL
 		"-r, reserved                read reserved area" NL
 		"-rep <n>                    report size [64]" NL
+		"-s1, S1                     Multiple programming triggered by S1" NL
 		"-s, save <file>             save Ihex file" NL
 		"-se, saveEE <file>          save EEPROM on Ihex file (ATxxxx only)" NL
 		"-spi_r <N>                  read N bytes from SPI bus" NL
 		"-spi_w <N Data>             write N bytes to SPI bus" NL
+		"-spispeed <s>               set SPI speed: 0=100k,1=200k,2=500k,3=800k" NL
 		"-support                    supported devices" NL
 		"-use_BKosccal               copy BKosccal to osccal" NL
 		"-v, version                 version" NL

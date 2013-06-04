@@ -23,10 +23,10 @@
 
 
 //configure for GUI or command-line
-#ifdef _MSC_VER 
+#ifdef _MSC_VER
 	#define _GUI
 	#include "msvc_common.h"
-#else 
+#else
 	#define _CMD
 	#include "common.h"
 #endif
@@ -47,9 +47,9 @@
 #define HLD 16
 
 #ifdef _MSC_VER
-	void COpenProgDlg::I2CReceive(int mode,int N,BYTE *buffer)
+	void COpenProgDlg::I2CReceive(int mode,int speed,int N,BYTE *buffer)
 #else
-	void I2CReceive(int mode,int N,BYTE *buffer)
+	void I2CReceive(int mode,int speed,int N,BYTE *buffer)
 #endif
 // I2C/SPI receive
 // mode:
@@ -59,16 +59,22 @@
 // 3 = SPI 01
 // 4 = SPI 10
 // 5 = SPI 11
+// speed:
+// 0 = 100 kbps
+// 1 = 200 kbps
+// 2 = 300/400 kbps (SPI/I2C)
+// 3 = 500/800 kbps (SPI/I2C)
 {
 	int j=1;
 	if(N<0) N=0;
 	if(N>60) N=60;
 	if(mode<0) mode=0;
 	if(mode>5) mode=5;
-
+	if(speed<0) speed=0;
+	if(speed>3) speed=3;
 	if(saveLog){
 		OpenLogFile();	//"Log.txt"
-		fprintf(logfile,"I2C-SPI receive\tmode=%d\n",mode);
+		fprintf(logfile,"I2C-SPI receive\tmode=%d\tspeed=%d\n",mode,speed);
 	}
 	bufferU[0]=0;
 	bufferU[j++]=VREG_DIS;		//Disable HV reg
@@ -76,7 +82,7 @@
 	bufferU[j++]=0x1;
 	if(mode<2){					//I2C mode
 		bufferU[j++]=I2C_INIT;
-		bufferU[j++]=0;
+		bufferU[j++]=(speed<<3)+(speed>0?0x40:0);	//enable slew control if >100k
 	}
 	else{						//SPI mode
 		bufferU[j++]=EXT_PORT;	//CS=1
@@ -86,7 +92,7 @@
 		bufferU[j++]=0;
 		bufferU[j++]=0;
 		bufferU[j++]=SPI_INIT;
-		bufferU[j++]=mode-2;
+		bufferU[j++]=speed+((mode-2)<<2);
 	}
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
@@ -154,9 +160,9 @@
 }
 
 #ifdef _MSC_VER
-	void COpenProgDlg::I2CSend(int mode,int N,BYTE *buffer)
+	void COpenProgDlg::I2CSend(int mode,int speed,int N,BYTE *buffer)
 #else
-	void I2CSend(int mode,int N,BYTE *buffer)
+	void I2CSend(int mode,int speed,int N,BYTE *buffer)
 #endif
 // I2C/SPI send
 // mode:
@@ -166,15 +172,22 @@
 // 3 = SPI 01
 // 4 = SPI 10
 // 5 = SPI 11
+// speed:
+// 0 = 100 kbps
+// 1 = 200 kbps
+// 2 = 300/400 kbps (SPI/I2C)
+// 3 = 500/800 kbps (SPI/I2C)
 {
 	int i,j=1;
 	if(N<0) N=0;
 	if(N>57) N=57;
 	if(mode<0) mode=0;
 	if(mode>5) mode=5;
+	if(speed<0) speed=0;
+	if(speed>3) speed=3;
 	if(saveLog){
 		OpenLogFile();	//"Log.txt"
-		fprintf(logfile,"I2C-SPI send\tmode=%d\n",mode);
+		fprintf(logfile,"I2C-SPI send\tmode=%d\tspeed=%d\n",mode,speed);
 	}
 	bufferU[0]=0;
 	bufferU[j++]=VREG_DIS;		//Disable HV reg
@@ -182,7 +195,7 @@
 	bufferU[j++]=0x1;
 	if(mode<2){					//I2C mode
 		bufferU[j++]=I2C_INIT;
-		bufferU[j++]=0;
+		bufferU[j++]=(speed<<3)+(speed>0?0x40:0);	//enable slew control if >100k
 	}
 	else{						//SPI mode
 		bufferU[j++]=EXT_PORT;	//CS=1
@@ -192,7 +205,7 @@
 		bufferU[j++]=0;
 		bufferU[j++]=0;
 		bufferU[j++]=SPI_INIT;
-		bufferU[j++]=mode-2;
+		bufferU[j++]=speed+((mode-2)<<2);
 	}
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;

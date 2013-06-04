@@ -1,6 +1,6 @@
 /*
  * progP18F.c - algorithms to program the PIC18 family of microcontrollers
- * Copyright (C) 2009-2010 Alberto Maccioni
+ * Copyright (C) 2009-2013 Alberto Maccioni
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1051,7 +1051,7 @@ void Write18Fx(int dim,int dim2,int wbuf,int eraseW1,int eraseW2,int options)
 		if(bufferI[1]==TBLR_INC_N){
 			for(z=0;z<bufferI[2]&&z<DIMBUF;z++){
 				if(memCODE[i+z]!=bufferI[z+3]){
-					PrintMessage4(strings[S_CodeVError],i+z,i+z,memCODE[i+z],bufferI[z+3]);	//"Errore in verifica, indirizzo %04X (%d), scritto %02X, letto %02X\r\n"
+					PrintMessage4(strings[S_CodeVError],i+z,i+z,memCODE[i+z],bufferI[z+3]);	//"Error writing address %4X: written %02X, read %02X\r\n"
 					err++;
 				}
 				//k++;

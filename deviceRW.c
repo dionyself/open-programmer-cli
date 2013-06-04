@@ -1,6 +1,6 @@
 /*
  * deviceRW.c - Read-write calls for various devices
- * Copyright (C) 2010-2012 Alberto Maccioni
+ * Copyright (C) 2010-2013 Alberto Maccioni
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1119,7 +1119,7 @@ void AddDevices(char *list){		//make sure list is long enough
 //     4 = 0xF80000 to 0xF80016 (24H-33F)
 //     5 = 0xF80000 to 0xF8000C (x16 bit, 30F)
 //     6 = 0xF80000 to 0xF8000E (30FSMPS)
-	else if(!strncmp(dev,"24F",3)||!strncmp(dev,"24H",3)||!strncmp(dev,"30F",3)||!strncmp(dev,"33F",3)){
+	else if(!strncmp(dev,"24F",3)||!strncmp(dev,"24H",3)||!strncmp(dev,"24E",3)||!strncmp(dev,"30F",3)||!strncmp(dev,"33F",3)||!strncmp(dev,"33E",3)){
 		if(EQ("24F04KA200")||EQ("24F04KA201")){
 			Read24Fx(0xB00,0,0x31,0x05BE,r?0x800:0);				//1.375KW, HV
 		}

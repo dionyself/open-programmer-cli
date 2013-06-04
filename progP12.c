@@ -1,6 +1,6 @@
 /*
  * progP12.c - algorithms to program the PIC12 (12 bit word) family of microcontrollers
- * Copyright (C) 2009-2010 Alberto Maccioni
+ * Copyright (C) 2009-2013 Alberto Maccioni
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

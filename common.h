@@ -1,3 +1,6 @@
+#define _APPNAME "OP"
+#define _CMD
+
 #if !defined _WIN32 && !defined __CYGWIN__
 	#include <sys/ioctl.h>
 	#include <sys/types.h>
@@ -42,7 +45,7 @@ typedef unsigned char BYTE;
 #define	PrintStatusEnd() printf("\b\b\b\b");
 #define	PrintStatusClear() //only for GUI
 #define COL 16
-#define VERSION "0.8.0"
+#define VERSION "0.8.1"
 #define G (12.0/34*1024/5)		//=72,2823529412
 #define LOCK	1
 #define FUSE	2
@@ -94,8 +97,8 @@ extern FILE* logfile;
 extern char LogFileName[512];
 extern char loadfile[512],savefile[512];
 extern WORD *memCODE_W;
-extern int size,sizeW,sizeEE,sizeCONFIG;
-extern unsigned char *memCODE,*memEE,memID[8],memCONFIG[48];
+extern int size,sizeW,sizeEE,sizeCONFIG,sizeUSERID;
+extern unsigned char *memCODE,*memEE,memID[8],memCONFIG[48],memUSERID[8];
 extern double hvreg;
 
 int StartHVReg(double V);

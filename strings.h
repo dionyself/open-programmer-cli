@@ -1,6 +1,7 @@
-// Strings.h v0.7.10
+// Strings.h v0.8.1
 
 enum S {
+	S_NL,
 	S_noprog,
 	S_prog,
 	S_progDev,
@@ -172,6 +173,11 @@ enum S {
 	S_NoConfigW5,
 	S_Empty,
 	S_NextIns,
+	S_ForceConfigW,
+	S_ForceConfigW1,
+	S_ForceConfigW2,
+	S_WaitS1W,
+	S_WaitS1R,
 // GUI strings
 	I_Fopen,
 	I_Fsave,
@@ -182,6 +188,7 @@ enum S {
 	I_Opt,
 	I_Dev,
 	I_Type,
+	I_Speed,
 	I_ReadRes,
 	I_ID_BKo_W,
 	I_EE,
@@ -192,8 +199,10 @@ enum S {
 	I_OSCF,
 	I_CONN,
 	I_LOG,
+	I_CK_V33,
 	I_LANG,
 	I_MAXERR,
+	I_ADDR,
 	I_USBD,
 	I_I2CDATAOUT,
 	I_I2CDATATR,
@@ -203,13 +212,17 @@ enum S {
 	I_I2CReceive,
 	I_TestHW,
 	I_TestHWB,
+	I_IO_Enable,
 	I_PIC_CONFIG,
+	I_PIC_FORCECW,
 	I_AT_CONFIG,
 	I_AT_FUSE,
 	I_AT_FUSEH,
 	I_AT_FUSEX,
 	I_AT_LOCK,
 	I_W_LANGFILE,
+	I_WAITS1,
+	I_PRESSS1,
 	I_ICD_ENABLE,
 	I_ICD_ADDRESS,
 	I_LOAD_COFF,
@@ -231,6 +244,7 @@ enum S {
 	I_ICD_SOURCE,
 	I_ICD_STATUS,
 	I_ICD_HELP_TXT,
+	I_GUI_CMD_HELP,
 //	command-line strings
 	L_HELP,
 	L_OPTERR,
@@ -244,4 +258,7 @@ enum S {
 
 extern char *strings_it[DIM];
 extern char *strings_en[DIM];
+char *STR_ID[DIM];
 void strinit();
+int strfind(const char* langid,const char* langfile);
+void GenerateLangFile(const char* langid,const char* langfile);

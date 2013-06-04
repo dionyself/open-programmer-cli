@@ -1,6 +1,6 @@
 /*
  * progP24F.c - algorithms to program the PIC24 family of microcontrollers
- * Copyright (C) 2009-2010 Alberto Maccioni
+ * Copyright (C) 2009-2013 Alberto Maccioni
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,10 +35,10 @@
 
 
 //configure for GUI or command-line
-#ifdef _MSC_VER 
+#ifdef _MSC_VER
 	#define _GUI
 	#include "msvc_common.h"
-#else 
+#else
 	#define _CMD
 	#include "common.h"
 #endif
@@ -242,6 +242,18 @@ struct ID24{
 	{0x4005,"33FJ64GS608\r\n"},
 	{0x4008,"33FJ32GS610\r\n"},
 	{0x4009,"33FJ64GS610\r\n"},
+	{0x4100, "24FJ128GB206\r\n"},
+	{0x4102, "24FJ128GB210\r\n"},
+	{0x4104, "24FJ256GB206\r\n"},
+	{0x4106, "24FJ256GB210\r\n"},
+	{0x4108, "24FJ128DA206\r\n"},
+	{0x4109, "24FJ128DA106\r\n"},
+	{0x410A, "24FJ128DA210\r\n"},
+	{0x410B, "24FJ128DA110\r\n"},
+	{0x410C, "24FJ256DA206\r\n"},
+	{0x410D, "24FJ256DA106\r\n"},
+	{0x410E, "24FJ256DA210\r\n"},
+	{0x410F, "24FJ256DA110\r\n"},
 	{0x4202,"24FJ32GA102\r\n"},
 	{0x4203,"24FJ32GB002\r\n"},
 	{0x4206,"24FJ64GA102\r\n"},
@@ -250,6 +262,18 @@ struct ID24{
 	{0x420B,"24FJ32GB004\r\n"},
 	{0x420E,"24FJ64GA104\r\n"},
 	{0x420F,"24FJ64GB004\r\n"},
+	{0x46C0, "24FJ64GA306\r\n"},
+	{0x46C2, "24FJ128GA306\r\n"},
+	{0x46C4, "24FJ64GA308\r\n"},
+	{0x46C6, "24FJ128GA308\r\n"},
+	{0x46C8, "24FJ64GA310\r\n"},
+	{0x46CA, "24FJ128GA310\r\n"},
+	{0x4884, "24FJ64GC010\r\n"},
+	{0x4885, "24FJ128GC010\r\n"},
+	{0x4888, "24FJ64GC006\r\n"},
+	{0x4889, "24FJ128GC006\r\n"},
+	{0x488A, "24FJ64GC008\r\n"},
+	{0x488B, "24FJ128GC008\r\n"},
 };
 
 #ifdef _MSC_VER
@@ -395,7 +419,7 @@ void Read24Fx(int dim,int dim2,int options,int appIDaddr,int executiveArea){
 		fprintf(logfile,"Read24Fx(%d,%d,%d,%d,%d)    (0x%X,0x%X,0x%X,0x%X,0x%X)\n",dim,dim2,options,appIDaddr,executiveArea,dim,dim2,options,appIDaddr,executiveArea);
 	}
 	dim*=2;		//from words to bytes
-	if(dim>0x40000||dim<0){
+	if(dim>0x80000||dim<0){
 		PrintMessage(strings[S_CodeLim]);	//"Code size out of limits\r\n"
 		return;
 	}
@@ -1220,7 +1244,7 @@ void Write24Fx(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 			,dim,dim2,options,appIDaddr,rowSize,wait,dim,dim2,options,appIDaddr,rowSize,wait);
 	}
 	dim*=2;		//from words to bytes
-	if(dim>0x40000||dim<0){
+	if(dim>0x80000||dim<0){
 		PrintMessage(strings[S_CodeLim]);	//"Code size out of limits\r\n"
 		return;
 	}

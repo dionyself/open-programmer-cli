@@ -320,7 +320,7 @@ void Save(char* dev,char* savefile)
 	else if(!strncmp(dev,"24",2)||!strncmp(dev,"93",2)||!strncmp(dev,"25",2)||\
 		!strncmp(dev,"DS",2)||!strncmp(dev,"11",2)){
 		if(strstr(savefile,".bin")||strstr(savefile,".BIN")){
-			#ifdef _MSC_VER
+			#ifdef _WIN32
 			//brain-damaged op. systems need this to avoid messing with some bytes
 			f=freopen(savefile,"wb",f); 
 			if(!f) return;
@@ -565,6 +565,8 @@ int Load(char*dev,char*loadfile){
 		memset(buffer,0xFF,0x100000);
 		memset(bufferEE,0xFF,sizeof(bufferEE));
 		memset(memCONFIG,0xFF,sizeof(memCONFIG));
+		memset(memUSERID,0xFF,sizeof(memUSERID));
+		sizeUSERID=0;
 		for(;fgets(line,256,f);){
 			if(strlen(line)>9&&line[0]==':'){
 				int hex_count = htoi(line+1, 2);
@@ -600,6 +602,12 @@ int Load(char*dev,char*loadfile){
 										bufferEE[input_address-0xE000+i]=htoi(line+9+i*2,2);
 									}
 									sizeEE=input_address-0xE000+hex_count;
+								}
+								else if(ext_addr==0x100&&input_address<8){	//USER ID
+									sizeUSERID=input_address+hex_count;
+									for (i=0;i<hex_count&&(i+input_address)<8;i++){
+										memUSERID[input_address+i]=htoi(line+9+i*2,2);
+									}
 								}
 								break;
 							case 4:		//extended linear address record
@@ -688,7 +696,7 @@ int Load(char*dev,char*loadfile){
 	else if(!strncmp(dev,"24",2)||!strncmp(dev,"93",2)||!strncmp(dev,"25",2)||\
 		!strncmp(dev,"DS",2)||!strncmp(dev,"11",2)){
 		if(strstr(loadfile,".bin")||strstr(loadfile,".BIN")){
-			#ifdef _MSC_VER
+			#ifdef _WIN32
 			//brain-damaged op. systems need this to avoid messing with some bytes
 			f=freopen(loadfile,"rb",f); 
 			if(!f) return -1;
@@ -696,14 +704,15 @@ int Load(char*dev,char*loadfile){
 			fseek(f, 0L, SEEK_END);
 			sizeEE=ftell(f);
 			fseek(f, 0L, SEEK_SET);
-			if(sizeEE>0x100000) sizeEE=0x100000;
+			if(sizeEE>0x1000000) sizeEE=0x1000000;	//max 16MB
 			if(memEE) free(memEE);
 			memEE=(unsigned char*)malloc(sizeEE);
 			sizeEE=fread(memEE,1,sizeEE,f);
 		}
 		else{			//Hex file
-			unsigned char *bufferEE=(unsigned char*)malloc(0x100000);
-			memset(bufferEE,0xFF,0x100000);
+			int bufSize=0x40000;	//256K
+			unsigned char *bufferEE=(unsigned char*)malloc(bufSize);
+			memset(bufferEE,0xFF,bufSize);
 			for(;fgets(line,256,f);){
 				if(strlen(line)>9&&line[0]==':'){
 					int hex_count = htoi(line+1, 2);
@@ -722,8 +731,15 @@ int Load(char*dev,char*loadfile){
 							switch(htoi(line+7,2)){
 								case 0:		//Data record
 									end1=(ext_addr<<16)+input_address+hex_count;
+									if(end1>=0x1000000) break; //max 16MB
 									if(sizeEE<end1){			//grow array
 										sizeEE=end1;
+									}
+									if(bufSize<=end1){			//grow buffer
+										int newsize=(end1&0xFFFC0000)+0x40000;
+										bufferEE=(unsigned char*)realloc(bufferEE,newsize);
+										memset(bufferEE+bufSize,0xFF,newsize-bufSize);
+										bufSize=newsize;
 									}
 									for (i=0;i<hex_count;i++){
 										bufferEE[(ext_addr<<16)+input_address+i]=htoi(line+9+i*2,2);
@@ -819,7 +835,7 @@ void OpenLogFile()
 {
 	logfile=fopen(LogFileName,"w");
 	if(!logfile) return;
-	fprintf(logfile,"OP version %s\n",VERSION);
+	fprintf(logfile,_APPNAME " version %s\n",VERSION);
 	fprintf(logfile,"Firmware version %d.%d.%d\n",FWVersion>>16,(FWVersion>>8)&0xFF,FWVersion&0xFF);
 	struct tm * timeinfo;
 	time_t rawtime;

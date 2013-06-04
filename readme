@@ -5,6 +5,14 @@ These sources are given free of charge under the GNU General Public License vers
 
 Changelog (to use new features the corresponding firmware is required):
 
+V 0.8.1 june 2013:		start programming with S1; SPI/I2C speed selection; -command option;
+						multiple language support; force config word; skip LV check;
+						fixed EEPROM write when code protection is active (16F83-84,12F629,
+						12F675,16F627-28,16F630,16F676,16F870-1-2,16F873-74,16F876-77);
+						fixed read of files > 1MB;
+						modified prog mode entry for AVR;
+						fixed write of 93Sx6 with protection 
+
 V 0.8.0 june 2012:		added one-wire memories DS2430,DS2431,DS2433,DS28EC20, thermometer DS1820;
 						added UNIO memories 11010-20-40-80-160;
 						fixed algorithms for 24x1024/5 and 251024, 

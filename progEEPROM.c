@@ -1,6 +1,6 @@
 /*
  * progEEPROM.c - algorithms to program various EEPROM types
- * Copyright (C) 2009-2010 Alberto Maccioni
+ * Copyright (C) 2009-2013 Alberto Maccioni
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -459,6 +459,16 @@ void Write93Sx(int dim,int na,int page)
 	bufferU[j++]=0x1;
 	bufferU[j++]=WAIT_T3;
 	bufferU[j++]=EXT_PORT;
+	bufferU[j++]=S+W;
+	bufferU[j++]=0;
+	bufferU[j++]=uWTX;
+	bufferU[j++]=na+3;
+	bufferU[j++]=0x98;				//100 11xxx write enable
+	bufferU[j++]=0;
+	bufferU[j++]=EXT_PORT;
+	bufferU[j++]=W;
+	bufferU[j++]=0;
+	bufferU[j++]=EXT_PORT;
 	bufferU[j++]=S+W+PRE;
 	bufferU[j++]=0;
 	bufferU[j++]=uWTX;
@@ -485,6 +495,18 @@ void Write93Sx(int dim,int na,int page)
 	bufferU[j++]=na+3;
 	bufferU[j++]=0x98;				//100 11xxx write enable
 	bufferU[j++]=0;
+	bufferU[j++]=EXT_PORT;
+	bufferU[j++]=W;
+	bufferU[j++]=0;
+	bufferU[j++]=EXT_PORT;
+	bufferU[j++]=S+W+PRE;
+	bufferU[j++]=0;
+	bufferU[j++]=uWTX;
+	bufferU[j++]=na+3;
+	bufferU[j++]=0xC0;				//110 xxxxx Prot. reg. read
+	bufferU[j++]=0;
+	bufferU[j++]=uWRX;
+	bufferU[j++]=10;
 	bufferU[j++]=EXT_PORT;
 	bufferU[j++]=W+PRE;
 	bufferU[j++]=0;
@@ -529,6 +551,7 @@ void Write93Sx(int dim,int na,int page)
 		write();
 		msDelay(1.5);
 		read();
+		if(saveLog)WriteLogIO();
 		j=1;
 		if(bufferI[3]!=uWTX||bufferI[4]>=0xFA) i=dim+10;
 		bufferU[j++]=uWRX;
@@ -546,7 +569,6 @@ void Write93Sx(int dim,int na,int page)
 		PrintStatus(strings[S_CodeWriting2],i*100/(dim),i);	//"Write: %d%%, addr. %04X"
 		if(saveLog){
 			fprintf(logfile,strings[S_Log7],i,i,k,k);	//"i=%d(0x%X), k=%d(0x%X)\n"
-			WriteLogIO();
 		}
 	}
 	PrintStatusEnd();

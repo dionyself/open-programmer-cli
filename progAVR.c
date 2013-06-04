@@ -1,6 +1,6 @@
 /*
  * progAVR.c - algorithms to program the Atmel AVR family of microcontrollers
- * Copyright (C) 2009-2010 Alberto Maccioni
+ * Copyright (C) 2009-2013 Alberto Maccioni
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -188,7 +188,7 @@ void ReadAT(int dim, int dim2, int options)
 		PrintMessage(strings[S_CodeLim]);	//"Code size out of limits\r\n"
 		return;
 	}
-	if(dim2>0x800||dim2<0){
+	if(dim2>0x1000||dim2<0){
 		PrintMessage(strings[S_EELim]);	//"EEPROM size out of limits\r\n"
 		return;
 	}
@@ -240,9 +240,13 @@ void ReadAT(int dim, int dim2, int options)
 		bufferU[j++]=EXT_PORT;
 		bufferU[j++]=0;
 		bufferU[j++]=RST;
+		bufferU[j++]=EN_VPP_VCC;		//VDD+VPP (for 14 pin and 8pin devices)
+		bufferU[j++]=0x5;
 		bufferU[j++]=EXT_PORT;
 		bufferU[j++]=0;
 		bufferU[j++]=0;
+		bufferU[j++]=EN_VPP_VCC;		//VDD
+		bufferU[j++]=0x1;
 		bufferU[j++]=CLOCK_GEN;
 		bufferU[j++]=4;
 		bufferU[j++]=WAIT_T3;		//20ms
@@ -831,7 +835,7 @@ void WriteATmega(int dim, int dim2, int page, int options)
 	int k=0,z=0,i,j;
 	int err=0,ritenta=0,maxtent=0;
 	BYTE signature[]={0,0,0};
-	if(dim>0x10000||dim<0){
+	if(dim>0x20000||dim<0){
 		PrintMessage(strings[S_CodeLim]);	//"Code size out of limits\r\n"
 		return;
 	}
@@ -895,9 +899,13 @@ void WriteATmega(int dim, int dim2, int page, int options)
 		bufferU[j++]=EXT_PORT;
 		bufferU[j++]=0;
 		bufferU[j++]=RST;
+		bufferU[j++]=EN_VPP_VCC;		//VDD+VPP (for 14 pin and 8pin devices)
+		bufferU[j++]=0x5;
 		bufferU[j++]=EXT_PORT;
 		bufferU[j++]=0;
 		bufferU[j++]=0;
+		bufferU[j++]=EN_VPP_VCC;		//VDD
+		bufferU[j++]=0x1;
 		bufferU[j++]=CLOCK_GEN;
 		bufferU[j++]=4;
 		bufferU[j++]=WAIT_T3;		//20ms
