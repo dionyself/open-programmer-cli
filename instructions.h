@@ -1,4 +1,4 @@
-// programmer instructions v0.8.0
+// programmer instructions v0.9.0
 #define NOP 				0x00
 #define PROG_RST 			0x01	//		->10B
 #define PROG_ID 			0x02	//		->6B
@@ -72,9 +72,14 @@
 #define OW_READ				0x42	//+1    ->1+NB
 #define UNIO_STBY			0x43	//
 #define UNIO_COM			0x44	//+2+NB ->1+NB
+#define SET_PORT_DIR		0x45	//+2B
+#define READ_B				0x46	//      ->1B
+#define READ_AC				0x47	//      ->1B
+#define AT_HV_RTX			0x48	//+1+NB ->1B
+#define SIX_LONG5			0x49	//+3B
 // special ins.
 #define SPI_TEST			0xEF	//+2B	->2B
 #define READ_RAM			0xF0	//+2B	->3B
 #define WRITE_RAM			0xF1	//+3B	->3B
 #define LOOP				0xF2
-#define MAX_INS 			0x44	//last instruction
+#define MAX_INS 			0x49	//last instruction

@@ -513,6 +513,400 @@ void ReadAT(int dim, int dim2, int options)
 	if(saveLog) CloseLogFile();
 }
 
+#define PB0 0x10
+#define PB1 0x1
+#define PB2 0x2
+#define PB3 0x8
+/// read ATMEL AVR using HV serial programming
+/// dim=FLASH size in bytes, dim2=EEPROM size
+/// options: LOCK,FUSE,FUSE_H,FUSE_X,CAL
+#ifdef _MSC_VER
+void COpenProgDlg::ReadAT_HV(int dim, int dim2, int options)
+#else
+void ReadAT_HV(int dim, int dim2, int options)
+#endif
+{
+	int k=0,z=0,i,j;
+	BYTE signature[]={0,0,0};
+	if(FWVersion<0x900){
+		PrintMessage1(strings[S_FWver2old],"0.9.0");	//"This firmware is too old. Version %s is required\r\n"
+		return;
+	}
+	if(dim>0x20000||dim<0){
+		PrintMessage(strings[S_CodeLim]);	//"Code size out of limits\r\n"
+		return;
+	}
+	if(dim2>0x800||dim2<0){
+		PrintMessage(strings[S_EELim]);	//"EEPROM size out of limits\r\n"
+		return;
+	}
+	if(saveLog){
+		OpenLogFile();	//"Log.txt"
+		fprintf(logfile,"ReadAT_HV(0x%X,0x%X,0x%X)\n",dim,dim2,options);
+	}
+	size=dim;
+	sizeEE=dim2;
+	if(memCODE) free(memCODE);
+	memCODE=(unsigned char*)malloc(dim);		//CODE
+	if(memEE) free(memEE);
+	memEE=(unsigned char*)malloc(dim2);			//EEPROM
+	for(j=0;j<size;j++) memCODE[j]=0xFF;
+	for(j=0;j<sizeEE;j++) memEE[j]=0xFF;
+	if(!StartHVReg(12)){
+		PrintMessage(strings[S_HVregErr]); //"HV regulator error\r\n"
+		return;
+	}
+	unsigned int start=GetTickCount();
+	bufferU[0]=0;
+	j=1;
+	bufferU[j++]=EN_VPP_VCC;	//VDD
+	bufferU[j++]=0x0;
+	bufferU[j++]=EXT_PORT;
+	bufferU[j++]=0;
+	bufferU[j++]=0;
+	bufferU[j++]=SET_PORT_DIR;
+	bufferU[j++]=0xFC;
+	bufferU[j++]=0x7;
+	bufferU[j++]=EN_VPP_VCC;	//VDD
+	bufferU[j++]=0x1;
+	bufferU[j++]=EXT_PORT;
+	bufferU[j++]=0;
+	bufferU[j++]=PB3;
+	bufferU[j++]=EXT_PORT;
+	bufferU[j++]=0;
+	bufferU[j++]=0;
+	bufferU[j++]=EXT_PORT;
+	bufferU[j++]=0;
+	bufferU[j++]=PB3;
+	bufferU[j++]=EXT_PORT;
+	bufferU[j++]=0;
+	bufferU[j++]=0;
+	bufferU[j++]=EXT_PORT;
+	bufferU[j++]=0;
+	bufferU[j++]=PB3;
+	bufferU[j++]=EXT_PORT;
+	bufferU[j++]=0;
+	bufferU[j++]=0;
+	bufferU[j++]=EXT_PORT;
+	bufferU[j++]=0;
+	bufferU[j++]=PB3;
+	bufferU[j++]=EXT_PORT;
+	bufferU[j++]=0;
+	bufferU[j++]=0;
+	bufferU[j++]=EXT_PORT;
+	bufferU[j++]=0;
+	bufferU[j++]=PB3;
+	bufferU[j++]=EXT_PORT;
+	bufferU[j++]=0;
+	bufferU[j++]=0;
+	bufferU[j++]=EXT_PORT;
+	bufferU[j++]=0;
+	bufferU[j++]=PB3;
+	bufferU[j++]=EXT_PORT;
+	bufferU[j++]=0;
+	bufferU[j++]=0;
+	bufferU[j++]=EN_VPP_VCC;	//VDD + VPP
+	bufferU[j++]=0x5;
+	bufferU[j++]=SET_PORT_DIR;	//RELEASE PB2
+	bufferU[j++]=0xFE;
+	bufferU[j++]=0x7;
+	bufferU[j++]=FLUSH;
+	for(;j<DIMBUF;j++) bufferU[j]=0x0;
+	write();
+	msDelay(5);
+	read();
+	if(saveLog)WriteLogIO();
+	j=1;
+	bufferU[j++]=AT_HV_RTX;		//Read signature bytes
+	bufferU[j++]=4;
+	bufferU[j++]=0x4C;
+	bufferU[j++]=0x08;
+	bufferU[j++]=0x0C;
+	bufferU[j++]=0x00;
+	bufferU[j++]=0x68;
+	bufferU[j++]=0x00;
+	bufferU[j++]=0x6C;
+	bufferU[j++]=0x00;
+	bufferU[j++]=AT_HV_RTX;		//Read signature bytes
+	bufferU[j++]=4;
+	bufferU[j++]=0x4C;
+	bufferU[j++]=0x08;
+	bufferU[j++]=0x0C;
+	bufferU[j++]=0x01;
+	bufferU[j++]=0x68;
+	bufferU[j++]=0x00;
+	bufferU[j++]=0x6C;
+	bufferU[j++]=0x00;
+	bufferU[j++]=AT_HV_RTX;		//Read signature bytes
+	bufferU[j++]=4;
+	bufferU[j++]=0x4C;
+	bufferU[j++]=0x08;
+	bufferU[j++]=0x0C;
+	bufferU[j++]=0x02;
+	bufferU[j++]=0x68;
+	bufferU[j++]=0x00;
+	bufferU[j++]=0x6C;
+	bufferU[j++]=0x00;
+	if(options&LOCK){			//LOCK byte
+		bufferU[j++]=AT_HV_RTX;
+		bufferU[j++]=3;
+		bufferU[j++]=0x4C;
+		bufferU[j++]=0x04;
+		bufferU[j++]=0x78;
+		bufferU[j++]=0x00;
+		bufferU[j++]=0x7C;
+		bufferU[j++]=0x00;
+	}
+	if(options&FUSE){			//FUSE byte
+		bufferU[j++]=AT_HV_RTX;
+		bufferU[j++]=3;
+		bufferU[j++]=0x4C;
+		bufferU[j++]=0x04;
+		bufferU[j++]=0x68;
+		bufferU[j++]=0x00;
+		bufferU[j++]=0x6C;
+		bufferU[j++]=0x00;
+	}
+	if(options&FUSE_H){			//FUSE high byte
+		bufferU[j++]=AT_HV_RTX;
+		bufferU[j++]=3;
+		bufferU[j++]=0x4C;
+		bufferU[j++]=0x04;
+		bufferU[j++]=0x7A;
+		bufferU[j++]=0x00;
+		bufferU[j++]=0x7E;
+		bufferU[j++]=0x00;
+	}
+	bufferU[j++]=FLUSH;
+	for(;j<DIMBUF;j++) bufferU[j]=0x0;
+	write();
+	msDelay(2);
+	read();
+	j=1;
+	if(saveLog)WriteLogIO();
+	for(z=1;z<DIMBUF-1&&bufferI[z]!=AT_HV_RTX;z++);
+	signature[0]=bufferI[z+1];
+	for(z+=2;z<DIMBUF-1&&bufferI[z]!=AT_HV_RTX;z++);
+	signature[1]=bufferI[z+1];
+	for(z+=2;z<DIMBUF-1&&bufferI[z]!=AT_HV_RTX;z++);
+	signature[2]=bufferI[z+1];
+	PrintMessage3("CHIP ID:%02X%02X%02X\r\n",signature[0],signature[1],signature[2]);
+	AtmelID(signature);
+	if(options&LOCK){			//LOCK byte
+		for(z+=2;z<DIMBUF-1&&bufferI[z]!=AT_HV_RTX;z++);
+		PrintMessage1("LOCK byte:\t  0x%02X\r\n",bufferI[z+1]);
+	}
+	if(options&FUSE){			//FUSE byte
+		for(z+=2;z<DIMBUF-1&&bufferI[z]!=AT_HV_RTX;z++);
+		PrintMessage1("FUSE byte:\t  0x%02X\r\n",bufferI[z+1]);
+	}
+	if(options&FUSE_H){			//FUSE high byte
+		for(z+=2;z<DIMBUF-1&&bufferI[z]!=AT_HV_RTX;z++);
+		PrintMessage1("FUSE HIGH byte:\t  0x%02X\r\n",bufferI[z+1]);
+	}
+	if(options&FUSE_X){			//extended FUSE byte
+		bufferU[j++]=AT_HV_RTX;
+		bufferU[j++]=3;
+		bufferU[j++]=0x4C;
+		bufferU[j++]=0x04;
+		bufferU[j++]=0x6A;
+		bufferU[j++]=0x00;
+		bufferU[j++]=0x6E;
+		bufferU[j++]=0x00;
+	}
+	if(options&CAL){			//calibration byte
+		bufferU[j++]=AT_HV_RTX;
+		bufferU[j++]=4;
+		bufferU[j++]=0x4C;
+		bufferU[j++]=0x08;
+		bufferU[j++]=0x0C;
+		bufferU[j++]=0x00;
+		bufferU[j++]=0x78;
+		bufferU[j++]=0x00;
+		bufferU[j++]=0x7C;
+		bufferU[j++]=0x00;
+	}
+	bufferU[j++]=FLUSH;
+	for(;j<DIMBUF;j++) bufferU[j]=0x0;
+	j=1;
+	write();
+	msDelay(2);
+	read();
+	if(saveLog)WriteLogIO();
+	z=1;
+	if(options&FUSE_X){			//extended FUSE byte
+		for(;z<DIMBUF-1&&bufferI[z]!=AT_HV_RTX;z++);
+		PrintMessage1("Extended FUSE byte: 0x%02X\r\n",bufferI[z+1]);
+		z+=2;
+	}
+	if(options&CAL){			//calibration byte
+		for(;z<DIMBUF-1&&bufferI[z]!=AT_HV_RTX;z++);
+		PrintMessage1("Calibration byte: 0x%02X\r\n",bufferI[z+1]);
+	}
+//****************** read code ********************
+	if(saveLog)fprintf(logfile,"READ CODE\n");
+	PrintMessage(strings[S_CodeReading1]);		//read code ...
+	PrintStatusSetup();
+	j=1;
+	bufferU[j++]=AT_HV_RTX;		//Read FLASH
+	bufferU[j++]=1;
+	bufferU[j++]=0x4C;
+	bufferU[j++]=0x02;
+	bufferU[j++]=FLUSH;
+	for(;j<DIMBUF;j++) bufferU[j]=0x0;
+	write();
+	msDelay(2);
+	read();
+	j=1;
+	if(saveLog)	WriteLogIO();
+	for(i=0;i<dim;){
+		if((i&511)==0){ //change high address after 256 words
+			bufferU[j++]=AT_HV_RTX;
+			bufferU[j++]=1;
+			bufferU[j++]=0x1C;
+			bufferU[j++]=i>>9;
+			bufferU[j++]=FLUSH;
+			for(;j<DIMBUF;j++) bufferU[j]=0x0;
+			write();
+			msDelay(2);
+			read();
+			j=1;
+			if(saveLog)	WriteLogIO();
+		}
+		bufferU[j++]=AT_HV_RTX;
+		bufferU[j++]=3;
+		bufferU[j++]=0x0C;
+		bufferU[j++]=(i>>1)&0xFF;
+		bufferU[j++]=0x68;
+		bufferU[j++]=0x00;
+		bufferU[j++]=0x6C;
+		bufferU[j++]=0x00;
+		bufferU[j++]=AT_HV_RTX;
+		bufferU[j++]=2;
+		bufferU[j++]=0x78;
+		bufferU[j++]=0x00;
+		bufferU[j++]=0x7C;
+		bufferU[j++]=0x00;
+		i+=2;
+		if(j>DIMBUF-14||i>=dim-2){
+			bufferU[j++]=FLUSH;
+			for(;j<DIMBUF;j++) bufferU[j]=0x0;
+			write();
+			msDelay(2);
+			read();
+			for(z=1;z<DIMBUF-1;z++){
+				if(bufferI[z]==AT_HV_RTX){
+					memCODE[k++]=bufferI[z+1];
+					z+=1;
+				}
+			}
+			PrintStatus(strings[S_CodeReading],i*100/(dim+dim2),i);	//"Read: %d%%, addr. %03X"
+			j=1;
+			if(saveLog){
+				fprintf(logfile,strings[S_Log7],i,i,k,k);	//"i=%d(0x%X), k=%d(0x%X)\n"
+				WriteLogIO();
+			}
+		}
+	}
+	PrintStatusEnd();
+	if(k!=dim){
+		PrintMessage("\r\n");
+		PrintMessage2(strings[S_ReadCodeErr],dim,k);	//"Error reading code area, requested %d words, read %d\r\n"
+	}
+	else PrintMessage(strings[S_Compl]);
+//****************** read eeprom ********************
+	if(dim2){
+		if(saveLog)fprintf(logfile,"READ EEPROM\n");
+		PrintMessage(strings[S_ReadEE]);		//read EE ...
+		PrintStatusSetup();
+		j=1;
+		k=0;
+		bufferU[j++]=AT_HV_RTX;		//Read EEPROM
+		bufferU[j++]=1;
+		bufferU[j++]=0x4C;
+		bufferU[j++]=0x03;
+		bufferU[j++]=FLUSH;
+		for(;j<DIMBUF;j++) bufferU[j]=0x0;
+		write();
+		msDelay(2);
+		read();
+		j=1;
+		if(saveLog)	WriteLogIO();
+		for(i=0;i<dim2;i++){
+			if((i&255)==0){
+				bufferU[j++]=AT_HV_RTX;
+				bufferU[j++]=1;
+				bufferU[j++]=0x1C;
+				bufferU[j++]=i>>8;
+				bufferU[j++]=FLUSH;
+				for(;j<DIMBUF;j++) bufferU[j]=0x0;
+				write();
+				msDelay(2);
+				read();
+				j=1;
+				if(saveLog)	WriteLogIO();
+			}
+			bufferU[j++]=AT_HV_RTX;
+			bufferU[j++]=3;
+			bufferU[j++]=0x0C;
+			bufferU[j++]=i&0xFF;
+			bufferU[j++]=0x68;
+			bufferU[j++]=0x00;
+			bufferU[j++]=0x6C;
+			bufferU[j++]=0x00;
+			if(j>DIMBUF-8||i>=dim2-2){
+				bufferU[j++]=FLUSH;
+				for(;j<DIMBUF;j++) bufferU[j]=0x0;
+				write();
+				msDelay(2);
+				read();
+				for(z=1;z<DIMBUF-1;z++){
+					if(bufferI[z]==AT_HV_RTX){
+						memEE[k++]=bufferI[z+1];
+						z+=1;
+					}
+				}
+				PrintStatus(strings[S_CodeReading],i*100/(dim+dim2),i);	//"Read: %d%%, addr. %03X"
+				j=1;
+				if(saveLog){
+					fprintf(logfile,strings[S_Log7],i,i,k,k);	//"i=%d(0x%X), k=%d(0x%X)\n"
+					WriteLogIO();
+				}
+			}
+		}
+		PrintStatusEnd();
+		if(k!=dim2){
+			PrintMessage("\r\n");
+			PrintMessage2(strings[S_ReadEEErr],dim2,k);	//"Error reading EEPROM area, requested %d bytes, read %d\r\n"
+		}
+		else PrintMessage(strings[S_Compl]);
+	}
+//****************** exit program mode ********************
+	bufferU[j++]=EXT_PORT;
+	bufferU[j++]=0;
+	bufferU[j++]=0;
+	bufferU[j++]=SET_PORT_DIR; //All input
+	bufferU[j++]=0xFF;
+	bufferU[j++]=0xFF;
+	bufferU[j++]=EN_VPP_VCC;		//VDD
+	bufferU[j++]=0;
+	bufferU[j++]=FLUSH;
+	for(;j<DIMBUF;j++) bufferU[j]=0x0;
+	write();
+	msDelay(1);
+	read();
+	unsigned int stop=GetTickCount();
+	PrintStatusClear();
+//****************** visualize ********************
+	PrintMessage(strings[S_CodeMem]);	//"\r\nProgram memory\r\n"
+	DisplayCODEAVR(dim);
+	if(dim2){
+		DisplayEE();	//visualize EE
+	}
+	PrintMessage1(strings[S_End],(stop-start)/1000.0);	//"\r\nEnd (%.2f s)\r\n"
+	if(saveLog) CloseLogFile();
+}
+
 #ifdef _MSC_VER
 void COpenProgDlg::WriteAT(int dim, int dim2)
 #else
@@ -522,7 +916,7 @@ void WriteAT(int dim, int dim2)
 // dim=FLASH size in bytes, dim2=EEPROM size
 {
 	int k=0,z=0,i,j;
-	int err=0,ritenta=0,maxtent=0;
+	int err=0,Rtry=0,maxTry=0;
 	BYTE signature[]={0,0,0};
 	if(dim>0x8000||dim<0){
 		PrintMessage(strings[S_CodeLim]);	//"Code size out of limits\r\n"
@@ -707,14 +1101,14 @@ void WriteAT(int dim, int dim2)
 			PrintStatus(strings[S_CodeWriting],i*100/dim,i);	//"Write: %d%%, addr. %03X"
 			for(z=1;z<DIMBUF-2&&bufferI[z]!=SPI_READ;z++);
 			if(z==DIMBUF-2||memCODE[i]!=bufferI[z+2]){
-				if(ritenta<5){
-					ritenta++;
-					if (ritenta>maxtent) maxtent=ritenta;
+				if(Rtry<5){
+					Rtry++;
+					if (Rtry>maxTry) maxTry=Rtry;
 					i--;
 				}
 				else{
 					err++;
-					ritenta=0;
+					Rtry=0;
 				}
 			}
 			if(max_err&&err>max_err){
@@ -762,14 +1156,14 @@ void WriteAT(int dim, int dim2)
 				PrintStatus(strings[S_CodeWriting],i*100/dim2,i);	//"Write: %d%%, addr. %03X"
 				for(z=1;z<DIMBUF-2&&bufferI[z]!=SPI_READ;z++);
 				if(z==DIMBUF-2||memEE[i]!=bufferI[z+2]){
-					if(ritenta<10){
-						ritenta++;
-						if (ritenta>maxtent) maxtent=ritenta;
+					if(Rtry<10){
+						Rtry++;
+						if (Rtry>maxTry) maxTry=Rtry;
 						i--;
 					}
 					else{
 						errEE++;
-						ritenta=0;
+						Rtry=0;
 					}
 				}
 				if(max_err&&err+errEE>max_err){
@@ -787,7 +1181,7 @@ void WriteAT(int dim, int dim2)
 		PrintMessage1(strings[S_ComplErr],errEE);	//"completed, %d errors\r\n"
 		err+=errEE;
 	}
-	if(maxtent) PrintMessage1(strings[S_MaxRetry],maxtent); 	//"Max retries in writing: %d\r\n"
+	if(maxTry) PrintMessage1(strings[S_MaxRetry],maxTry); 	//"Max retries in writing: %d\r\n"
 //****************** write FUSE ********************
 	if(AVRlock<0x100){
 		PrintMessage(strings[S_FuseAreaW]);	//"Write Fuse ... "
@@ -833,7 +1227,7 @@ void WriteATmega(int dim, int dim2, int page, int options)
 // options: SLOW=slow communication
 {
 	int k=0,z=0,i,j;
-	int err=0,ritenta=0,maxtent=0;
+	int err=0,Rtry=0,maxTry=0;
 	BYTE signature[]={0,0,0};
 	if(dim>0x20000||dim<0){
 		PrintMessage(strings[S_CodeLim]);	//"Code size out of limits\r\n"
@@ -845,7 +1239,7 @@ void WriteATmega(int dim, int dim2, int page, int options)
 	}
 	if(saveLog){
 		OpenLogFile();	//"Log.txt"
-		fprintf(logfile,"WriteATmega(0x%X,0x%X,0x%X)\n",dim,dim2,page);
+		fprintf(logfile,"WriteATmega(0x%X,0x%X,0x%X,0x%X)\n",dim,dim2,page,options);
 	}
 	if(dim>size) dim=size;
 	else{
@@ -1006,7 +1400,7 @@ void WriteATmega(int dim, int dim2, int page, int options)
 //****************** write code ********************
 	PrintMessage(strings[S_StartCodeProg]);	//"Write code ... "
 	PrintStatusSetup();
-	int w=0,v,c,Rtry;
+	int w=0,v,c;
 	for(i=0;i<dim;i+=page*2){
 		for(z=i,v=0;z<i+page*2;z++) if(memCODE[z]<0xFF)v=1;
 		if(v){
@@ -1040,6 +1434,7 @@ void WriteATmega(int dim, int dim2, int page, int options)
 			read();
 			PrintStatus(strings[S_CodeWriting],i*100/dim,i);	//"Write: %d%%, addr. %03X"
 			if(saveLog)WriteLogIO();
+			//write verification
 			c=(DIMBUF-5)/2;
 			for(k=0,j=1;k<page;k+=c){
 				for(Rtry=0;Rtry<5;Rtry++){		//Try to read a few times
@@ -1109,14 +1504,14 @@ void WriteATmega(int dim, int dim2, int page, int options)
 				PrintStatus(strings[S_CodeWriting],i*100/dim2,i);	//"Write: %d%%, addr. %03X"
 				for(z=1;z<DIMBUF-2&&bufferI[z]!=SPI_READ;z++);
 				if(z==DIMBUF-2||memEE[i]!=bufferI[z+2]){
-					if(ritenta<4){
-						ritenta++;
-						if (ritenta>maxtent) maxtent=ritenta;
+					if(Rtry<4){
+						Rtry++;
+						if (Rtry>maxTry) maxTry=Rtry;
 						i--;
 					}
 					else{
 						errEE++;
-						ritenta=0;
+						Rtry=0;
 					}
 				}
 				if(max_err&&err+errEE>max_err){
@@ -1241,7 +1636,7 @@ void WriteATmega(int dim, int dim2, int page, int options)
 	if(AVRlock<0x100||AVRfuse<0x100||AVRfuse_h<0x100||AVRfuse_x<0x100){
 		PrintMessage1(strings[S_ComplErr],err_f);	//"completed, %d errors\r\n"
 	}
-//	if(maxtent) PrintMessage(strings[S_MaxRetry],maxtent); 	//"Max retries in writing: %d\r\n"
+//	if(maxTry) PrintMessage(strings[S_MaxRetry],maxTry); 	//"Max retries in writing: %d\r\n"
 //****************** exit program mode ********************
 	bufferU[j++]=CLOCK_GEN;
 	bufferU[j++]=0xFF;
@@ -1261,3 +1656,777 @@ void WriteATmega(int dim, int dim2, int page, int options)
 	PrintStatusClear();
 }
 
+/// Write ATMEL AVR using HV serial programming
+/// dim=FLASH size in bytes, dim2=EEPROM, page=FLASH page size in words (0 if page write not supported)
+/// options: not used
+#ifdef _MSC_VER
+void COpenProgDlg::WriteAT_HV(int dim, int dim2, int page, int options)
+#else
+void WriteAT_HV(int dim, int dim2, int page, int options)
+#endif
+{
+	int k=0,z=0,i,j,t,sdo,err=0;
+	BYTE signature[]={0,0,0};
+	if(FWVersion<0x900){
+		PrintMessage1(strings[S_FWver2old],"0.9.0");	//"This firmware is too old. Version %s is required\r\n"
+		return;
+	}
+	if(dim>0x10000||dim<0){
+		PrintMessage(strings[S_CodeLim]);	//"Code size out of limits\r\n"
+		return;
+	}
+	if(dim2>0x800||dim2<0){
+		PrintMessage(strings[S_EELim]);	//"EEPROM size out of limits\r\n"
+		return;
+	}
+	if(saveLog){
+		OpenLogFile();	//"Log.txt"
+		fprintf(logfile,"WriteAT_HV(0x%X,0x%X,0x%X,0x%X)\n",dim,dim2,page,options);
+	}
+	if(dim>size) dim=size;
+	else{
+		size=dim;
+		memCODE=(unsigned char*)realloc(memCODE,dim);
+	}
+	if(page&&(size%(page*2))){	//grow to an integer number of pages
+		j=size;
+		dim=(j/(page*2)+1)*page*2;
+		memCODE=(unsigned char*)realloc(memCODE,dim);
+		for(;j<dim;j++) memCODE[j]=0xFF;
+	}
+	if(dim2>sizeEE) dim2=sizeEE;
+	if(dim<1){
+		PrintMessage(strings[S_NoCode]);	//"Data area is empty\r\n"
+		return;
+	}
+	if(!StartHVReg(12)){
+		PrintMessage(strings[S_HVregErr]); //"HV regulator error\r\n"
+		return;
+	}
+	unsigned int start=GetTickCount();
+	bufferU[0]=0;
+	j=1;
+	bufferU[j++]=EN_VPP_VCC;	//VDD
+	bufferU[j++]=0x0;
+	bufferU[j++]=EXT_PORT;
+	bufferU[j++]=0;
+	bufferU[j++]=0;
+	bufferU[j++]=SET_PORT_DIR;
+	bufferU[j++]=0xFC;
+	bufferU[j++]=0x7;
+	bufferU[j++]=EN_VPP_VCC;	//VDD
+	bufferU[j++]=0x1;
+	bufferU[j++]=EXT_PORT;
+	bufferU[j++]=0;
+	bufferU[j++]=PB3;
+	bufferU[j++]=EXT_PORT;
+	bufferU[j++]=0;
+	bufferU[j++]=0;
+	bufferU[j++]=EXT_PORT;
+	bufferU[j++]=0;
+	bufferU[j++]=PB3;
+	bufferU[j++]=EXT_PORT;
+	bufferU[j++]=0;
+	bufferU[j++]=0;
+	bufferU[j++]=EXT_PORT;
+	bufferU[j++]=0;
+	bufferU[j++]=PB3;
+	bufferU[j++]=EXT_PORT;
+	bufferU[j++]=0;
+	bufferU[j++]=0;
+	bufferU[j++]=EXT_PORT;
+	bufferU[j++]=0;
+	bufferU[j++]=PB3;
+	bufferU[j++]=EXT_PORT;
+	bufferU[j++]=0;
+	bufferU[j++]=0;
+	bufferU[j++]=EXT_PORT;
+	bufferU[j++]=0;
+	bufferU[j++]=PB3;
+	bufferU[j++]=EXT_PORT;
+	bufferU[j++]=0;
+	bufferU[j++]=0;
+	bufferU[j++]=EXT_PORT;
+	bufferU[j++]=0;
+	bufferU[j++]=PB3;
+	bufferU[j++]=EXT_PORT;
+	bufferU[j++]=0;
+	bufferU[j++]=0;
+	bufferU[j++]=EN_VPP_VCC;	//VDD + VPP
+	bufferU[j++]=0x5;
+	bufferU[j++]=SET_PORT_DIR;	//RELEASE PB2
+	bufferU[j++]=0xFE;
+	bufferU[j++]=0x7;
+	bufferU[j++]=FLUSH;
+	for(;j<DIMBUF;j++) bufferU[j]=0x0;
+	write();
+	msDelay(5);
+	read();
+	if(saveLog)WriteLogIO();
+	j=1;
+	bufferU[j++]=AT_HV_RTX;		//Read signature bytes
+	bufferU[j++]=4;
+	bufferU[j++]=0x4C;
+	bufferU[j++]=0x08;
+	bufferU[j++]=0x0C;
+	bufferU[j++]=0x00;
+	bufferU[j++]=0x68;
+	bufferU[j++]=0x00;
+	bufferU[j++]=0x6C;
+	bufferU[j++]=0x00;
+	bufferU[j++]=AT_HV_RTX;		//Read signature bytes
+	bufferU[j++]=4;
+	bufferU[j++]=0x4C;
+	bufferU[j++]=0x08;
+	bufferU[j++]=0x0C;
+	bufferU[j++]=0x01;
+	bufferU[j++]=0x68;
+	bufferU[j++]=0x00;
+	bufferU[j++]=0x6C;
+	bufferU[j++]=0x00;
+	bufferU[j++]=AT_HV_RTX;		//Read signature bytes
+	bufferU[j++]=4;
+	bufferU[j++]=0x4C;
+	bufferU[j++]=0x08;
+	bufferU[j++]=0x0C;
+	bufferU[j++]=0x02;
+	bufferU[j++]=0x68;
+	bufferU[j++]=0x00;
+	bufferU[j++]=0x6C;
+	bufferU[j++]=0x00;
+	bufferU[j++]=FLUSH;
+	for(;j<DIMBUF;j++) bufferU[j]=0x0;
+	write();
+	msDelay(8);
+	read();
+	if(saveLog)WriteLogIO();
+	for(z=1;z<DIMBUF-1&&bufferI[z]!=AT_HV_RTX;z++);
+	signature[0]=bufferI[z+1];
+	for(z+=2;z<DIMBUF-1&&bufferI[z]!=AT_HV_RTX;z++);
+	signature[1]=bufferI[z+1];
+	for(z+=2;z<DIMBUF-1&&bufferI[z]!=AT_HV_RTX;z++);
+	signature[2]=bufferI[z+1];
+	PrintMessage3("CHIP ID:%02X%02X%02X\r\n",signature[0],signature[1],signature[2]);
+	AtmelID(signature);
+//****************** erase memory ********************
+	if(saveLog)fprintf(logfile,"CHIP ERASE\n");
+	j=1;
+	bufferU[j++]=AT_HV_RTX;	//Chip erase
+	bufferU[j++]=3;
+	bufferU[j++]=0x4C;
+	bufferU[j++]=0x80;
+	bufferU[j++]=0x64;
+	bufferU[j++]=0x00;
+	bufferU[j++]=0x6C;
+	bufferU[j++]=0x00;
+	bufferU[j++]=READ_B;	//check SDO
+	bufferU[j++]=FLUSH;
+	for(;j<DIMBUF;j++) bufferU[j]=0x0;
+	write();
+	msDelay(1.5);
+	read();
+	j=1;
+	if(saveLog)WriteLogIO();
+	bufferU[j++]=READ_B;	//check SDO
+	bufferU[j++]=FLUSH;
+	for(;j<DIMBUF;j++) bufferU[j]=0x0;
+	for(t=0,sdo=0;t<20&&sdo==0;t++){
+		write();
+		msDelay(1.5);
+		read();
+		if(saveLog)WriteLogIO();
+		for(z=1;z<DIMBUF-1&&bufferI[z]!=READ_B;z++);
+		sdo=bufferI[z+1]&2;
+	}
+	if(sdo==0&&saveLog) fprintf(logfile,"SDO=0\r\n");
+	PrintMessage(strings[S_Compl]);	//"completed\r\n"
+//****************** write code ********************
+	PrintMessage(strings[S_StartCodeProg]);	//"Write code ... "
+	PrintStatusSetup();
+	if(saveLog)fprintf(logfile,"WRITE CODE\n");
+	int currPage=-1;
+	j=1;
+	if(page==0){		//byte write
+		for(i=0,k=0;i<dim;i+=2){
+			if(memCODE[i]!=0xFF||memCODE[i+1]!=0xFF){
+				bufferU[j++]=AT_HV_RTX;
+				bufferU[j++]=6;
+				bufferU[j++]=0x4C;	//Write FLASH
+				bufferU[j++]=0x10;
+				bufferU[j++]=0x1C;
+				bufferU[j++]=i>>9;
+				bufferU[j++]=0x0C;
+				bufferU[j++]=(i/2)&0xFF;
+				bufferU[j++]=0x2C;
+				bufferU[j++]=memCODE[i];
+				bufferU[j++]=0x64;		//write data low
+				bufferU[j++]=0x00;
+				bufferU[j++]=0x6C;
+				bufferU[j++]=0x00;
+				bufferU[j++]=READ_B;	//check SDO
+				bufferU[j++]=FLUSH;
+				for(;j<DIMBUF;j++) bufferU[j]=0x0;
+				write();
+				msDelay(2);
+				read();
+				j=1;
+				if(saveLog){
+					fprintf(logfile,strings[S_Log7],i,i,k,k);	//"i=%d(0x%X), k=%d(0x%X)\n"
+					WriteLogIO();
+				}
+				bufferU[j++]=READ_B;	//check SDO
+				bufferU[j++]=FLUSH;
+				for(;j<DIMBUF;j++) bufferU[j]=0x0;
+				j=1;
+				for(t=0,sdo=0;t<20&&sdo==0;t++){
+					write();
+					msDelay(1.5);
+					read();
+					if(saveLog)WriteLogIO();
+					for(z=1;z<DIMBUF-1&&bufferI[z]!=READ_B;z++);
+					sdo=bufferI[z+1]&2;
+				}
+				if(saveLog&&sdo==0) fprintf(logfile,"SDO=0\r\n");
+				bufferU[j++]=AT_HV_RTX;
+				bufferU[j++]=3;
+				bufferU[j++]=0x3C;
+				bufferU[j++]=memCODE[i+1];
+				bufferU[j++]=0x74;		//write data high
+				bufferU[j++]=0x00;
+				bufferU[j++]=0x7C;
+				bufferU[j++]=0x00;
+				bufferU[j++]=READ_B;	//check SDO
+				bufferU[j++]=FLUSH;
+				for(;j<DIMBUF;j++) bufferU[j]=0x0;
+				write();
+				msDelay(2);
+				read();
+				j=1;
+				if(saveLog){
+					fprintf(logfile,strings[S_Log7],i,i,k,k);	//"i=%d(0x%X), k=%d(0x%X)\n"
+					WriteLogIO();
+				}
+				bufferU[j++]=READ_B;	//check SDO
+				bufferU[j++]=FLUSH;
+				for(;j<DIMBUF;j++) bufferU[j]=0x0;
+				j=1;
+				for(t=0,sdo=0;t<20&&sdo==0;t++){
+					write();
+					msDelay(1.5);
+					read();
+					if(saveLog)WriteLogIO();
+					for(z=1;z<DIMBUF-1&&bufferI[z]!=READ_B;z++);
+					sdo=bufferI[z+1]&2;
+				}
+				if(saveLog&&sdo==0) fprintf(logfile,"SDO=0\r\n");
+				PrintStatus(strings[S_CodeWriting],i*100/dim,i);	//"Write: %d%%, addr. %03X"
+				//write verification
+				bufferU[j++]=AT_HV_RTX;		//Read FLASH
+				bufferU[j++]=3;
+				bufferU[j++]=0x4C;
+				bufferU[j++]=0x02;
+				bufferU[j++]=0x68;
+				bufferU[j++]=0x00;
+				bufferU[j++]=0x6C;
+				bufferU[j++]=0x00;
+				bufferU[j++]=AT_HV_RTX;
+				bufferU[j++]=2;
+				bufferU[j++]=0x78;
+				bufferU[j++]=0x00;
+				bufferU[j++]=0x7C;
+				bufferU[j++]=0x00;
+				bufferU[j++]=FLUSH;
+				for(;j<DIMBUF;j++) bufferU[j]=0x0;
+				write();
+				msDelay(1.5);
+				read();
+				j=1;
+				for(z=1;z<DIMBUF-1;z++){
+					if(bufferI[z]==AT_HV_RTX){
+						if(memCODE[k]!=bufferI[z+1]){
+							PrintMessage4(strings[S_CodeVError],k,k,memCODE[k],bufferI[z+1]);	//"Error writing address %4X: written %02X, read %02X\r\n"
+							err++;
+						}
+						k++;
+						z++;
+					}
+				}
+				if(saveLog){
+					fprintf(logfile,strings[S_Log8],i,i,k,k,err);	//"i=%d, k=%d, err=%d\n"
+					WriteLogIO();
+				}
+				if(max_err&&err>max_err){
+					PrintMessage1(strings[S_MaxErr],err);	//"Exceeded maximum number of errors (%d), write interrupted\r\n"
+					PrintMessage(strings[S_IntW]);	//"Write interrupted"
+					i=dim;
+				}
+			}
+		}
+	}
+	else{		//page write
+		for(i=0;i<dim;i+=page*2){	//page in words
+			for(k=0;k<page;k++){
+				if(memCODE[i+k*2]!=0xFF||memCODE[i+k*2+1]!=0xFF) k=page;
+			}
+			if(k>page){	//only pages with data!=0xFF
+				bufferU[j++]=AT_HV_RTX;
+				bufferU[j++]=1;
+				bufferU[j++]=0x4C;	//Write FLASH
+				bufferU[j++]=0x10;
+				for(k=0;k<page;k++){
+					bufferU[j++]=AT_HV_RTX;
+					bufferU[j++]=5;
+					bufferU[j++]=0x0C;
+					bufferU[j++]=(i/2+k)&0xFF;
+					bufferU[j++]=0x2C;
+					bufferU[j++]=memCODE[i+k*2];	//data low
+					bufferU[j++]=0x3C;
+					bufferU[j++]=memCODE[i+k*2+1];	//data high
+					bufferU[j++]=0x7D;
+					bufferU[j++]=0x00;
+					bufferU[j++]=0x7C;
+					bufferU[j++]=0x00;
+					if(j>DIMBUF-13||k>=page||i>=dim-2){
+						bufferU[j++]=FLUSH;
+						for(;j<DIMBUF;j++) bufferU[j]=0x0;
+						write();
+						msDelay(1.5);
+						read();
+						j=1;
+						if(saveLog){
+							fprintf(logfile,strings[S_Log7],i,i,k,k);	//"i=%d(0x%X), k=%d(0x%X)\n"
+							WriteLogIO();
+						}
+					}
+				}
+				if((i>>9)!=currPage){	//change high address if changed
+					bufferU[j++]=AT_HV_RTX;
+					bufferU[j++]=1;
+					bufferU[j++]=0x1C;
+					bufferU[j++]=i>>9;
+					currPage=i>>9;
+				}
+				bufferU[j++]=AT_HV_RTX;	//write page
+				bufferU[j++]=2;
+				bufferU[j++]=0x64;
+				bufferU[j++]=0x00;
+				bufferU[j++]=0x6C;
+				bufferU[j++]=0x00;
+				bufferU[j++]=READ_B;	//check SDO
+				bufferU[j++]=FLUSH;
+				for(;j<DIMBUF;j++) bufferU[j]=0x0;
+				write();
+				msDelay(1.5);
+				read();
+				j=1;
+				if(saveLog){
+					fprintf(logfile,strings[S_Log7],i,i,k,k);	//"i=%d(0x%X), k=%d(0x%X)\n"
+					WriteLogIO();
+				}
+				bufferU[j++]=READ_B;	//check SDO
+				bufferU[j++]=FLUSH;
+				for(;j<DIMBUF;j++) bufferU[j]=0x0;
+				for(t=0,sdo=0;t<20&&sdo==0;t++){
+					write();
+					msDelay(1.5);
+					read();
+					if(saveLog)WriteLogIO();
+					for(z=1;z<DIMBUF-1&&bufferI[z]!=READ_B;z++);
+					sdo=bufferI[z+1]&2;
+				}
+				if(sdo==0&&saveLog) fprintf(logfile,"SDO=0\r\n");
+				PrintStatus(strings[S_CodeWriting],i*100/dim,i);	//"Write: %d%%, addr. %03X"
+				j=1;
+				//write verification
+				int m=0;
+				for(k=0;k<page;k++){
+					if(k==0){
+						bufferU[j++]=AT_HV_RTX;		//Read FLASH
+						bufferU[j++]=4;
+						bufferU[j++]=0x4C;
+						bufferU[j++]=0x02;
+					}
+					else{
+						bufferU[j++]=AT_HV_RTX;
+						bufferU[j++]=3;
+					}
+					bufferU[j++]=0x0C;
+					bufferU[j++]=(i/2+k)&0xFF;
+					bufferU[j++]=0x68;
+					bufferU[j++]=0x00;
+					bufferU[j++]=0x6C;
+					bufferU[j++]=0x00;
+					bufferU[j++]=AT_HV_RTX;
+					bufferU[j++]=2;
+					bufferU[j++]=0x78;
+					bufferU[j++]=0x00;
+					bufferU[j++]=0x7C;
+					bufferU[j++]=0x00;
+					if(j>DIMBUF-14||k>=page||i>=dim-2){
+						bufferU[j++]=FLUSH;
+						for(;j<DIMBUF;j++) bufferU[j]=0x0;
+						write();
+						msDelay(1.5);
+						read();
+						j=1;
+						for(z=1;z<DIMBUF-1;z++){
+							if(bufferI[z]==AT_HV_RTX){
+								if(memCODE[i+m]!=bufferI[z+1]){
+									PrintMessage4(strings[S_CodeVError],i+m,i+m,memCODE[i+m],bufferI[z+1]);	//"Error writing address %4X: written %02X, read %02X\r\n"
+									err++;
+								}
+								m++;
+								z++;
+							}
+						}
+						if(saveLog){
+							fprintf(logfile,strings[S_Log8],i,i,m,m,err);	//"i=%d, k=%d, err=%d\n"
+							WriteLogIO();
+						}
+						if(max_err&&err>max_err){
+							PrintMessage1(strings[S_MaxErr],err);	//"Exceeded maximum number of errors (%d), write interrupted\r\n"
+							PrintMessage(strings[S_IntW]);	//"Write interrupted"
+							i=dim;
+						}
+					}
+				}
+			}
+		}
+	}
+	PrintStatusEnd();
+	PrintMessage1(strings[S_ComplErr],err);	//"completed, %d errors\r\n"
+//****************** write eeprom ********************
+	if(dim2){
+		int errEE=0;
+		PrintMessage(strings[S_EEAreaW]);	//"Write EEPROM ... "
+		PrintStatusSetup();
+		if(saveLog)fprintf(logfile,"WRITE EEPROM\n");
+		j=1;
+		for(i=0;i<dim2;i++){
+			if(memEE[i]!=0xFF){
+				bufferU[j++]=AT_HV_RTX;		//Write EEPROM
+				bufferU[j++]=7;
+				bufferU[j++]=0x4C;
+				bufferU[j++]=0x11;
+				bufferU[j++]=0x0C;
+				bufferU[j++]=i&0xFF;
+				bufferU[j++]=0x1C;
+				bufferU[j++]=i>>8;
+				bufferU[j++]=0x2C;
+				bufferU[j++]=memEE[i];
+				bufferU[j++]=0x6D;
+				bufferU[j++]=0x00;
+				bufferU[j++]=0x64;
+				bufferU[j++]=0x00;
+				bufferU[j++]=0x6C;
+				bufferU[j++]=0x00;
+				bufferU[j++]=READ_B;	//check SDO
+				bufferU[j++]=FLUSH;
+				for(;j<DIMBUF;j++) bufferU[j]=0x0;
+				j=1;
+				write();
+				msDelay(2);
+				read();
+				PrintStatus(strings[S_CodeWriting],i*100/dim2,i);	//"Write: %d%%, addr. %03X"
+				if(saveLog){
+					fprintf(logfile,strings[S_Log7],i,i,k,k);	//"i=%d(0x%X), k=%d(0x%X)\n"
+					WriteLogIO();
+				}
+				bufferU[j++]=READ_B;	//check SDO
+				bufferU[j++]=FLUSH;
+				for(;j<DIMBUF;j++) bufferU[j]=0x0;
+				j=1;
+				for(t=0,sdo=0;t<20&&sdo==0;t++){
+					write();
+					msDelay(1.5);
+					read();
+					if(saveLog)WriteLogIO();
+					for(z=1;z<DIMBUF-1&&bufferI[z]!=READ_B;z++);
+					sdo=bufferI[z+1]&2;
+				}
+				if(sdo==0&&saveLog) fprintf(logfile,"SDO=0\r\n");
+				//write verification
+				bufferU[j++]=AT_HV_RTX;		//Read EEPROM
+				bufferU[j++]=5;
+				bufferU[j++]=0x4C;
+				bufferU[j++]=0x03;
+				bufferU[j++]=0x1C;
+				bufferU[j++]=i>>8;
+				bufferU[j++]=0x0C;
+				bufferU[j++]=i&0xFF;
+				bufferU[j++]=0x68;
+				bufferU[j++]=0x00;
+				bufferU[j++]=0x6C;
+				bufferU[j++]=0x00;
+				bufferU[j++]=FLUSH;
+				for(;j<DIMBUF;j++) bufferU[j]=0x0;
+				write();
+				msDelay(2);
+				read();
+				for(z=1;z<DIMBUF-1&&bufferI[z]!=AT_HV_RTX;z++);
+				if(memEE[i]!=bufferI[z+1]){
+					PrintMessage4(strings[S_CodeVError],i,i,memEE[i],bufferI[z+1]);	//"Error writing address %4X: written %02X, read %02X\r\n"
+					errEE++;
+				}
+				j=1;
+				if(saveLog){
+					fprintf(logfile,strings[S_Log8],i,i,k,k,errEE);	//"i=%d, k=%d, errors=%d\n"
+					WriteLogIO();
+				}
+				if(err+errEE>=max_err) break;
+			}
+		}
+		PrintStatusEnd();
+		err+=errEE;
+		if(err>=max_err){
+			PrintMessage("\r\n");
+			PrintMessage1(strings[S_MaxErr],err);	//"Exceeded maximum number of errors (%d), write interrupted\r\n"
+		}
+		PrintMessage1(strings[S_ComplErr],errEE);	//"completed: %d errors\r\n"
+	}
+//****************** write FUSE ********************
+	int err_f=0;
+	if(AVRlock<0x100||AVRfuse<0x100||AVRfuse_h<0x100||AVRfuse_x<0x100)PrintMessage(strings[S_FuseAreaW]);	//"Write Fuse ... "
+	if(AVRfuse<0x100){
+		if(saveLog)fprintf(logfile,"WRITE FUSE\n");
+		bufferU[j++]=AT_HV_RTX;
+		bufferU[j++]=4;
+		bufferU[j++]=0x4C;
+		bufferU[j++]=0x40;
+		bufferU[j++]=0x2C;
+		bufferU[j++]=AVRfuse;
+		bufferU[j++]=0x64;
+		bufferU[j++]=0x00;
+		bufferU[j++]=0x6C;
+		bufferU[j++]=0x00;
+		bufferU[j++]=READ_B;	//check SDO
+		bufferU[j++]=FLUSH;
+		for(;j<DIMBUF;j++) bufferU[j]=0x0;
+		j=1;
+		write();
+		msDelay(2);
+		read();
+		if(saveLog)	WriteLogIO();
+		for(z=1;z<DIMBUF-1&&bufferI[z]!=READ_B;z++);
+		sdo=bufferI[z+1]&2;
+		bufferU[j++]=READ_B;	//check SDO
+		bufferU[j++]=FLUSH;
+		for(;j<DIMBUF;j++) bufferU[j]=0x0;
+		for(i=0;i<20&&sdo==0;i++){
+			write();
+			msDelay(1.5);
+			read();
+			if(saveLog)WriteLogIO();
+			for(z=1;z<DIMBUF-1&&bufferI[z]!=READ_B;z++);
+			sdo=bufferI[z+1]&2;
+		}
+		if(sdo==0&&saveLog) fprintf(logfile,"SDO=0\r\n");
+		j=1;
+		bufferU[j++]=AT_HV_RTX;
+		bufferU[j++]=3;
+		bufferU[j++]=0x4C;
+		bufferU[j++]=0x04;
+		bufferU[j++]=0x68;
+		bufferU[j++]=0x00;
+		bufferU[j++]=0x6C;
+		bufferU[j++]=0x00;
+		bufferU[j++]=FLUSH;
+		for(;j<DIMBUF;j++) bufferU[j]=0x0;
+		write();
+		msDelay(1.5);
+		read();
+		j=1;
+		for(z=1;z<DIMBUF-1&&bufferI[z]!=AT_HV_RTX;z++);
+		if(z==DIMBUF-1||AVRfuse!=bufferI[z+1]){
+			PrintMessage3(strings[S_ConfigWErr4],"fuse",AVRfuse,bufferI[z+1]);	//"Error writing %s: written %02X, read %02X"
+			err_f++;
+		}
+	}
+	if(AVRfuse_h<0x100){
+		if(saveLog)fprintf(logfile,"WRITE FUSEH\n");
+		bufferU[j++]=AT_HV_RTX;
+		bufferU[j++]=4;
+		bufferU[j++]=0x4C;
+		bufferU[j++]=0x40;
+		bufferU[j++]=0x2C;
+		bufferU[j++]=AVRfuse_h;
+		bufferU[j++]=0x74;
+		bufferU[j++]=0x00;
+		bufferU[j++]=0x7C;
+		bufferU[j++]=0x00;
+		bufferU[j++]=READ_B;	//check SDO
+		bufferU[j++]=FLUSH;
+		for(;j<DIMBUF;j++) bufferU[j]=0x0;
+		j=1;
+		write();
+		msDelay(2);
+		read();
+		if(saveLog)	WriteLogIO();
+		for(z=1;z<DIMBUF-1&&bufferI[z]!=READ_B;z++);
+		sdo=bufferI[z+1]&2;
+		bufferU[j++]=READ_B;	//check SDO
+		bufferU[j++]=FLUSH;
+		for(;j<DIMBUF;j++) bufferU[j]=0x0;
+		for(i=0;i<20&&sdo==0;i++){
+			write();
+			msDelay(1.5);
+			read();
+			if(saveLog)WriteLogIO();
+			for(z=1;z<DIMBUF-1&&bufferI[z]!=READ_B;z++);
+			sdo=bufferI[z+1]&2;
+		}
+		if(sdo==0&&saveLog) fprintf(logfile,"SDO=0\r\n");
+		j=1;
+		bufferU[j++]=AT_HV_RTX;
+		bufferU[j++]=3;
+		bufferU[j++]=0x4C;
+		bufferU[j++]=0x04;
+		bufferU[j++]=0x7A;
+		bufferU[j++]=0x00;
+		bufferU[j++]=0x7E;
+		bufferU[j++]=0x00;
+		bufferU[j++]=FLUSH;
+		for(;j<DIMBUF;j++) bufferU[j]=0x0;
+		write();
+		msDelay(1.5);
+		read();
+		j=1;
+		for(z=1;z<DIMBUF-1&&bufferI[z]!=AT_HV_RTX;z++);
+		if(z==DIMBUF-1||AVRfuse_h!=bufferI[z+1]){
+			PrintMessage3(strings[S_ConfigWErr4],"fuseH",AVRfuse_h,bufferI[z+1]);	//"Error writing %s: written %02X, read %02X"
+			err_f++;
+		}
+	}
+	if(AVRfuse_x<0x100){
+		if(saveLog)fprintf(logfile,"WRITE FUSEX\n");
+		bufferU[j++]=AT_HV_RTX;
+		bufferU[j++]=4;
+		bufferU[j++]=0x4C;
+		bufferU[j++]=0x40;
+		bufferU[j++]=0x2C;
+		bufferU[j++]=AVRfuse_x;
+		bufferU[j++]=0x66;
+		bufferU[j++]=0x00;
+		bufferU[j++]=0x6E;
+		bufferU[j++]=0x00;
+		bufferU[j++]=READ_B;	//check SDO
+		bufferU[j++]=FLUSH;
+		for(;j<DIMBUF;j++) bufferU[j]=0x0;
+		j=1;
+		write();
+		msDelay(2);
+		read();
+		if(saveLog)	WriteLogIO();
+		for(z=1;z<DIMBUF-1&&bufferI[z]!=READ_B;z++);
+		sdo=bufferI[z+1]&2;
+		bufferU[j++]=READ_B;	//check SDO
+		bufferU[j++]=FLUSH;
+		for(;j<DIMBUF;j++) bufferU[j]=0x0;
+		for(i=0;i<20&&sdo==0;i++){
+			write();
+			msDelay(1.5);
+			read();
+			if(saveLog)WriteLogIO();
+			for(z=1;z<DIMBUF-1&&bufferI[z]!=READ_B;z++);
+			sdo=bufferI[z+1]&2;
+		}
+		if(sdo==0&&saveLog) fprintf(logfile,"SDO=0\r\n");
+		j=1;
+		bufferU[j++]=AT_HV_RTX;
+		bufferU[j++]=3;
+		bufferU[j++]=0x4C;
+		bufferU[j++]=0x04;
+		bufferU[j++]=0x6A;
+		bufferU[j++]=0x00;
+		bufferU[j++]=0x6E;
+		bufferU[j++]=0x00;
+		bufferU[j++]=FLUSH;
+		for(;j<DIMBUF;j++) bufferU[j]=0x0;
+		write();
+		msDelay(1.5);
+		read();
+		j=1;
+		for(z=1;z<DIMBUF-1&&bufferI[z]!=AT_HV_RTX;z++);
+		if(z==DIMBUF-1||AVRfuse_x!=bufferI[z+1]){
+			PrintMessage3(strings[S_ConfigWErr4],"fuseX",AVRfuse_x,bufferI[z+1]);	//"Error writing %s: written %02X, read %02X"
+			err_f++;
+		}
+	}
+	if(AVRlock<0x100){
+		if(saveLog)fprintf(logfile,"WRITE LOCK\n");
+		bufferU[j++]=AT_HV_RTX;
+		bufferU[j++]=4;
+		bufferU[j++]=0x4C;
+		bufferU[j++]=0x20;
+		bufferU[j++]=0x2C;
+		bufferU[j++]=AVRlock;
+		bufferU[j++]=0x64;
+		bufferU[j++]=0x00;
+		bufferU[j++]=0x6C;
+		bufferU[j++]=0x00;
+		bufferU[j++]=READ_B;	//check SDO
+		bufferU[j++]=FLUSH;
+		for(;j<DIMBUF;j++) bufferU[j]=0x0;
+		j=1;
+		write();
+		msDelay(2);
+		read();
+		if(saveLog)	WriteLogIO();
+		for(z=1;z<DIMBUF-1&&bufferI[z]!=READ_B;z++);
+		sdo=bufferI[z+1]&2;
+		bufferU[j++]=READ_B;	//check SDO
+		bufferU[j++]=FLUSH;
+		for(;j<DIMBUF;j++) bufferU[j]=0x0;
+		for(i=0;i<20&&sdo==0;i++){
+			write();
+			msDelay(1.5);
+			read();
+			if(saveLog)WriteLogIO();
+			for(z=1;z<DIMBUF-1&&bufferI[z]!=READ_B;z++);
+			sdo=bufferI[z+1]&2;
+		}
+		if(sdo==0&&saveLog) fprintf(logfile,"SDO=0\r\n");
+		j=1;
+		bufferU[j++]=AT_HV_RTX;
+		bufferU[j++]=3;
+		bufferU[j++]=0x4C;
+		bufferU[j++]=0x04;
+		bufferU[j++]=0x78;
+		bufferU[j++]=0x00;
+		bufferU[j++]=0x7C;
+		bufferU[j++]=0x00;
+		bufferU[j++]=FLUSH;
+		for(;j<DIMBUF;j++) bufferU[j]=0x0;
+		write();
+		msDelay(1.5);
+		read();
+		j=1;
+		for(z=1;z<DIMBUF-1&&bufferI[z]!=AT_HV_RTX;z++);
+		if(z==DIMBUF-1||AVRlock!=bufferI[z+1]){
+			PrintMessage3(strings[S_ConfigWErr4],"lock",AVRlock,bufferI[z+1]);	//"Error writing %s: written %02X, read %02X"
+			err_f++;
+		}
+	}
+	err+=err_f;
+	if(AVRlock<0x100||AVRfuse<0x100||AVRfuse_h<0x100||AVRfuse_x<0x100){
+		PrintMessage1(strings[S_ComplErr],err_f);	//"completed, %d errors\r\n"
+	}
+//****************** exit program mode ********************
+	bufferU[j++]=EXT_PORT;
+	bufferU[j++]=0;
+	bufferU[j++]=0;
+	bufferU[j++]=SET_PORT_DIR; //All input
+	bufferU[j++]=0xFF;
+	bufferU[j++]=0xFF;
+	bufferU[j++]=EN_VPP_VCC;		//VDD
+	bufferU[j++]=0;
+	bufferU[j++]=FLUSH;
+	for(;j<DIMBUF;j++) bufferU[j]=0x0;
+	write();
+	msDelay(1);
+	read();
+	unsigned int stop=GetTickCount();
+	PrintMessage3(strings[S_EndErr],(stop-start)/1000.0,err,err!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nEnd (%.2f s) %d %s\r\n\r\n"
+	if(saveLog)CloseLogFile();
+	PrintStatusClear();
+}

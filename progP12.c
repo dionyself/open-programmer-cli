@@ -489,9 +489,9 @@ void Write12F5xx(int dim,int OscAddr)
 }
 
 #ifdef _MSC_VER
-void COpenProgDlg::Write12C5xx(int dim)
+void COpenProgDlg::Write12C5xx(int dim,int dummy)
 #else
-void Write12C5xx(int dim)
+void Write12C5xx(int dim,int dummy)
 #endif
 {
 // write 12 bit PIC with OTP

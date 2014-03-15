@@ -5,6 +5,13 @@ Questi sorgenti sono distribuiti gratuitamente sotto licenza GNU General Public 
 
 Cambiamenti (per usare i dispositivi aggiunti è richiesto un programmatore con firmware corrispondente):
 
+V 0.9.0 marzo 2014:		Write16F72x richiede solo la config-word1;
+						aggiunto HV serial programming per ATtiny11-12-13-24-25-44-45-84-85;
+						aggiunti 24FJ64GA3xx-GCxx,24FJ128GA3xx-GB2xx-GCxx-DAxx,24FJ256DAxx,24EPx,33EPx;
+						aggiunti 95xx SPI EEPROM,25X05 FLASH;
+						aggiunti 12F1571-72,16F527,16F753,16F1454-55-59;
+						modifiche varie al codice
+						
 V 0.8.1 giugno 2013:	inizio programmazione con S1; selezione velocità I2C/SPI; opzione -command;
 						supporto multi-lingue; può forzare config word; può evitare controllo LV;
 						corretta scrittura EEPROM quando è attiva la protezione codice/dati per 16F83-84,

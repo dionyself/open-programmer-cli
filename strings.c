@@ -1,4 +1,4 @@
-// Strings.c v0.8.1
+// Strings.c v0.9.0
 
 //This cannot be executed conditionally on MSVC
 //#include "stdafx.h"
@@ -17,7 +17,7 @@ char *STR_ID[DIM];
 char *strings_it[DIM];
 char *strings_en[DIM];
 
-#ifndef _MSC_VER 
+#ifndef _MSC_VER
 
 int strfind(const char* langid,const char* langfile){
 	FILE* f=fopen(langfile,"r");
@@ -167,6 +167,7 @@ void strinit()
 	STR_ID[S_ConfigWErr]="S_ConfigWErr";
 	STR_ID[S_ConfigWErr2]="S_ConfigWErr2";
 	STR_ID[S_ConfigWErr3]="S_ConfigWErr3";
+	STR_ID[S_ConfigWErr4]="S_ConfigWErr4";
 	STR_ID[S_IDErr]="S_IDErr";
 	STR_ID[S_ICDErr]="S_ICDErr";
 	STR_ID[S_Calib1Err]="S_Calib1Err";
@@ -234,6 +235,7 @@ void strinit()
 	STR_ID[S_Osccal]="S_Osccal";
 	STR_ID[S_DevID]="S_DevID";
 	STR_ID[S_DevID2]="S_DevID2";
+	STR_ID[S_DevREV]="S_DevREV";
 	STR_ID[S_ConfigWord]="S_ConfigWord";
 	STR_ID[S_ConfigWord2]="S_ConfigWord2";
 	STR_ID[S_ConfigWordX]="S_ConfigWordX";
@@ -262,8 +264,8 @@ void strinit()
 	STR_ID[S_Empty]="S_Empty";
 	STR_ID[S_NextIns]="S_NextIns";
 	STR_ID[S_ForceConfigW]="S_ForceConfigW";
-	STR_ID[S_ForceConfigW1]="S_ForceConfigW2";
-	STR_ID[S_ForceConfigW1]="S_ForceConfigW2";
+	STR_ID[S_ForceConfigW1]="S_ForceConfigW1";
+	STR_ID[S_ForceConfigW2]="S_ForceConfigW2";
 	STR_ID[I_Fopen]="I_Fopen";
 	STR_ID[I_Fsave]="I_Fsave";
 	STR_ID[I_DevR]="I_DevR";
@@ -308,6 +310,8 @@ void strinit()
 	STR_ID[I_W_LANGFILE]="I_W_LANGFILE";
 	STR_ID[I_WAITS1]="I_WAITS1";
 	STR_ID[I_PRESSS1]="I_PRESSS1";
+	STR_ID[S_WaitS1W]="S_WaitS1W";
+	STR_ID[S_WaitS1R]="S_WaitS1R";
 	STR_ID[I_ICD_ENABLE]="I_ICD_ENABLE";
 	STR_ID[I_ICD_ADDRESS]="I_ICD_ADDRESS";
 	STR_ID[I_LOAD_COFF]="I_LOAD_COFF";
@@ -356,7 +360,7 @@ void strinit()
 	strings_it[S_lowUsbV]="Tensione USB troppo bassa (VUSB<4.5V)" NL;
 	strings_it[S_HiVPP]="Attenzione: tensione regolatore troppo alta" NL NL;
 	strings_it[S_LowVPP]="Attenzione: tensione regolatore troppo bassa" NL NL;
-	strings_it[S_reg]="Regolatore avviato e funzionante dopo T=%d ms VPP=%.1fV" NL NL;
+	strings_it[S_reg]="Regolatore avviato e funzionante dopo %dms VPP=%.1fV" NL NL;
 	strings_it[S_dev_det]="Dispositivo rilevato: vid=0x%04X pid=0x%04X" NL "Percorso: %s" NL;
 	strings_it[S_file]="File Hex8 (*.hex)|*.hex|Tutti i file (*.*)|*.*||";
 	strings_it[S_file2]="File Hex8 (*.hex)|*.hex|File binari (*.bin)|*.bin|Tutti i file (*.*)|*.*||";
@@ -419,6 +423,7 @@ void strinit()
 	strings_it[S_ConfigWErr]="Errore in scrittura config: scritto %03X, letto %03X" NL;
 	strings_it[S_ConfigWErr2]="Errore in scrittura CONFIG";
 	strings_it[S_ConfigWErr3]="Errore in scrittura config: scritto %04X, letto %04X" NL;
+	strings_it[S_ConfigWErr4]="Errore in scrittura %s: scritto %02X, letto %02X" NL;
 	strings_it[S_IDErr]="Errore in scrittura ID%d: scritto %04X, letto %04X" NL;
 	strings_it[S_ICDErr]="Errore in scrittura ICD (0x%X): scritto %04X, letto %04X" NL;
 	strings_it[S_Calib1Err]="Errore in scrittura Calib1: scritto %04X, letto %04X" NL;
@@ -490,6 +495,7 @@ void strinit()
 	strings_it[S_Osccal]="OSCCAL: 0x%03X" NL;
 	strings_it[S_DevID]="DevID: 0x%04X" NL;
 	strings_it[S_DevID2]="DevID: 0x%02X%02X" NL;
+	strings_it[S_DevREV]="DevREV: 0x%04X" NL;
 	strings_it[S_ConfigWord]="Configuration word: 0x%03X" NL;
 	strings_it[S_Config2Cal1]="Configuration word2 o calibration word 1: 0x%03X" NL;
 	strings_it[S_ConfigWord2]="Configuration word2: 0x%04X" NL;
@@ -651,7 +657,7 @@ void strinit()
 		"-i2c_r2 <N Ctr Ind(2)>      leggi N byte dal bus I2C (indirizzi 16b)" NL
 		"-i2c_w <N Ctr Ind Dati>     scrivi N byte sul bus I2C" NL
 		"-i2c_w2 <N Ctr Ind(2) Dati> scrivi N byte sul bus I2C (indirizzi 16b)" NL
-		"-i2cspeed <s>               cambia velocità I2C: 0=100k,1=200k,2=500k,3=800k" NL
+		"-i2cspeed <v>               cambia velocità I2C: 0=100k,1=200k,2=500k,3=800k" NL
 		"-id                         usa ID" NL
 		"-l, log [=file]             salva registro" NL
 		"-lang <lingua>              carica <lingua>" NL
@@ -669,7 +675,7 @@ void strinit()
 		"-se, saveEE <file>          salva EEPROM su file Ihex (solo ATxxxx)" NL
 		"-spi_r <N>                  leggi N byte dal bus SPI" NL
 		"-spi_w <N Dati>             scrivi N byte sul bus SPI" NL
-		"-spispeed <s>               cambia velocità SPI: 0=100k,1=200k,2=300k,3=500k" NL
+		"-spispeed <v>               cambia velocità SPI: 0=100k,1=200k,2=300k,3=500k" NL
 		"-support                    dispositivi supportati" NL
 		"-use_BKosccal               copia BKosccal su osccal" NL
 		"-v, version                 versione" NL
@@ -703,7 +709,7 @@ void strinit()
 	strings_en[S_lowUsbV]="USB voltage too low (VUSB<4.5V)" NL;
 	strings_en[S_HiVPP]="Warning: regulator voltage too high" NL NL;
 	strings_en[S_LowVPP]="Warning: regulator voltage too low" NL NL;
-	strings_en[S_reg]="Regulator up and running after T=%d ms VPP=%.1fV" NL NL;
+	strings_en[S_reg]="Regulator up and running after %dms VPP=%.1fV" NL NL;
 	strings_en[S_dev_det]="Device detected: vid=0x%04X pid=0x%04X" NL "Path: %s" NL;
 	strings_en[S_file]="Hex8 files (*.hex)|*.hex|All files (*.*)|*.*||";
 	strings_en[S_file2]="Hex8 files (*.hex)|*.hex|Binary files (*.bin)|*.bin|All files (*.*)|*.*||";
@@ -768,6 +774,7 @@ void strinit()
 	strings_en[S_ConfigWErr]="Error writing config area: written %03X, read %03X" NL;
 	strings_en[S_ConfigWErr2]="Error writing CONFIG";
 	strings_en[S_ConfigWErr3]="Error writing config area: written %04X, read %04X" NL;
+	strings_en[S_ConfigWErr4]="Error writing %s: written %02X, read %02X" NL;
 	strings_en[S_IDErr]="Error writing ID%d: written %04X, read %04X" NL;
 	strings_en[S_ICDErr]="Error writing ICD (0x%X): written %04X, read %04X" NL;
 	strings_en[S_Calib1Err]="Error writing Calib1: written %04X, read %04X" NL;
@@ -839,6 +846,7 @@ void strinit()
 	strings_en[S_Osccal]="OSCCAL: 0x%03X" NL;
 	strings_en[S_DevID]="DevID: 0x%04X" NL;
 	strings_en[S_DevID2]="DevID: 0x%02X%02X" NL;
+	strings_en[S_DevREV]="DevREV: 0x%04X" NL;
 	strings_en[S_ConfigWord]="Configuration word: 0x%03X" NL;
 	strings_en[S_Config2Cal1]="Configuration word2 or calibration word 1: 0x%03X" NL;
 	strings_en[S_ConfigWord2]="Configuration word2: 0x%04X" NL;

@@ -312,7 +312,7 @@ int main (int argc, char **argv) {
 	if(langfile) GenerateLangFile(langid,"languages.rc");
 
 	if (ver){
-		printf("OP v%s\nCopyright (C) Alberto Maccioni 2009-2013\
+		printf("OP v%s\nCopyright (C) Alberto Maccioni 2009-2014\
 \n	For detailed info see http://openprog.altervista.org/\
 \nThis program is free software; you can redistribute it and/or modify it under \
 the terms of the GNU General Public License as published by the Free Software \
@@ -525,7 +525,7 @@ int StartHVReg(double V){
 		PrintMessage(strings[S_lowUsbV]);	//"Tensione USB troppo bassa (VUSB<4.5V)\r\n"
 		return 0;
 	}
-	for(;(v<(vreg/10.0-0.5)*G||v>(vreg/10.0+0.5)*G)&&t<t0+1500;t=GetTickCount()){
+	for(;(v<(vreg/10.0-0.9)*G||v>(vreg/10.0+0.9)*G)&&t<t0+1500;t=GetTickCount()){
 		j=1;
 		bufferU[j++]=WAIT_T3;
 		bufferU[j++]=READ_ADC;
@@ -539,11 +539,11 @@ int StartHVReg(double V){
 		if(HwID==3) v>>=2;		//if 12 bit ADC
 //		printf("v=%d=%fV\n",v,v/G);
 	}
-	if(v>(vreg/10.0+0.7)*G){
+	if(v>(vreg/10.0+0.9)*G){
 		PrintMessage(strings[S_HiVPP]);	//"Attenzione: tensione regolatore troppo alta\r\n\r\n"
 		return 0;
 	}
-	else if(v<(vreg/10.0-0.7)*G){
+	else if(v<(vreg/10.0-0.9)*G){
 		PrintMessage(strings[S_LowVPP]);	//"Attenzione: tensione regolatore troppo bassa\r\n\r\n"
 		return 0;
 	}

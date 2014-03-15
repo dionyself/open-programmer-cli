@@ -215,7 +215,7 @@ void Save(char* dev,char* savefile)
 		fprintf(f,":00000001FF\n");
 	}
 //**************** 24F *******************************************
-	else if((!strncmp(dev,"24F",3)||!strncmp(dev,"24H",3)||!strncmp(dev,"30F",3)||!strncmp(dev,"33F",3))){
+	else if((!strncmp(dev,"24F",3)||!strncmp(dev,"24H",3)||!strncmp(dev,"24E",3)||!strncmp(dev,"30F",3)||!strncmp(dev,"33F",3)||!strncmp(dev,"33E",3))){
 		int valid;
 		fprintf(f,":020000040000FA\n");			//extended address=0
 		int sum=0,count=0,s,word;
@@ -316,8 +316,8 @@ void Save(char* dev,char* savefile)
 		}
 		fprintf(f,":00000001FF\n");
 	}
-//**************** 24xxx / 93xxx / 25xxx / DSxxxx *******************************************
-	else if(!strncmp(dev,"24",2)||!strncmp(dev,"93",2)||!strncmp(dev,"25",2)||\
+//**************** 24xxx / 93xxx / 25xxx / 95xxx / DSxxxx *******************************************
+	else if(!strncmp(dev,"24",2)||!strncmp(dev,"93",2)||!strncmp(dev,"25",2)||!strncmp(dev,"95",2)||\
 		!strncmp(dev,"DS",2)||!strncmp(dev,"11",2)){
 		if(strstr(savefile,".bin")||strstr(savefile,".BIN")){
 			#ifdef _WIN32
@@ -558,7 +558,7 @@ int Load(char*dev,char*loadfile){
 		PrintMessage("\r\n");
 	}
 //**************** 24F *******************************************
-	else if(!strncmp(dev,"24F",3)||!strncmp(dev,"24H",3)||!strncmp(dev,"30F",3)||!strncmp(dev,"33F",3)){
+	else if(!strncmp(dev,"24F",3)||!strncmp(dev,"24H",3)||!strncmp(dev,"24E",3)||!strncmp(dev,"30F",3)||!strncmp(dev,"33F",3)||!strncmp(dev,"33E",3)){
 		unsigned char *buffer,bufferEE[0x2000];
 		int d;
 		buffer=(unsigned char*)malloc(0x100000);
@@ -692,8 +692,8 @@ int Load(char*dev,char*loadfile){
 		DisplayCODEAVR(size);
 		PrintMessage("\r\n");
 	}
-//**************** 24xxx / 93xxx / 25xxx / DSxxxx /11xxx *******************************
-	else if(!strncmp(dev,"24",2)||!strncmp(dev,"93",2)||!strncmp(dev,"25",2)||\
+//**************** 24xxx / 93xxx / 25xxx / 95xxx / DSxxxx /11xxx *******************************
+	else if(!strncmp(dev,"24",2)||!strncmp(dev,"93",2)||!strncmp(dev,"25",2)||!strncmp(dev,"95",2)||\
 		!strncmp(dev,"DS",2)||!strncmp(dev,"11",2)){
 		if(strstr(loadfile,".bin")||strstr(loadfile,".BIN")){
 			#ifdef _WIN32

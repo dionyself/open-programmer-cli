@@ -232,7 +232,7 @@ void DisplayCODE18F(int dim){
 	char s[256]="",t[256]="";
 	char* aux=(char*)malloc((dim/COL+1)*(16+COL*6));
 	aux[0]=0;
-	int valid=0,empty=1,i,j;
+	int valid=0,empty=1,i,j,lines=0;
 	for(i=0;i<dim&&i<size;i+=COL*2){
 		valid=0;
 		for(j=i;j<i+COL*2&&j<dim;j++){
@@ -244,6 +244,11 @@ void DisplayCODE18F(int dim){
 			sprintf(t,"%04X: %s\r\n",i,s);
 			strcat(aux,t);
 			empty=0;
+			lines++;
+			if(lines>500){	//limit number of lines printed
+				strcat(aux,"(...)\r\n");
+				i=size;
+			}
 		}
 		s[0]=0;
 	}

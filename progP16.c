@@ -23,10 +23,10 @@
 
 
 //configure for GUI or command-line
-#ifdef _MSC_VER 
+#ifdef _MSC_VER
 	#define _GUI
 	#include "msvc_common.h"
-#else 
+#else
 	#define _CMD
 	#include "common.h"
 #endif
@@ -191,6 +191,18 @@ struct ID16{
 	{0x2DC>>1,"16LF1507 rev%d\r\n",0x1F},		//10 1101 110x xxxx
 	{0x2DE>>1,"16LF1508 rev%d\r\n",0x1F},		//10 1101 111x xxxx
 	{0x2E0>>1,"16LF1509 rev%d\r\n",0x1F},		//10 1110 000x xxxx
+	{0x3020,"16F1454\r\n",0},
+	{0x3021,"16F1455\r\n",0},
+	{0x3023,"16F1459\r\n",0},
+	{0x3024,"16LF1454\r\n",0},
+	{0x3025,"16LF1455\r\n",0},
+	{0x3027,"16LF1459\r\n",0},
+	{0x3030,"16F753\r\n",0},
+	{0x3031,"16HV753\r\n",0},
+	{0x3050,"12F1572\r\n",0},
+	{0x3051,"12F1571\r\n",0},
+	{0x3052,"12LF1572\r\n",0},
+	{0x3053,"12LF1571\r\n",0},
 };
 
 #ifdef _MSC_VER
@@ -202,8 +214,13 @@ struct ID16{
 	char s[64];
 	int i;
 	for(i=0;i<sizeof(PIC16LIST)/sizeof(PIC16LIST[0]);i++){
-		if((id>>5)==PIC16LIST[i].id){
+		if(PIC16LIST[i].revmask&&(id>>5)==PIC16LIST[i].id){		//id + rev in same location
 			sprintf(s,PIC16LIST[i].device,id&PIC16LIST[i].revmask);
+			PrintMessage(s);
+			return;
+		}
+		else if(!PIC16LIST[i].revmask&&id==PIC16LIST[i].id){		//id separate from rev
+			sprintf(s,PIC16LIST[i].device);
 			PrintMessage(s);
 			return;
 		}
@@ -295,6 +312,7 @@ void Read16Fxxx(int dim,int dim2,int dim3,int vdd){
 // vdd=0 -> vpp before vdd
 // vdd=1 -> vdd (+50ms) before vpp
 // vdd=2 -> vdd before vpp
+// DevREV@0x2005
 // DevID@0x2006
 // Config@0x2007
 // Calib1/Config2@0x2008
@@ -321,7 +339,7 @@ void Read16Fxxx(int dim,int dim2,int dim3,int vdd){
 	if(dim3<8)dim3=8;
 	if(saveLog){
 		OpenLogFile();	//"log.txt"
-		fprintf(logfile,"Read12F6xx(%d,%d,%d,%d)\n",dim,dim2,dim3,vdd);
+		fprintf(logfile,"Read16Fxxx(%d,%d,%d,%d)\n",dim,dim2,dim3,vdd);
 	}
 	sizeW=0x2100+dim2;
 	if(memCODE_W) free(memCODE_W);
@@ -505,6 +523,7 @@ void Read16Fxxx(int dim,int dim2,int dim3,int vdd){
 		PrintMessage4("ID%d: 0x%04X\tID%d: 0x%04X\r\n",i,memCODE_W[0x2000+i],i+1,memCODE_W[0x2000+i+1]);
 	}
 	PrintMessage1(strings[S_DevID],memCODE_W[0x2006]);	//"DevID: 0x%04X\r\n"
+	if(memCODE_W[0x2005]<0x3FFF) PrintMessage1(strings[S_DevREV],memCODE_W[0x2005]);	//"DevREV: 0x%04X\r\n"
 	PIC16_ID(memCODE_W[0x2006]);
 	PrintMessage1(strings[S_ConfigWord],memCODE_W[0x2007]);	//"Configuration word: 0x%04X\r\n"
 	if(dim3>8){
@@ -560,11 +579,13 @@ void Read16F1xxx(int dim,int dim2,int dim3,int options){
 //		bit0=0 -> vpp before vdd
 //		bit0=1 -> vdd before vpp
 //		bit1=1 -> LVP programming
+// DevREV@0x8005
 // DevID@0x8006
 // Config1@0x8007
 // Config2@0x8008
 // Calib1@0x8009
 // Calib2@0x800A
+// Calib3@0x800B
 // eeprom@0x0
 	int k=0,k2=0,z=0,i,j;
 	if(!CheckV33Regulator()){
@@ -776,11 +797,13 @@ void Read16F1xxx(int dim,int dim2,int dim3,int options){
 		PrintMessage4("ID%d: 0x%04X\tID%d: 0x%04X\r\n",i,memCODE_W[0x8000+i],i+1,memCODE_W[0x8000+i+1]);
 	}
 	PrintMessage1(strings[S_DevID],memCODE_W[0x8006]);	//"DevID: 0x%04X\r\n"
+	if(memCODE_W[0x8005]<0x3FFF) PrintMessage1(strings[S_DevREV],memCODE_W[0x8005]);	//"DevREV: 0x%04X\r\n"
 	PIC16_ID(memCODE_W[0x8006]);
 	PrintMessage2(strings[S_ConfigWordX],1,memCODE_W[0x8007]);	//"Configuration word %d: 0x%04X\r\n"
 	PrintMessage2(strings[S_ConfigWordX],2,memCODE_W[0x8008]);	//"Configuration word %d: 0x%04X\r\n"
 	PrintMessage2(strings[S_CalibWordX],1,memCODE_W[0x8009]);	//"Calibration word %d: 0x%04X\r\n"
 	PrintMessage2(strings[S_CalibWordX],2,memCODE_W[0x800A]);	//"Calibration word %d: 0x%04X\r\n"
+	if(memCODE_W[0x800B]<0x3FFF) PrintMessage2(strings[S_CalibWordX],3,memCODE_W[0x800B]);	//"Calibration word %d: 0x%04X\r\n"
 	PrintMessage(strings[S_CodeMem2]);	//"\r\nCode memory:\r\n"
 	DisplayCODE16F(dim);
 	if(dim3>11){
@@ -1036,7 +1059,7 @@ void Write12F6xx(int dim,int dim2)
 		bufferU[j++]=INC_ADDR_N;		//use only INC_ADDR_N so verification does not look at it
 		bufferU[j++]=1;
 		bufferU[j++]=INC_ADDR_N;
-		bufferU[j++]=0x2100-0x2001;		//EEPROM area: counter at 0x2100  
+		bufferU[j++]=0x2100-0x2001;		//EEPROM area: counter at 0x2100
 		for(w=2,i=k=0x2100;i<0x2100+dim2;i++){
 			if(memCODE_W[i]<0xff){
 				bufferU[j++]=LOAD_DATA_DATA;
@@ -1175,14 +1198,14 @@ void Write12F6xx(int dim,int dim2)
 		for(z+=6;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
 		if (memCODE_W[0x2008]!=(bufferI[z+1]<<8)+bufferI[z+2]){
 			PrintMessage("\r\n");
-			PrintMessage2(strings[S_Calib1Err],memCODE_W[0x2008],(bufferI[z+1]<<8)+bufferI[z+2]);	//"Errore in scrittura Calib1: scritto %04X, letto %04X\r\n"
+			PrintMessage2(strings[S_Calib1Err],memCODE_W[0x2008],(bufferI[z+1]<<8)+bufferI[z+2]);	//"Error writing Calib1: written %04X, read %04X\r\n"
 			err_c++;
 		}
 		if(load_calibword==2){
 			for(z+=6;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
 			if (memCODE_W[0x2009]!=(bufferI[z+1]<<8)+bufferI[z+2]){
 				PrintMessage("\r\n");
-				PrintMessage2(strings[S_Calib2Err],memCODE_W[0x2009],(bufferI[z+1]<<8)+bufferI[z+2]);	//"Errore in scrittura Calib2: scritto %04X, letto %04X\r\n"
+				PrintMessage2(strings[S_Calib2Err],memCODE_W[0x2009],(bufferI[z+1]<<8)+bufferI[z+2]);	//"Error writing Calib2: written %04X, read %04X\r\n"
 				err_c++;
 			}
 		}
@@ -1329,7 +1352,7 @@ void Write16F8x (int dim,int dim2)
 	bufferU[j++]=10000>>8;
 	bufferU[j++]=10000&0xff;
 	if(config<0x3FF0){
-		PrintMessage(strings[S_ProtErase]);	//"Il dispositivo è protetto, sovrascrivo la protezione.\r\n"
+		PrintMessage(strings[S_ProtErase]);	//"Override write protection\r\n"
 		bufferU[j++]=LOAD_CONF;			//counter at 0x2000
 		bufferU[j++]=0x3F;				//fake config
 		bufferU[j++]=0xFF;				//fake config
@@ -1376,7 +1399,7 @@ void Write16F8x (int dim,int dim2)
 		bufferU[j++]=CUST_CMD;
 		bufferU[j++]=0x07;
 		if(dim2){
-			bufferU[j++]=LOAD_DATA_DATA;	//EEPROM:  errore nelle spec?
+			bufferU[j++]=LOAD_DATA_DATA;	//EEPROM:  spec error?
 			bufferU[j++]=0xff;				//LSB
 			bufferU[j++]=CUST_CMD;
 			bufferU[j++]=0x01;
@@ -1390,7 +1413,7 @@ void Write16F8x (int dim,int dim2)
 			bufferU[j++]=0x07;
 		}
 	}
-	if(!programID){					//torna in memoria programma
+	if(!programID){					//back to program memory
 		bufferU[j++]=NOP;				//exit program mode
 		bufferU[j++]=EN_VPP_VCC;
 		bufferU[j++]=0x1;
@@ -1482,9 +1505,9 @@ void Write16F8x (int dim,int dim2)
 		bufferU[j++]=0xFF;				//fake config
 		bufferU[j++]=0xFF;				//fake config
 		bufferU[j++]=INC_ADDR_N;		//use only INC_ADDR_N so verification does not look at it
-		bufferU[j++]=0xFF;		
+		bufferU[j++]=0xFF;
 		bufferU[j++]=INC_ADDR_N;	//EEPROM: counter at 0x2100
-		bufferU[j++]=1;		
+		bufferU[j++]=1;
 		for(w=0,i=k=0x2100;i<0x2100+dim2;i++){
 			if(memCODE_W[i]<0xff){
 				bufferU[j++]=LOAD_DATA_DATA;
@@ -1713,9 +1736,9 @@ void Write16F62x (int dim,int dim2)
 	bufferU[j++]=5000>>8;
 	bufferU[j++]=5000&0xff;
 	if(config<0x3C00){
-		PrintMessage(strings[S_ProtErase]);	//"Il dispositivo è protetto, sovrascrivo la protezione.\r\n"
+		PrintMessage(strings[S_ProtErase]);	//"Override write protection\r\n"
 		bufferU[j++]=LOAD_CONF;			//counter at 0x2000
-		bufferU[j++]=0x3F;				//fake config	ERRORE spec!!! c'era scritto dati=0!!
+		bufferU[j++]=0x3F;				//fake config	spec ERROR!!! is written data=0!!
 		bufferU[j++]=0xFF;				//fake config
 		bufferU[j++]=INC_ADDR_N;
 		bufferU[j++]=0x07;
@@ -2161,9 +2184,9 @@ void Write12F62x(int dim,int dim2)
 		bufferU[j++]=0xFF;				//fake config
 		bufferU[j++]=0xFF;				//fake config
 		bufferU[j++]=INC_ADDR_N;		//use only INC_ADDR_N so verification does not look at it
-		bufferU[j++]=0xFF;		
+		bufferU[j++]=0xFF;
 		bufferU[j++]=INC_ADDR_N;	//EEPROM: counter at 0x2100
-		bufferU[j++]=1;		
+		bufferU[j++]=1;
 		bufferU[j++]=BULK_ERASE_DATA;
 		bufferU[j++]=WAIT_T3;			// delay=12ms
 		bufferU[j++]=WAIT_T3;
@@ -2396,7 +2419,7 @@ void Write16F87x (int dim,int dim2)
 	bufferU[j++]=8000>>8;
 	bufferU[j++]=8000&0xff;
 	if((config&0x3130)!=0x3130){
-		PrintMessage(strings[S_ProtErase]);	//"Il dispositivo è protetto, sovrascrivo la protezione.\r\n"
+		PrintMessage(strings[S_ProtErase]);	//"override write protection\r\n"
 		bufferU[j++]=LOAD_CONF;			//counter at 0x2000
 		bufferU[j++]=0x3F;				//fake config
 		bufferU[j++]=0xFF;				//fake config
@@ -2445,7 +2468,7 @@ void Write16F87x (int dim,int dim2)
 		bufferU[j++]=CUST_CMD;
 		bufferU[j++]=0x07;
 		if(dim2){
-			bufferU[j++]=LOAD_DATA_DATA;	//EEPROM:  errore nelle spec?
+			bufferU[j++]=LOAD_DATA_DATA;	//EEPROM:  spec error?
 			bufferU[j++]=0xff;				//LSB
 			bufferU[j++]=CUST_CMD;
 			bufferU[j++]=0x01;
@@ -2543,7 +2566,7 @@ void Write16F87x (int dim,int dim2)
 		bufferU[j++]=0xFF;				//fake config
 		bufferU[j++]=0xFF;				//fake config
 		bufferU[j++]=INC_ADDR_N;		//use only INC_ADDR_N so verification does not look at it
-		bufferU[j++]=0xFF;		
+		bufferU[j++]=0xFF;
 		bufferU[j++]=INC_ADDR_N;
 		bufferU[j++]=1;					//EEPROM: counter at 0x2100
 		if(ee2200){		//eeprom at 0x2200
@@ -3448,22 +3471,25 @@ void Write16F81x (int dim,int dim2)
 }
 
 #ifdef _MSC_VER
-void COpenProgDlg::Write12F61x(int dim)
+void COpenProgDlg::Write12F61x(int dim, int d, int d2)
 #else
-void Write12F61x(int dim)
+void Write12F61x(int dim, int d, int d2)
 #endif
 // write 14 bit PIC
 // dim=program size
+// d not used
 // vpp before vdd
+// DevREV@0x2005
 // DevID@0x2006
 // Config@0x2007
 // Calib1@0x2008 (save)
+// Calib2@0x2009
 // erase: BULK_ERASE_PROG (1001) +10ms
 // write: LOAD_DATA_PROG (0010) + BEGIN_PROG2 (11000) + 4ms + END_PROG (1010)
 // verify during write
 {
 	int err=0;
-	WORD devID=0x3fff,calib1=0x3fff;
+	WORD devID=0x3fff,devREV=0x3fff,calib1=0x3fff,calib2=0x3fff;
 	int k=0,z=0,i,j,w;
 	if(sizeW<0x2007){
 		PrintMessage(strings[S_NoConfigW3]);	//"Can't find CONFIG (0x2007)\r\nEnd\r\n"
@@ -3502,7 +3528,9 @@ void Write12F61x(int dim)
 	bufferU[j++]=0xFF;				//fake config
 	bufferU[j++]=0xFF;				//fake config
 	bufferU[j++]=INC_ADDR_N;
-	bufferU[j++]=0x06;
+	bufferU[j++]=0x05;
+	bufferU[j++]=READ_DATA_PROG;	//DevREV
+	bufferU[j++]=INC_ADDR;
 	bufferU[j++]=READ_DATA_PROG;	//DevID
 	bufferU[j++]=INC_ADDR;
 	bufferU[j++]=INC_ADDR;
@@ -3528,14 +3556,18 @@ void Write12F61x(int dim)
 	read();
 	if(saveLog)WriteLogIO();
 	for(z=0;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
+	devREV=(bufferI[z+1]<<8)+bufferI[z+2];
+	for(z+=3;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
 	devID=(bufferI[z+1]<<8)+bufferI[z+2];
 	PrintMessage1(strings[S_DevID],devID);	//"DevID: 0x%04X\r\n"
+	if(devREV<0x3FFF) PrintMessage1(strings[S_DevREV],devREV);	//"DevREV: 0x%04X\r\n"
 	PIC16_ID(devID);
 	for(z+=3;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
 	calib1=(bufferI[z+1]<<8)+bufferI[z+2];
-	if(calib1<0x3fff){
-		PrintMessage1(strings[S_CalibWord1],calib1);	//"Calib1: 0x%04X\r\n"
-	}
+	for(z+=3;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
+	calib2=(bufferI[z+1]<<8)+bufferI[z+2];
+	if(calib1<0x3fff) PrintMessage1(strings[S_CalibWord1],calib1);	//"Calib1: 0x%04X\r\n"
+	if(calib2<0x3fff) PrintMessage1(strings[S_CalibWord2],calib2);	//"Calib2: 0x%04X\r\n"
 //****************** erase memory ********************
 	PrintMessage(strings[S_StartErase]);	//"Erase ... "
 	j=1;
@@ -3701,7 +3733,7 @@ void Write12F61x(int dim)
 		for(z+=8;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
 		if (memCODE_W[0x2008]!=(bufferI[z+1]<<8)+bufferI[z+2]){
 			PrintMessage("\r\n");
-			PrintMessage2(strings[S_Calib1Err],memCODE_W[0x2008],(bufferI[z+1]<<8)+bufferI[z+2]);	//"Errore in scrittura Calib1: scritto %04X, letto %04X\r\n"
+			PrintMessage2(strings[S_Calib1Err],memCODE_W[0x2008],(bufferI[z+1]<<8)+bufferI[z+2]);	//"Error writing Calib1: written %04X, read %04X\r\n"
 			err_c++;
 		}
 	}
@@ -4081,14 +4113,14 @@ void Write16F88x(int dim,int dim2)
 	for(z+=6;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
 	if(~memCODE_W[0x2008]&((bufferI[z+1]<<8)+bufferI[z+2])){	//error if written 0 and read 1 (~W&R)
 		PrintMessage("\r\n");
-		PrintMessage2(strings[S_ConfigWErr3],memCODE_W[0x2008],(bufferI[z+1]<<8)+bufferI[z+2]);	//"Error writing config area: written %04X, read %04X\r\n"
+		PrintMessage2(strings[S_ConfigWErr3],memCODE_W[0x2008],(bufferI[z+1]<<8)+bufferI[z+2]);	//"\r\n"
 		err_c++;
 	}
 	if(load_calibword){
 		for(z+=6;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
 		if (memCODE_W[0x2009]!=(bufferI[z+1]<<8)+bufferI[z+2]){
 			PrintMessage("\r\n");
-			PrintMessage2(strings[S_Calib1Err],memCODE_W[0x2009],(bufferI[z+1]<<8)+bufferI[z+2]);	//"Errore in scrittura Calib1: scritto %04X, letto %04X\r\n"
+			PrintMessage2(strings[S_Calib1Err],memCODE_W[0x2009],(bufferI[z+1]<<8)+bufferI[z+2]);	//"Error writing Calib1: written %04X, read %04X\r\n"
 			err_c++;
 		}
 	}
@@ -4692,16 +4724,17 @@ void Write16F71x(int dim,int vdd)
 }
 
 #ifdef _MSC_VER
-void COpenProgDlg::Write16F72x(int dim)
+void COpenProgDlg::Write16F72x(int dim, int d, int d2)
 #else
-void Write16F72x(int dim)
+void Write16F72x(int dim, int d, int d2)
 #endif
 // write 14 bit PIC
 // dim=program size
+// d not used
 // vpp before vdd
 // DevID@0x2006
 // Config@0x2007
-// Config2@0x2008
+// Config2@0x2008 (not used on LF devices)
 // erase: BULK_ERASE_PROG (1001) +6ms
 // write:LOAD_DATA_PROG (0010) + BEGIN_PROG (1000) + 2.5ms
 // verify during write
@@ -4717,8 +4750,8 @@ void Write16F72x(int dim)
 		PrintMessage(strings[S_HVregErr]); //"HV regulator error\r\n"
 		return;
 	}
-	if(sizeW<0x2009){
-		PrintMessage(strings[S_NoConfigW4]);	//"Can't find CONFIG (0x2008)\r\nEnd\r\n"
+	if(sizeW<0x2008){
+		PrintMessage(strings[S_NoConfigW3]);	//"Can't find CONFIG (0x2007)\r\nEnd\r\n"
 		return;
 	}
 	if(saveLog){
@@ -4884,6 +4917,7 @@ void Write16F72x(int dim)
 	bufferU[j++]=WAIT_T3;					//Tprogram 3ms
 	bufferU[j++]=READ_DATA_PROG;
 	bufferU[j++]=INC_ADDR;
+	if(sizeW>0x2008){						//only if Config2 is present
 	bufferU[j++]=LOAD_DATA_PROG;			//Config word 2 0x2008
 	bufferU[j++]=memCODE_W[0x2008]>>8;		//MSB
 	bufferU[j++]=memCODE_W[0x2008]&0xff;		//LSB
@@ -4891,6 +4925,7 @@ void Write16F72x(int dim)
 	bufferU[j++]=WAIT_T3;					//Tprogram 3ms
 	bufferU[j++]=READ_DATA_PROG;
 	bufferU[j++]=FLUSH;
+	}
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
 	write();
 	msDelay(45);
@@ -4918,11 +4953,13 @@ void Write16F72x(int dim)
 		PrintMessage2(strings[S_ConfigWErr3],memCODE_W[0x2007],(bufferI[z+1]<<8)+bufferI[z+2]);	//"Error writing config area: written %04X, read %04X\r\n"
 		err_c++;
 	}
+	if(sizeW>0x2008){						//only if Config2 is present
 	for(z+=6;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
 	if(~memCODE_W[0x2008]&((bufferI[z+1]<<8)+bufferI[z+2])){	//error if written 0 and read 1 (~W&R)
 		PrintMessage("\r\n");
 		PrintMessage2(strings[S_ConfigWErr3],memCODE_W[0x2008],(bufferI[z+1]<<8)+bufferI[z+2]);	//"Error writing config area: written %04X, read %04X\r\n"
 		err_c++;
+	}
 	}
 	err+=err_c;
 	PrintMessage1(strings[S_ComplErr],err_c);	//"completed, %d errors\r\n"
@@ -4962,20 +4999,23 @@ void Write16F1xxx(int dim,int dim2,int options)
 //		bit0=0 -> vpp before vdd
 //		bit0=1 -> vdd before vpp
 //		bit1=1 -> LVP programming
+// DevREV@0x8005
 // DevID@0x8006
 // Config1@0x8007
 // Config2@0x8008
 // Calib1@0x8009
 // Calib2@0x800A
+// Calib3@0x800B
 // eeprom@0x0
 // erase: BULK_ERASE_PROG (1001) +5ms
 // write:LOAD_DATA_PROG (0010) + BEGIN_PROG (1000) + 2.5ms (8 word algorithm)
+// config write time 5ms
 // eeprom:	BULK_ERASE_DATA (1011) + 5ms
 //			LOAD_DATA_DATA (0011) + BEGIN_PROG (1000) + 2.5ms
 // verify after write
 {
 	int err=0,load_calibword=0;
-	WORD devID=0x3fff,calib1=0x3fff,calib2=0x3fff;
+	WORD devID=0x3fff,devREV=0x3fff,calib1=0x3fff,calib2=0x3fff,calib3=0x3fff;
 	int k=0,k2=0,z=0,i,j,w;
 	if(!CheckV33Regulator()){
 		PrintMessage(strings[S_noV33reg]);	//Can't find 3.3V expansion board
@@ -5050,7 +5090,9 @@ void Write16F1xxx(int dim,int dim2,int options)
 	bufferU[j++]=0xFF;
 	bufferU[j++]=0xFF;
 	bufferU[j++]=INC_ADDR_N;
-	bufferU[j++]=0x06;
+	bufferU[j++]=0x05;
+	bufferU[j++]=READ_DATA_PROG;	//DevREV
+	bufferU[j++]=INC_ADDR;
 	bufferU[j++]=READ_DATA_PROG;	//DevID
 	bufferU[j++]=INC_ADDR;
 	bufferU[j++]=INC_ADDR;
@@ -5058,6 +5100,8 @@ void Write16F1xxx(int dim,int dim2,int options)
 	bufferU[j++]=READ_DATA_PROG;	//Calib1
 	bufferU[j++]=INC_ADDR;
 	bufferU[j++]=READ_DATA_PROG;	//Calib2
+	bufferU[j++]=INC_ADDR;
+	bufferU[j++]=READ_DATA_PROG;	//Calib3
 	bufferU[j++]=CUST_CMD;
 	bufferU[j++]=0x16;		//Reset address
 	bufferU[j++]=SET_PARAMETER;
@@ -5071,20 +5115,22 @@ void Write16F1xxx(int dim,int dim2,int options)
 	read();
 	if(saveLog)WriteLogIO();
 	for(z=0;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
+	devREV=(bufferI[z+1]<<8)+bufferI[z+2];
+	for(z+=3;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
 	devID=(bufferI[z+1]<<8)+bufferI[z+2];
 	PrintMessage1(strings[S_DevID],devID);	//"DevID: 0x%04X\r\n"
+	if(devREV<0x3FFF) PrintMessage1(strings[S_DevREV],devREV);	//"DevREV: 0x%04X\r\n"
 	PIC16_ID(devID);
 	if(memCODE_W[0x8006]<0x3FFF&&devID!=memCODE_W[0x8006]) PrintMessage(strings[S_DevMismatch]);	//"Warning: the device is different from what specified in source data"
 	for(z+=3;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
 	calib1=(bufferI[z+1]<<8)+bufferI[z+2];
-	if(calib1<0x3fff){
-		PrintMessage1(strings[S_CalibWord1],calib1);	//"Calib1: 0x%04X\r\n"
-	}
+	if(calib1<0x3fff) PrintMessage2(strings[S_CalibWordX],1,calib1);	//"Calibration word %d: 0x%04X\r\n"
 	for(z+=3;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
 	calib2=(bufferI[z+1]<<8)+bufferI[z+2];
-	if(calib2<0x3fff){
-		PrintMessage1(strings[S_CalibWord2],calib2);	//"Calib2: 0x%04X\r\n"
-	}
+	if(calib2<0x3fff) PrintMessage2(strings[S_CalibWordX],2,calib2);	//"Calibration word %d: 0x%04X\r\n"
+	for(z+=3;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
+	calib3=(bufferI[z+1]<<8)+bufferI[z+2];
+	if(calib3<0x3fff) PrintMessage2(strings[S_CalibWordX],3,calib3);	//"Calibration word %d: 0x%04X\r\n"
 //****************** erase memory ********************
 	PrintMessage(strings[S_StartErase]);	//"Erasing ... "
 	j=1;

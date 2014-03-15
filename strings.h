@@ -1,4 +1,4 @@
-// Strings.h v0.8.1
+// Strings.h v0.9.0
 
 enum S {
 	S_NL,
@@ -79,6 +79,7 @@ enum S {
 	S_ConfigWErr,
 	S_ConfigWErr2,
 	S_ConfigWErr3,
+	S_ConfigWErr4,
 	S_IDErr,
 	S_ICDErr,
 	S_Calib1Err,
@@ -146,6 +147,7 @@ enum S {
 	S_Osccal,
 	S_DevID,
 	S_DevID2,
+	S_DevREV,
 	S_ConfigWord,
 	S_ConfigWord2,
 	S_ConfigWordX,
@@ -258,7 +260,7 @@ enum S {
 
 extern char *strings_it[DIM];
 extern char *strings_en[DIM];
-char *STR_ID[DIM];
+extern char *STR_ID[DIM];
 void strinit();
 int strfind(const char* langid,const char* langfile);
 void GenerateLangFile(const char* langid,const char* langfile);
