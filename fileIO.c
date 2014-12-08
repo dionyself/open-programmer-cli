@@ -27,7 +27,6 @@
 	#define _GUI
 	#include "msvc_common.h"
 #else 
-	#define _CMD
 	#include "common.h"
 	#include "progP12.h"
 	#include "progP16.h"
@@ -401,11 +400,11 @@ int COpenProgDlg::Load(char*dev,char*loadfile){
 #else
 int Load(char*dev,char*loadfile){
 #endif
-	int i,input_address=0,ext_addr=0,sum,valid,empty;
-	char s[256]="",line[256];
+	int i,input_address=0,ext_addr=0,sum,valid;
+	char line[256];
 	FILE* f=fopen(loadfile,"r");
 	if(!f) return -1;
-	PrintMessage1("%s :\r\n\r\n",loadfile);
+	PrintMessage1("%s :\r\n",loadfile);
 //**************** 10-16F *******************************************
 	if(!strncmp(dev,"10",2)||!strncmp(dev,"12",2)||!strncmp(dev,"16",2)){
 		unsigned char buffer[0x20000],bufferEE[0x1000];
@@ -420,7 +419,7 @@ int Load(char*dev,char*loadfile){
 						PrintMessage1(strings[S_IhexShort],line);	//"Intel hex8 line too short:\r\n%s\r\n"
 				}
 				else{
-					input_address=htoi(line+3,4);
+					input_address=(ext_addr<<16)+htoi(line+3,4);
 					sum=0;
 					for (i=1;i<=hex_count*2+9;i+=2) sum += htoi(line+i,2);
 					if ((sum & 0xff)!=0) {
@@ -429,18 +428,18 @@ int Load(char*dev,char*loadfile){
 					else{
 						switch(htoi(line+7,2)){
 							case 0:		//Data record
-								if(ext_addr<=0x01&&input_address<0xE000){		//Code
-									sizeM=(ext_addr<<16)+input_address+hex_count;
+								if(input_address<0x1E000){		//Code
+									sizeM=input_address+hex_count;
 									if(sizeM>sizeW) sizeW=sizeM;
 									for (i=0;i<hex_count;i++){
-										buffer[(ext_addr<<16)+input_address+i]=htoi(line+9+i*2,2);
+										buffer[input_address+i]=htoi(line+9+i*2,2);
 									}
 								}
-								else if(ext_addr==0x1&&input_address>=0xE000&&input_address<0xF000){	//EEPROM
-									sizeM=(input_address-0xE000+hex_count)/2;
+								else if(input_address>=0x1E000&&input_address<0x1F000){	//EEPROM
+									sizeM=(input_address-0x1E000+hex_count)/2;
 									if(sizeM>sizeEE) sizeEE=sizeM;
 									for (i=0;i<hex_count;i+=2){
-										bufferEE[(input_address-0xE000)/2+i/2]=htoi(line+9+i*2,2);
+										bufferEE[(input_address-0x1E000)/2+i/2]=htoi(line+9+i*2,2);
 									}
 								}
 								break;
@@ -467,8 +466,6 @@ int Load(char*dev,char*loadfile){
 			}
 		else memEE=0;
 		PrintMessage(strings[S_CodeMem]);	//"\r\nCode memory:\r\n"
-				s[0]=0;
-		empty=1;
 		int imax=sizeW>0x8000?0x8500:0x2100;
 		DisplayCODE16F(imax);
 		if(sizeW>=0x2100&&sizeW<0x3000){	//EEPROM@0x2100

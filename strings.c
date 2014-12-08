@@ -1,4 +1,4 @@
-// Strings.c v0.9.0
+// Strings.c v0.9.1
 
 //This cannot be executed conditionally on MSVC
 //#include "stdafx.h"
@@ -88,7 +88,6 @@ void COpenProgDlg::strinit()
 void strinit()
 #endif
 {
-//	#ifdef _MSC_VER
 	STR_ID[S_NL]=(char*) "S_NL";
 	STR_ID[S_noprog]=(char*) "S_noprog";
 	STR_ID[S_prog]="S_prog";
@@ -264,8 +263,7 @@ void strinit()
 	STR_ID[S_Empty]="S_Empty";
 	STR_ID[S_NextIns]="S_NextIns";
 	STR_ID[S_ForceConfigW]="S_ForceConfigW";
-	STR_ID[S_ForceConfigW1]="S_ForceConfigW1";
-	STR_ID[S_ForceConfigW2]="S_ForceConfigW2";
+	STR_ID[S_ForceConfigWx]="S_ForceConfigWx";
 	STR_ID[I_Fopen]="I_Fopen";
 	STR_ID[I_Fsave]="I_Fsave";
 	STR_ID[I_DevR]="I_DevR";
@@ -299,15 +297,23 @@ void strinit()
 	STR_ID[I_I2CReceive]="I_I2CReceive";
 	STR_ID[I_TestHW]="I_TestHW";
 	STR_ID[I_TestHWB]="I_TestHWB";
+	STR_ID[I_TestMSG]="I_TestMSG";
 	STR_ID[I_IO_Enable]="I_IO_Enable";
-	STR_ID[I_PIC_CONFIG]="I_PIC_CONFIG";
+	STR_ID[I_SPIMEM]="I_SPIMEM";
+	STR_ID[I_I2CMEM]="I_I2CMEM";
+	STR_ID[I_UWMEM]="I_UWMEM";
+	STR_ID[I_OWMEM]="I_OWMEM";
+	STR_ID[I_OWDEV]="I_OWDEV";
+	STR_ID[I_UNIOMEM]="I_UNIOMEM";
+	STR_ID[I_3V3REQUIRED]="I_3V3REQUIRED";
 	STR_ID[I_PIC_FORCECW]="I_PIC_FORCECW";
-	STR_ID[I_AT_CONFIG]="I_AT_CONFIG";
 	STR_ID[I_AT_FUSE]="I_AT_FUSE";
 	STR_ID[I_AT_FUSEH]="I_AT_FUSEH";
 	STR_ID[I_AT_FUSEX]="I_AT_FUSEX";
 	STR_ID[I_AT_LOCK]="I_AT_LOCK";
 	STR_ID[I_W_LANGFILE]="I_W_LANGFILE";
+	STR_ID[I_AT_FUSELF]="I_AT_FUSELF";
+	STR_ID[I_AT_COMM]="I_AT_COMM";
 	STR_ID[I_WAITS1]="I_WAITS1";
 	STR_ID[I_PRESSS1]="I_PRESSS1";
 	STR_ID[S_WaitS1W]="S_WaitS1W";
@@ -322,6 +328,7 @@ void strinit()
 	STR_ID[I_SHOW_BANK2]="I_SHOW_BANK2";
 	STR_ID[I_SHOW_BANK3]="I_SHOW_BANK3";
 	STR_ID[I_SHOW_EE]="I_SHOW_EE";
+	STR_ID[I_STOP]="I_STOP";
 	STR_ID[I_ICD_RUN]="I_ICD_RUN";
 	STR_ID[I_ICD_HALT]="I_ICD_HALT";
 	STR_ID[I_ICD_STEP]="I_ICD_STEP";
@@ -342,7 +349,6 @@ void strinit()
 	STR_ID[L_NAME]="L_NAME";
 	STR_ID[L_DEV_RO]="L_DEV_RO";
 	STR_ID[L_DEV_RW]="L_DEV_RW";
-//	#endif
 
 	strings_it[S_NL]=NL;
 	strings_it[S_noprog]="Programmatore non rilevato" NL;
@@ -525,9 +531,8 @@ void strinit()
 	strings_it[S_NoConfigW5]="Impossibile trovare la locazione CONFIG (0x8007-0x8008)" NL "Fine" NL;
 	strings_it[S_Empty]="(vuoto)" NL;
 	strings_it[S_NextIns]="Prossima istruzione";
-	strings_it[S_ForceConfigW]="Forzo config word1 (0x%04X) e config word2 (0x%04X)" NL;
-	strings_it[S_ForceConfigW1]="Forzo config word1 (0x%04X)" NL;
-	strings_it[S_ForceConfigW2]="Forzo config word2 (0x%04X)" NL;
+	strings_it[S_ForceConfigW]="Forzo config word" NL;
+	strings_it[S_ForceConfigWx]="Forzo config word%d [0x%04X]=0x%04X" NL;
 					//
 	strings_it[I_Fopen]="Apri file";
 	strings_it[I_Fsave]="Salva file";
@@ -562,14 +567,22 @@ void strinit()
 	strings_it[I_I2CReceive]="Ricevi";
 	strings_it[I_TestHW]="Test hardware: rimuovere eventuali dispositivi dal programmatore";
 	strings_it[I_TestHWB]="Test hardware";
+	strings_it[I_TestMSG]="Verifica sul programmatore il valore delle seguenti tensioni:";
 	strings_it[I_IO_Enable]="Abilita IO";
-	strings_it[I_PIC_CONFIG]="Configurazione PIC";
+	strings_it[I_SPIMEM]="Memoria SPI";
+	strings_it[I_I2CMEM]="Memoria I2C";
+	strings_it[I_UWMEM]="Memoria Microwire";
+	strings_it[I_OWMEM]="Memoria OneWire";
+	strings_it[I_OWDEV]="Dispositivo OneWire";
+	strings_it[I_UNIOMEM]="Memoria UNI/O";
+	strings_it[I_3V3REQUIRED]="adattatore 3,3V";
 	strings_it[I_PIC_FORCECW]="Forza config word";
-	strings_it[I_AT_CONFIG]="Configurazione Atmel";
 	strings_it[I_AT_FUSE]="Scrivi Fuse Low";
 	strings_it[I_AT_FUSEH]="Scrivi Fuse High";
 	strings_it[I_AT_FUSEX]="Scrivi Extended Fuse";
 	strings_it[I_AT_LOCK]="Scrivi Lock";
+	strings_it[I_AT_FUSELF]="Scrivi Fuse Low @3kHz";
+	strings_it[I_AT_COMM]="Comunicazione @ %.0f kbps" NL;
 	strings_it[I_W_LANGFILE]="Scrivi file linguaggio";
 	strings_it[I_WAITS1]="Inizia a scrivere/leggere con S1";
 	strings_it[I_PRESSS1]="Premi S1 per iniziare" NL;
@@ -585,6 +598,7 @@ void strinit()
 	strings_it[I_SHOW_BANK2]="Mostra banco memoria 2";
 	strings_it[I_SHOW_BANK3]="Mostra banco memoria 3";
 	strings_it[I_SHOW_EE]="Mostra EEPROM";
+	strings_it[I_STOP]="Fermato" NL;
 	strings_it[I_ICD_RUN]="Vai/continua";
 	strings_it[I_ICD_HALT]="Ferma";
 	strings_it[I_ICD_STEP]="Passo";
@@ -641,14 +655,14 @@ void strinit()
 		"-command <messaggio>        invia <messaggio> al programmatore ed esci." NL
 		"                            Il messaggio è composto da byte esadecimali separati da uno spazio," NL
 		"                            fino a un massimo di 64; quelli non specificati vengono posti a 0" NL
-		"-cw1 <cw1>                  forza config word 1" NL
-		"-cw2 <cw2>                  forza config word 2" NL
+		"-cwX <cw>                   forza config word X [1-7]" NL
 		"-d, device <disp.>          dispositivo" NL
 		"-ee                         usa eeprom" NL
 		"-err <max>                  imposta massimo errori in scrittura" NL
 		"-fuse <val>                 scrive il byte fuse low (solo Atmel)" NL
 		"-fuseh <val>                scrive il byte fuse high (solo Atmel)" NL
 		"-fusex <val>                scrive il byte extended fuse (solo Atmel)" NL
+		"-fuse3k <val>               scrive il byte fuse low a 3kHz (solo Atmel)" NL
 		"-h, help                    guida" NL
 		"-HWtest                     test hardware" NL
 		"-i, info                    informazioni programmatore" NL
@@ -657,7 +671,7 @@ void strinit()
 		"-i2c_r2 <N Ctr Ind(2)>      leggi N byte dal bus I2C (indirizzi 16b)" NL
 		"-i2c_w <N Ctr Ind Dati>     scrivi N byte sul bus I2C" NL
 		"-i2c_w2 <N Ctr Ind(2) Dati> scrivi N byte sul bus I2C (indirizzi 16b)" NL
-		"-i2cspeed <v>               cambia velocità I2C: 0=100k,1=200k,2=500k,3=800k" NL
+		"-i2cspeed <s>               cambia velocità I2C: 0=100k,1=200k,2=500k,3=800k" NL
 		"-id                         usa ID" NL
 		"-l, log [=file]             salva registro" NL
 		"-lang <lingua>              carica <lingua>" NL
@@ -675,7 +689,7 @@ void strinit()
 		"-se, saveEE <file>          salva EEPROM su file Ihex (solo ATxxxx)" NL
 		"-spi_r <N>                  leggi N byte dal bus SPI" NL
 		"-spi_w <N Dati>             scrivi N byte sul bus SPI" NL
-		"-spispeed <v>               cambia velocità SPI: 0=100k,1=200k,2=300k,3=500k" NL
+		"-spispeed <s>               cambia velocità SPI: 0=100k,1=200k,2=300k,3=500k" NL
 		"-support                    dispositivi supportati" NL
 		"-use_BKosccal               copia BKosccal su osccal" NL
 		"-v, version                 versione" NL
@@ -876,9 +890,8 @@ void strinit()
 	strings_en[S_NoConfigW5]="Can't find CONFIG location (0x8007-0x8008)" NL "End" NL;
 	strings_en[S_Empty]="(empty)" NL;
 	strings_en[S_NextIns]="Next instruction";
-	strings_en[S_ForceConfigW]="Forcing config word1 (0x%04X) and config word2 (0x%04X)" NL;
-	strings_en[S_ForceConfigW1]="Forcing config word1 (0x%04X)" NL;
-	strings_en[S_ForceConfigW2]="Forcing config word2 (0x%04X)" NL;
+	strings_en[S_ForceConfigW]="Forcing config words" NL;
+	strings_en[S_ForceConfigWx]="Forcing config word%d [0x%04X]=0x%04X" NL;
 	//
 	strings_en[I_Fopen]="Open file";
 	strings_en[I_Fsave]="Save file";
@@ -913,14 +926,22 @@ void strinit()
 	strings_en[I_I2CReceive]="Receive";
 	strings_en[I_TestHW]="Hardware test: remove any device from programmer";
 	strings_en[I_TestHWB]="Hardware test";
+	strings_en[I_TestMSG]="Verify on the programmer the value of the following voltages:";
 	strings_en[I_IO_Enable]="Enable IO";
-	strings_en[I_PIC_CONFIG]="PIC configuration";
+	strings_en[I_SPIMEM]="SPI Memory";
+	strings_en[I_I2CMEM]="I2C Memory";
+	strings_en[I_UWMEM]="Microwire Memory";
+	strings_en[I_OWMEM]="OneWire Memory";
+	strings_en[I_OWDEV]="OneWire Device";
+	strings_en[I_UNIOMEM]="UNI/O Memory";
+	strings_en[I_3V3REQUIRED]="3.3V adapter";
 	strings_en[I_PIC_FORCECW]="Force config word";
-	strings_en[I_AT_CONFIG]="Atmel configuration";
 	strings_en[I_AT_FUSE]="Write Fuse Low";
 	strings_en[I_AT_FUSEH]="Write Fuse High";
 	strings_en[I_AT_FUSEX]="Write Extended Fuse";
 	strings_en[I_AT_LOCK]="Write Lock";
+	strings_en[I_AT_FUSELF]="Write Fuse Low @3kHz";
+	strings_en[I_AT_COMM]="Communicating @ %.0f kbps" NL;
 	strings_en[I_W_LANGFILE]="Write language file";
 	strings_en[I_WAITS1]="Wait for S1 before read/write";
 	strings_en[I_PRESSS1]="Press S1 to start" NL;
@@ -936,6 +957,7 @@ void strinit()
 	strings_en[I_SHOW_BANK2]="Show memory bank 2";
 	strings_en[I_SHOW_BANK3]="Show memory bank 3";
 	strings_en[I_SHOW_EE]="show EEPROM";
+	strings_en[I_STOP]="Stopped" NL;
 	strings_en[I_ICD_RUN]="Run/Continue";
 	strings_en[I_ICD_HALT]="Halt";
 	strings_en[I_ICD_STEP]="Step";
@@ -990,14 +1012,14 @@ void strinit()
 		"-command <message>          send <message> to the programmer and exit." NL
 		"                            The message is composed of up to 64 hexadecimal bytes separated by a space;" NL
 		"                            those not specified are 0" NL
-		"-cw1 <cw1>                  force config word 1" NL
-		"-cw2 <cw2>                  force config word 2" NL
+		"-cwX <cw>                   force config word X [1-7]" NL
 		"-d, device <dev.>           device" NL
 		"-ee                         use eeprom" NL
 		"-err <max>                  max errors during writing" NL
 		"-fuse <val>                 write fuse low byte (Atmel only)" NL
 		"-fuseh <val>                write fuse high byte (Atmel only)" NL
 		"-fusex <val>                write extended fuse byte (Atmel only)" NL
+		"-fuse3k <val>               write fuse low byte at 3 kHz (Atmel only)" NL
 		"-h, help                    help" NL
 		"-HWtest                     hardware test" NL
 		"-i, info                    informations about programmer" NL

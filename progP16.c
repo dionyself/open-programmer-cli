@@ -1,6 +1,6 @@
-/*
- * progP16.c - algorithms to program the PIC16 (14 bit word) family of microcontrollers
- * Copyright (C) 2009-2013 Alberto Maccioni
+/**
+ * \file progP16.c - algorithms to program the PIC16 (14 bit word) family of microcontrollers
+ * Copyright (C) 2009-2014 Alberto Maccioni
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,7 +27,6 @@
 	#define _GUI
 	#include "msvc_common.h"
 #else
-	#define _CMD
 	#include "common.h"
 #endif
 
@@ -93,14 +92,20 @@ struct ID16{
 	{0x146>>1,"16F946 rev%d\r\n",0xF},			//01 0100 0110 xxxx
 	{0x148>>1,"16F1847 rev%d\r\n",0x1F},		//01 0100 100x xxxx
 	{0x14A>>1,"16LF1847 rev%d\r\n",0x1F},		//01 0100 101x xxxx
+	{0x150>>1,"12F752 rev%d\r\n",0x1F},			//01 0101 000x xxxx
+	{0x152>>1,"12HV752 rev%d\r\n",0x1F},		//01 0101 001x xxxx
 	{0x158>>1,"16F1526 rev%d\r\n",0x1F},		//01 0101 100x xxxx
 	{0x15A>>1,"16F1527 rev%d\r\n",0x1F},		//01 0101 101x xxxx
 	{0x15C>>1,"16LF1526 rev%d\r\n",0x1F},		//01 0101 110x xxxx
 	{0x15E>>1,"16LF1527 rev%d\r\n",0x1F},		//01 0101 111x xxxx
+	{0x164>>1,"16F1513 rev%d\r\n",0x1F},		//01 0110 010x xxxx
 	{0x168>>1,"16F1516 rev%d\r\n",0x1F},		//01 0110 100x xxxx
 	{0x16A>>1,"16F1517 rev%d\r\n",0x1F},		//01 0110 101x xxxx
 	{0x16C>>1,"16F1518 rev%d\r\n",0x1F},		//01 0110 110x xxxx
 	{0x16E>>1,"16F1519 rev%d\r\n",0x1F},		//01 0110 111x xxxx
+	{0x170>>1,"16F1512 rev%d\r\n",0x1F},		//01 0111 000x xxxx
+	{0x172>>1,"16LF1512 rev%d\r\n",0x1F},		//01 0111 001x xxxx
+	{0x174>>1,"16LF1513 rev%d\r\n",0x1F},		//01 0111 010x xxxx
 	{0x178>>1,"16LF1516 rev%d\r\n",0x1F},		//01 0111 100x xxxx
 	{0x17A>>1,"16LF1517 rev%d\r\n",0x1F},		//01 0111 101x xxxx
 	{0x17C>>1,"16LF1518 rev%d\r\n",0x1F},		//01 0111 110x xxxx
@@ -166,6 +171,10 @@ struct ID16{
 	{0x286>>1,"16LF1825 rev%d\r\n",0x1F},		//10 1000 011x xxxx
 	{0x288>>1,"16LF1826 rev%d\r\n",0x1F},		//10 1000 100x xxxx
 	{0x28A>>1,"16LF1827 rev%d\r\n",0x1F},		//10 1000 101x xxxx
+	{0x298>>1,"10F322 rev%d\r\n",0x1F},			//10 1001 100x xxxx
+	{0x29A>>1,"10F320 rev%d\r\n",0x1F},			//10 1001 101x xxxx
+	{0x29C>>1,"10LF322 rev%d\r\n",0x1F},		//10 1001 110x xxxx
+	{0x29E>>1,"10LF320 rev%d\r\n",0x1F},		//10 1001 111x xxxx
 	{0x2A0>>1,"16F1782 rev%d\r\n",0x1F},		//10 1010 000x xxxx
 	{0x2A2>>1,"16F1783 rev%d\r\n",0x1F},		//10 1010 001x xxxx
 	{0x2A4>>1,"16F1784 rev%d\r\n",0x1F},		//10 1010 010x xxxx
@@ -191,18 +200,66 @@ struct ID16{
 	{0x2DC>>1,"16LF1507 rev%d\r\n",0x1F},		//10 1101 110x xxxx
 	{0x2DE>>1,"16LF1508 rev%d\r\n",0x1F},		//10 1101 111x xxxx
 	{0x2E0>>1,"16LF1509 rev%d\r\n",0x1F},		//10 1110 000x xxxx
+	{0x2F0>>1,"16LF1554 rev%d\r\n",0x1F},		//10 1111 000x xxxx
+	{0x2F2>>1,"16LF1559 rev%d\r\n",0x1F},		//10 1111 001x xxxx
+	{0x3000,"16F1574\r\n",0},
+	{0x3001,"16F1575\r\n",0},
+	{0x3002,"16F1578\r\n",0},
+	{0x3003,"16F1579\r\n",0},
+	{0x3004,"16LF1574\r\n",0},
+	{0x3005,"16LF1575\r\n",0},
+	{0x3006,"16LF1578\r\n",0},
+	{0x3007,"16LF1579\r\n",0},
 	{0x3020,"16F1454\r\n",0},
 	{0x3021,"16F1455\r\n",0},
 	{0x3023,"16F1459\r\n",0},
 	{0x3024,"16LF1454\r\n",0},
 	{0x3025,"16LF1455\r\n",0},
 	{0x3027,"16LF1459\r\n",0},
+	{0x302A,"16F1789\r\n",0},
+	{0x302B,"16F1788\r\n",0},
+	{0x302C,"16LF1789\r\n",0},
+	{0x302D,"16LF1788\r\n",0},
 	{0x3030,"16F753\r\n",0},
 	{0x3031,"16HV753\r\n",0},
+	{0x3042,"16F1708\r\n",0},
+	{0x3043,"16F1704\r\n",0},
+	{0x3044,"16LF1708\r\n",0},
+	{0x3045,"16LF1704\r\n",0},
+	{0x3048,"16F1716\r\n",0},
+	{0x3049,"16F1713\r\n",0},
+	{0x304A,"16LF1716\r\n",0},
+	{0x304B,"16LF1713\r\n",0},
+	{0x304C,"16F1613\r\n",0},
+	{0x304D,"16LF1613\r\n",0},
 	{0x3050,"12F1572\r\n",0},
 	{0x3051,"12F1571\r\n",0},
 	{0x3052,"12LF1572\r\n",0},
 	{0x3053,"12LF1571\r\n",0},
+	{0x3054,"16F1709\r\n",0},
+	{0x3055,"16F1705\r\n",0},
+	{0x3056,"16LF1709\r\n",0},
+	{0x3057,"16LF1705\r\n",0},
+	{0x3058,"12F1612\r\n",0},
+	{0x3059,"12LF1612\r\n",0},
+	{0x305A,"16F1719\r\n",0},
+	{0x305B,"16F1718\r\n",0},
+	{0x305C,"16F1717\r\n",0},
+	{0x305D,"16LF1719\r\n",0},
+	{0x305E,"16LF1718\r\n",0},
+	{0x305F,"16LF1717\r\n",0},
+	{0x3060,"16F1707\r\n",0},
+	{0x3061,"16F1703\r\n",0},
+	{0x3062,"16LF1707\r\n",0},
+	{0x3063,"16LF1703\r\n",0},
+	{0x3078,"16F1614\r\n",0},
+	{0x3079,"16F1618\r\n",0},
+	{0x307A,"16LF1614\r\n",0},
+	{0x307B,"16LF1618\r\n",0},
+	{0x307C,"16F1615\r\n",0},
+	{0x307D,"16F1619\r\n",0},
+	{0x307E,"16LF1615\r\n",0},
+	{0x307F,"16LF1619\r\n",0},
 };
 
 #ifdef _MSC_VER
@@ -238,7 +295,7 @@ void DisplayCODE16F(int size){
 	char s[256]="",t[256]="";
 	char* aux=(char*)malloc((size/COL+1)*(16+COL*5));
 	aux[0]=0;
-	int valid=0,empty=1,i,j;
+	int valid=0,empty=1,i,j,lines=0;
 	for(i=0;i<size&&i<sizeW;i+=COL){
 		valid=0;
 		for(j=i;j<i+COL&&j<sizeW&&i<size;j++){
@@ -250,6 +307,12 @@ void DisplayCODE16F(int size){
 			sprintf(t,"%04X: %s\r\n",i,s);
 			empty=0;
 			strcat(aux,t);
+			lines++;
+			if(lines>500){	//limit number of lines printed
+				strcat(aux,"(...)\r\n");
+				i=(sizeW<size?sizeW:size)-COL*2;
+				lines=490;
+			}
 		}
 		s[0]=0;
 	}
@@ -574,18 +637,22 @@ void COpenProgDlg::Read16F1xxx(int dim,int dim2,int dim3,int options){
 void Read16F1xxx(int dim,int dim2,int dim3,int options){
 #endif
 // read 14 bit enhanced PIC
-// dim=program size 	dim2=eeprom size   dim3=config size
+// dim=program size
+// dim2=eeprom size
+// dim3=config size
 // options:
 //		bit0=0 -> vpp before vdd
 //		bit0=1 -> vdd before vpp
 //		bit1=1 -> LVP programming
+//		bit2=1 -> Config3@0x8009
 // DevREV@0x8005
 // DevID@0x8006
 // Config1@0x8007
 // Config2@0x8008
-// Calib1@0x8009
-// Calib2@0x800A
-// Calib3@0x800B
+// Config3@0x8009
+// Calib1@0x8009/A
+// Calib2@0x800A/B
+// Calib3@0x800B/C
 // eeprom@0x0
 	int k=0,k2=0,z=0,i,j;
 	if(!CheckV33Regulator()){
@@ -728,7 +795,7 @@ void Read16F1xxx(int dim,int dim2,int dim3,int options){
 					z+=2;
 				}
 			}
-			PrintStatus(strings[S_CodeReading],(i-0x8000+dim)*100/(dim+dim2+dim3),i);	//"Read: %d%%, ind. %03X"
+			PrintStatus(strings[S_CodeReading],(i-0x8000+dim)*100/(dim+dim2+dim3),i);	//"Read: %d%%, addr %03X"
 			j=1;
 			if(saveLog){
 				fprintf(logfile,strings[S_Log7],i,i,k2,k2);	//"i=%d(0x%X), k=%d(0x%X)\n"
@@ -762,7 +829,7 @@ void Read16F1xxx(int dim,int dim2,int dim3,int options){
 						z++;
 					}
 				}
-				PrintStatus(strings[S_CodeReading],i*100/(dim+dim2+dim3),i);	//"Read: %d%%, ind. %03X"
+				PrintStatus(strings[S_CodeReading],i*100/(dim+dim2+dim3),i);	//"Read: %d%%, addr %03X"
 				j=1;
 				if(saveLog){
 					fprintf(logfile,strings[S_Log7],i,i,k,k);	//"i=%d(0x%X), k=%d(0x%X)\n"
@@ -801,12 +868,20 @@ void Read16F1xxx(int dim,int dim2,int dim3,int options){
 	PIC16_ID(memCODE_W[0x8006]);
 	PrintMessage2(strings[S_ConfigWordX],1,memCODE_W[0x8007]);	//"Configuration word %d: 0x%04X\r\n"
 	PrintMessage2(strings[S_ConfigWordX],2,memCODE_W[0x8008]);	//"Configuration word %d: 0x%04X\r\n"
+	if((options&4)==0){	//2 config + 2/3 calib words
 	PrintMessage2(strings[S_CalibWordX],1,memCODE_W[0x8009]);	//"Calibration word %d: 0x%04X\r\n"
 	PrintMessage2(strings[S_CalibWordX],2,memCODE_W[0x800A]);	//"Calibration word %d: 0x%04X\r\n"
 	if(memCODE_W[0x800B]<0x3FFF) PrintMessage2(strings[S_CalibWordX],3,memCODE_W[0x800B]);	//"Calibration word %d: 0x%04X\r\n"
+	}
+	else{	//3 config + 3 calib words
+		PrintMessage2(strings[S_ConfigWordX],3,memCODE_W[0x8009]);	//"Configuration word %d: 0x%04X\r\n"
+		PrintMessage2(strings[S_CalibWordX],1,memCODE_W[0x800A]);	//"Calibration word %d: 0x%04X\r\n"
+		PrintMessage2(strings[S_CalibWordX],2,memCODE_W[0x800B]);	//"Calibration word %d: 0x%04X\r\n"
+		PrintMessage2(strings[S_CalibWordX],3,memCODE_W[0x800C]);	//"Calibration word %d: 0x%04X\r\n"
+	}
 	PrintMessage(strings[S_CodeMem2]);	//"\r\nCode memory:\r\n"
 	DisplayCODE16F(dim);
-	if(dim3>11){
+	if(dim3>15){
 	int valid=0,empty=1;
 	s[0]=0;
 		aux=(char*)malloc(dim3/COL*(16+COL*5));
@@ -1992,7 +2067,7 @@ void Write12F62x(int dim,int dim2)
 // write 14 bit PIC
 // dim=program size 	dim2=eeprom size
 // vpp before vdd
-// salva OSCCAL a dim-1
+// save OSCCAL @ dim-1
 // CONFIG@0x2007 includes 2  calibration bits
 // DevID@0x2006
 // eeprom@0x2100
@@ -3241,7 +3316,7 @@ void Write16F81x (int dim,int dim2)
 			bufferU[j++]=FLUSH;
 			for(;j<DIMBUF;j++) bufferU[j]=0x0;
 			write();
-			msDelay(w*2.5+2);
+			msDelay(w*2.5+3);
 			w=0;
 			read();
 			for(z=1;z<DIMBUF-6;z++){
@@ -3634,7 +3709,7 @@ void Write12F61x(int dim, int d, int d2)
 			bufferU[j++]=FLUSH;
 			for(;j<DIMBUF;j++) bufferU[j]=0x0;
 			write();
-			msDelay(w*5+2);
+			msDelay(w*5+2.5);
 			w=0;
 			read();
 			for(z=1;z<DIMBUF-7;z++){
@@ -4994,18 +5069,21 @@ void COpenProgDlg::Write16F1xxx(int dim,int dim2,int options)
 void Write16F1xxx(int dim,int dim2,int options)
 #endif
 // write 14 bit enhanced PIC
-// dim=program size 	dim2=eeprom size
+// dim=program size
+// dim2=eeprom size
 // options:
 //		bit0=0 -> vpp before vdd
 //		bit0=1 -> vdd before vpp
 //		bit1=1 -> LVP programming
+//		bit2=1 -> Config3@0x8009
 // DevREV@0x8005
 // DevID@0x8006
 // Config1@0x8007
 // Config2@0x8008
-// Calib1@0x8009
-// Calib2@0x800A
-// Calib3@0x800B
+// Config3@0x8009
+// Calib1@0x8009/A
+// Calib2@0x800A/B
+// Calib3@0x800B/C
 // eeprom@0x0
 // erase: BULK_ERASE_PROG (1001) +5ms
 // write:LOAD_DATA_PROG (0010) + BEGIN_PROG (1000) + 2.5ms (8 word algorithm)
@@ -5014,7 +5092,7 @@ void Write16F1xxx(int dim,int dim2,int options)
 //			LOAD_DATA_DATA (0011) + BEGIN_PROG (1000) + 2.5ms
 // verify after write
 {
-	int err=0,load_calibword=0;
+	int err=0;
 	WORD devID=0x3fff,devREV=0x3fff,calib1=0x3fff,calib2=0x3fff,calib3=0x3fff;
 	int k=0,k2=0,z=0,i,j,w;
 	if(!CheckV33Regulator()){
@@ -5026,9 +5104,10 @@ void Write16F1xxx(int dim,int dim2,int options)
 		PrintMessage(strings[S_End]);
 		return;
 	}
-	if(load_calibword){
-		if(sizeW>0x800A) load_calibword=1;
-		else PrintMessage(strings[S_NoCalibW]);	//"Can't find calibration data\r\n"
+	if((options&4)&&sizeW<0x800A){		//Config3 defaults to 0x3FFF
+		sizeW=0x800A;
+		memCODE_W=(WORD*)realloc(memCODE_W,sizeof(WORD)*sizeW);
+		memCODE_W[0x8009]=0x3FFF;
 	}
 	if(saveLog){
 		OpenLogFile();	//"Log.txt"
@@ -5042,7 +5121,7 @@ void Write16F1xxx(int dim,int dim2,int options)
 		}
 	}
 	else StartHVReg(-1);			//LVP mode, turn off HV
-	for(i=0;i<0x800B&&i<sizeW;i++) memCODE_W[i]&=0x3FFF;
+	for(i=0;i<0x800C&&i<sizeW;i++) memCODE_W[i]&=0x3FFF;
 	unsigned int start=GetTickCount();
 	bufferU[0]=0;
 	j=1;
@@ -5097,6 +5176,7 @@ void Write16F1xxx(int dim,int dim2,int options)
 	bufferU[j++]=INC_ADDR;
 	bufferU[j++]=INC_ADDR;
 	bufferU[j++]=INC_ADDR;
+	if(options&4) bufferU[j++]=INC_ADDR;
 	bufferU[j++]=READ_DATA_PROG;	//Calib1
 	bufferU[j++]=INC_ADDR;
 	bufferU[j++]=READ_DATA_PROG;	//Calib2
@@ -5393,10 +5473,19 @@ void Write16F1xxx(int dim,int dim2,int options)
 		bufferU[j++]=WAIT_T3;				//Tprogram 5ms
 		bufferU[j++]=READ_DATA_PROG;
 		bufferU[j++]=INC_ADDR;
+		if(options&4){
+			bufferU[j++]=LOAD_DATA_PROG;			//Config word 3
+			bufferU[j++]=memCODE_W[0x8009]>>8;		//MSB
+			bufferU[j++]=memCODE_W[0x8009]&0xff;		//LSB
+			bufferU[j++]=BEGIN_PROG;			//internally timed
+			bufferU[j++]=WAIT_T3;				//Tprogram 5ms
+			bufferU[j++]=READ_DATA_PROG;
+			bufferU[j++]=INC_ADDR;
+		}
 		bufferU[j++]=FLUSH;
 		for(;j<DIMBUF;j++) bufferU[j]=0x0;
 		write();
-		msDelay(12);
+		msDelay(18);
 		if(programID) msDelay(22);
 		read();
 		for(i=0,z=0;programID&&i<4;i++){
@@ -5419,6 +5508,14 @@ void Write16F1xxx(int dim,int dim2,int options)
 			PrintMessage("\r\n");
 			PrintMessage2(strings[S_ConfigWErr3],memCODE_W[0x8008],(bufferI[z+1]<<8)+bufferI[z+2]);	//"Error writing config area: written %04X, read %04X\r\n"
 			err_c++;
+		}
+		if(options&4){
+			for(z+=6;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
+			if(~memCODE_W[0x8009]&((bufferI[z+1]<<8)+bufferI[z+2])){	//error if written 0 and read 1 (~W&R)
+				PrintMessage("\r\n");
+				PrintMessage2(strings[S_ConfigWErr3],memCODE_W[0x8009],(bufferI[z+1]<<8)+bufferI[z+2]);	//"Error writing config area: written %04X, read %04X\r\n"
+				err_c++;
+			}
 		}
 		err+=err_c;
 		PrintMessage1(strings[S_ComplErr],err_c);	//"completed, %d errors\r\n"

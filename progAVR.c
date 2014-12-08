@@ -1,6 +1,6 @@
 /*
  * progAVR.c - algorithms to program the Atmel AVR family of microcontrollers
- * Copyright (C) 2009-2013 Alberto Maccioni
+ * Copyright (C) 2009-2014 Alberto Maccioni
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -46,7 +46,7 @@ struct AVRID{
 	//1K
 	{0x9001,"AT90S1200"},
 	{0x9004,"ATtiny11"},
-	{0x9004,"ATtiny12"},
+	{0x9005,"ATtiny12"},
 	{0x9007,"ATtiny13"},
 	//2K
 	{0x9101,"AT90S2313"},
@@ -149,11 +149,11 @@ void DisplayCODEAVR(int dim){
 #endif
 // display AVR CODE memory
 	char s[256]="",t[256]="";
-	int valid=0,empty=1,i,j;
+	int valid=0,empty=1,i,j,lines=0;
 	char* aux=(char*)malloc((dim/COL+1)*(16+COL*6));
 	aux[0]=0;
 	s[0]=0;
-	for(i=0;i<dim;i+=COL*2){
+	for(i=0;i<dim&&i<size;i+=COL*2){
 		valid=0;
 		for(j=i;j<i+COL*2&&j<dim;j++){
 			sprintf(t,"%02X ",memCODE[j]);
@@ -164,6 +164,12 @@ void DisplayCODEAVR(int dim){
 			sprintf(t,"%04X: %s\r\n",i,s);
 			strcat(aux,t);
 			empty=0;
+			lines++;
+			if(lines>500){	//limit number of lines printed
+				strcat(aux,"(...)\r\n");
+				i=(dim<size?dim:size)-COL*4;
+				lines=490;
+			}
 		}
 		s[0]=0;
 	}
@@ -171,6 +177,166 @@ void DisplayCODEAVR(int dim){
 	else PrintMessage(aux);
 	free(aux);
 }
+
+//Software SPI for very slow speed
+//RB1=CLK, RB0=MISO, RC7=MOSI, RC6=RESET
+//speed in bit/s  min 10
+#ifdef _MSC_VER
+int COpenProgDlg::SWSPI(int data, int speed){
+#else
+int SWSPI(int data, int speed){
+#endif
+	int i,j,din=0;
+	double Tbit=1.0/speed*1e6;		//Tbit in us
+	if(saveLog)	fprintf(logfile,"SWSPI(0x%X,%d)\n",data,speed);
+	j=1;
+	bufferU[j++]=SET_PARAMETER;
+	bufferU[j++]=SET_T3;
+	bufferU[j++]=(int)(Tbit/2)>>8;
+	bufferU[j++]=(int)(Tbit/2)&0xff;
+	bufferU[j++]=SET_PORT_DIR;
+	bufferU[j++]=0xF5;	//TRISB
+	bufferU[j++]=0x3F;	//TRISA-C  (RC7:RC6:RA5:RA4:RA3:X:X:X)
+	for(i=0;i<4;i++){	//first nibble
+		bufferU[j++]=EXT_PORT;
+		bufferU[j++]=0;			//PORTB CLK=0
+		bufferU[j++]=data&0x80;	//PORTA-C
+		bufferU[j++]=WAIT_T3;	//half bit delay
+		bufferU[j++]=EXT_PORT;
+		bufferU[j++]=2;			//PORTB CLK=1
+		bufferU[j++]=data&0x80;	//PORTA-C
+		bufferU[j++]=READ_B;
+		bufferU[j++]=WAIT_T3;	//half bit delay
+		data<<=1;
+	}
+	bufferU[j++]=FLUSH;
+	for(;j<DIMBUF;j++) bufferU[j]=0x0;
+	PacketIO(1+4*(Tbit/1000.0+0.5));
+	for(j=1;j<DIMBUF-1&&bufferI[j]!=READ_B;j++);
+	din+=bufferI[j+1]&1;
+	din<<=1;
+	for(j+=2;j<DIMBUF-1&&bufferI[j]!=READ_B;j++);
+	din+=bufferI[j+1]&1;
+	din<<=1;
+	for(j+=2;j<DIMBUF-1&&bufferI[j]!=READ_B;j++);
+	din+=bufferI[j+1]&1;
+	din<<=1;
+	for(j+=2;j<DIMBUF-1&&bufferI[j]!=READ_B;j++);
+	din+=bufferI[j+1]&1;
+	din<<=1;
+	j=1;
+	for(i=0;i<4;i++){	//second nibble
+		bufferU[j++]=EXT_PORT;
+		bufferU[j++]=0;			//PORTB CLK=0
+		bufferU[j++]=data&0x80;	//PORTA-C
+		bufferU[j++]=WAIT_T3;	//half bit delay
+		bufferU[j++]=EXT_PORT;
+		bufferU[j++]=2;			//PORTB CLK=1
+		bufferU[j++]=data&0x80;	//PORTA-C
+		bufferU[j++]=READ_B;
+		bufferU[j++]=WAIT_T3;	//half bit delay
+		data<<=1;
+	}
+	bufferU[j++]=EXT_PORT;
+	bufferU[j++]=0;			//PORTB CLK=0
+	bufferU[j++]=0;			//PORTA-C
+	bufferU[j++]=FLUSH;
+	for(;j<DIMBUF;j++) bufferU[j]=0x0;
+	PacketIO(1+4*(Tbit/1000.0+0.5));
+	for(j=1;j<DIMBUF-1&&bufferI[j]!=READ_B;j++);
+	din+=bufferI[j+1]&1;
+	din<<=1;
+	for(j+=2;j<DIMBUF-1&&bufferI[j]!=READ_B;j++);
+	din+=bufferI[j+1]&1;
+	din<<=1;
+	for(j+=2;j<DIMBUF-1&&bufferI[j]!=READ_B;j++);
+	din+=bufferI[j+1]&1;
+	din<<=1;
+	for(j+=2;j<DIMBUF-1&&bufferI[j]!=READ_B;j++);
+	din+=bufferI[j+1]&1;
+	if(saveLog)	fprintf(logfile,"Read 0x%X\n",din);
+	return din;
+}
+
+//Write fuse at low speed
+//speed in bit/s  min 10
+#ifdef _MSC_VER
+void COpenProgDlg::WriteATfuseSlow(int fuse){
+#else
+void WriteATfuseSlow(int fuse){
+#endif
+#define SPEED 3000
+	int j,d;
+	fuse&=0xFF;
+	if(FWVersion<0x900){
+		PrintMessage1(strings[S_FWver2old],"0.9.0");	//"This firmware is too old. Version %s is required\r\n"
+		return;
+	}
+	if(saveLog){
+		OpenLogFile();	//"Log.txt"
+		fprintf(logfile,"WriteATfuseSlow(0x%X)\n",fuse);
+	}
+	PrintMessage(strings[S_FuseAreaW]);	//"Write Fuse ... "
+	j=1;
+	bufferU[j++]=VREG_DIS;		//Disable HV reg
+	bufferU[j++]=EN_VPP_VCC;	//VDD
+	bufferU[j++]=0x0;
+	bufferU[j++]=EXT_PORT;
+	bufferU[j++]=0;
+	bufferU[j++]=0;
+	bufferU[j++]=SET_PORT_DIR;
+	bufferU[j++]=0xF5;	//TRISB
+	bufferU[j++]=0x3F;	//TRISA-C  (RC7:RC6:RA5:RA4:RA3:X:X:X)
+	bufferU[j++]=EN_VPP_VCC;	//VDD
+	bufferU[j++]=0x1;
+	bufferU[j++]=WAIT_T3;
+	bufferU[j++]=CLOCK_GEN;
+	bufferU[j++]=1;				//0=100k,200k,500k,1M,2M,3M
+	bufferU[j++]=FLUSH;
+	for(;j<DIMBUF;j++) bufferU[j]=0x0;
+	PacketIO(5);
+	msDelay(20);	//min 20ms from VDD
+	SWSPI(0xAC,SPEED);
+	SWSPI(0x53,SPEED);
+	d=SWSPI(0,SPEED);
+	SWSPI(0,SPEED);
+	if(d!=0x53){	//does not respond
+		j=1;
+		bufferU[j++]=EN_VPP_VCC;	//VDD
+		bufferU[j++]=0x0;
+		bufferU[j++]=EXT_PORT;
+		bufferU[j++]=0;
+		bufferU[j++]=0;
+		bufferU[j++]=FLUSH;
+		for(;j<DIMBUF;j++) bufferU[j]=0x0;
+		PacketIO(1);
+		PrintMessage(strings[S_SyncErr]);	//"Synchronization error\r\n"
+		if(saveLog) CloseLogFile();
+		return;
+	}
+	SWSPI(0xAC,SPEED);		//Write fuse
+	SWSPI(0xA0,SPEED);
+	SWSPI(0x00,SPEED);
+	SWSPI(fuse,SPEED);
+	msDelay(9);
+	SWSPI(0x50,SPEED);		//Read fuse
+	SWSPI(0x00,SPEED);
+	SWSPI(0x00,SPEED);
+	d=SWSPI(0,SPEED);
+	if(d!=fuse){
+		PrintMessage3(strings[S_ConfigWErr4],"fuse",fuse,d);	//"Error writing %s: written %02X, read %02X" NL;
+	}
+	j=1;
+	bufferU[j++]=CLOCK_GEN;
+	bufferU[j++]=0xFF;
+	bufferU[j++]=EN_VPP_VCC;		//VDD
+	bufferU[j++]=0;
+	bufferU[j++]=FLUSH;
+	for(;j<DIMBUF;j++) bufferU[j]=0x0;
+	PacketIO(1);
+	PrintMessage(strings[S_Compl]);	//"completed\r\n"
+}
+
 
 #ifdef _MSC_VER
 void COpenProgDlg::ReadAT(int dim, int dim2, int options)
@@ -180,9 +346,9 @@ void ReadAT(int dim, int dim2, int options)
 // read ATMEL AVR
 // dim=FLASH size in bytes, dim2=EEPROM size
 // options: LOCK,FUSE,FUSE_H,FUSE_X,CAL
-//			SLOW = slow communication
 {
 	int k=0,k2=0,z=0,i,j;
+	double Tbyte;	//byte delay in ms
 	BYTE signature[]={0,0,0};
 	if(dim>0x20000||dim<0){
 		PrintMessage(strings[S_CodeLim]);	//"Code size out of limits\r\n"
@@ -209,63 +375,140 @@ void ReadAT(int dim, int dim2, int options)
 	j=1;
 	bufferU[j++]=SET_PARAMETER;
 	bufferU[j++]=SET_T3;
-	bufferU[j++]=20000>>8;
-	bufferU[j++]=20000&0xff;
+	bufferU[j++]=2000>>8;
+	bufferU[j++]=2000&0xff;
 	bufferU[j++]=VREG_DIS;		//Disable HV reg
 	bufferU[j++]=EN_VPP_VCC;	//VDD
 	bufferU[j++]=0x0;
 	bufferU[j++]=SPI_INIT;
-	bufferU[j++]=options&SLOW?0:1;				//0=100k, 1=200k
-	bufferU[j++]=CLOCK_GEN;
-	bufferU[j++]=3;				//0=100k,200k,500k,1M,2M
-	bufferU[j++]=CLOCK_GEN;
+	bufferU[j++]=2;				//0~=100k, 1~=200k, 2~=300k but really is 200k
+	bufferU[j++]=FLUSH;
+	for(;j<DIMBUF;j++) bufferU[j]=0x0;
+	PacketIO(1);
+	for(i=1;i<256;i++){		//increase T more than linearly; Tmin=1
+		if(i>10) i++;
+		if(i>20) i+=2;
+		if(i>40) i+=4;
+		if(i>80) i+=4;
+		if(i>160) i+=8;
+		Tbyte=(20+i*4)/1000.0;  //from firmware simulation
+		j=1;
+		bufferU[j++]=CLOCK_GEN;	//reset with clock at 0
 	bufferU[j++]=0xFF;
+		bufferU[j++]=EN_VPP_VCC;	//VDD=0
+		bufferU[j++]=0x0;
 	bufferU[j++]=EXT_PORT;
 	bufferU[j++]=0;
 	bufferU[j++]=0;
-	bufferU[j++]=WAIT_T3;		//20ms
+		bufferU[j++]=WAIT_T3;
 	bufferU[j++]=EN_VPP_VCC;	//VDD
 	bufferU[j++]=0x1;
-	bufferU[j++]=WAIT_T3;		//20ms
-	bufferU[j++]=FLUSH;
-	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(50);
-	read();
-	if(saveLog)WriteLogIO();
-	for(i=0;i<32;i++){
-		j=1;
-		bufferU[j++]=CLOCK_GEN;
-		bufferU[j++]=0xFF;
+		bufferU[j++]=WAIT_T3;
+		bufferU[j++]=SET_PARAMETER;
+		bufferU[j++]=SET_T1T2;
+		bufferU[j++]=i;			//force T
+		bufferU[j++]=0;
 		bufferU[j++]=EXT_PORT;
 		bufferU[j++]=0;
 		bufferU[j++]=RST;
-		bufferU[j++]=EN_VPP_VCC;		//VDD+VPP (for 14 pin and 8pin devices)
-		bufferU[j++]=0x5;
+		bufferU[j++]=WAIT_T3;
 		bufferU[j++]=EXT_PORT;
 		bufferU[j++]=0;
 		bufferU[j++]=0;
-		bufferU[j++]=EN_VPP_VCC;		//VDD
-		bufferU[j++]=0x1;
 		bufferU[j++]=CLOCK_GEN;
-		bufferU[j++]=4;
-		bufferU[j++]=WAIT_T3;		//20ms
+		bufferU[j++]=5;				//0=100k,200k,500k,1M,2M,3M
+		bufferU[j++]=FLUSH;
+		for(;j<DIMBUF;j++) bufferU[j]=0x0;
+		PacketIO(9);
+		msDelay(20); 	//min 20ms from reset
+		j=1;
 		bufferU[j++]=SPI_WRITE;		//Programming enable
 		bufferU[j++]=2;
 		bufferU[j++]=0xAC;
 		bufferU[j++]=0x53;
 		bufferU[j++]=SPI_READ;
 		bufferU[j++]=2;
+		bufferU[j++]=SPI_WRITE;		//just to test communication
+		bufferU[j++]=11;
+		bufferU[j++]=0x55;
+		bufferU[j++]=0x00;
+		bufferU[j++]=0xAA;
+		bufferU[j++]=0x00;
+		bufferU[j++]=0x55;
+		bufferU[j++]=0x00;
+		bufferU[j++]=0xAA;
+		bufferU[j++]=0x00;
+		bufferU[j++]=0x30;
+		bufferU[j++]=0x00;
+		bufferU[j++]=0x00;
+		bufferU[j++]=SPI_READ;
+		bufferU[j++]=1;
+		bufferU[j++]=SPI_WRITE;
+		bufferU[j++]=3;
+		bufferU[j++]=0x30;
+		bufferU[j++]=0x00;
+		bufferU[j++]=0x00;
+		bufferU[j++]=SPI_READ;
+		bufferU[j++]=1;
+		bufferU[j++]=SPI_WRITE;
+		bufferU[j++]=3;
+		bufferU[j++]=0x30;
+		bufferU[j++]=0x00;
+		bufferU[j++]=0x00;
+		bufferU[j++]=SPI_READ;
+		bufferU[j++]=1;
+		bufferU[j++]=SPI_WRITE;
+		bufferU[j++]=3;
+		bufferU[j++]=0x30;
+		bufferU[j++]=0x00;
+		bufferU[j++]=0x00;
+		bufferU[j++]=SPI_READ;
+		bufferU[j++]=1;
+		bufferU[j++]=SPI_WRITE;
+		bufferU[j++]=3;
+		bufferU[j++]=0x30;
+		bufferU[j++]=0x00;
+		bufferU[j++]=0x00;
+		bufferU[j++]=SPI_READ;
+		bufferU[j++]=1;
+		bufferU[j++]=SPI_WRITE;		//Programming enable
+		bufferU[j++]=2;
+		bufferU[j++]=0xAC;
+		bufferU[j++]=0x53;
+		bufferU[j++]=SPI_READ;
+		bufferU[j++]=2;
+		bufferU[j++]=SPI_WRITE;
+		bufferU[j++]=3;
+		bufferU[j++]=0x30;
+		bufferU[j++]=0x00;
+		bufferU[j++]=0x00;
+		bufferU[j++]=SPI_READ;
+		bufferU[j++]=1;
 		bufferU[j++]=FLUSH;
 		for(;j<DIMBUF;j++) bufferU[j]=0x0;
-		write();
-		msDelay(25);
-		read();
-		if(saveLog)WriteLogIO();
+		PacketIO(1.5+32*Tbyte*1.1);
+		int d0,d1,d2,d3,d4,d5,d6,d7;
 		for(z=1;z<DIMBUF-2&&bufferI[z]!=SPI_READ;z++);
-		if(bufferI[z+2]==0x53) i=32;
+		//if(bufferI[z+2]==0x53) break;
+		d0=bufferI[z+2];
+		for(z+=bufferI[z+1]+1;z<DIMBUF-2&&bufferI[z]!=SPI_READ;z++);
+		d1=bufferI[z+2];
+		for(z+=bufferI[z+1]+1;z<DIMBUF-2&&bufferI[z]!=SPI_READ;z++);
+		d2=bufferI[z+2];
+		for(z+=bufferI[z+1]+1;z<DIMBUF-2&&bufferI[z]!=SPI_READ;z++);
+		d3=bufferI[z+2];
+		for(z+=bufferI[z+1]+1;z<DIMBUF-2&&bufferI[z]!=SPI_READ;z++);
+		d4=bufferI[z+2];
+		for(z+=bufferI[z+1]+1;z<DIMBUF-2&&bufferI[z]!=SPI_READ;z++);
+		d5=bufferI[z+2];
+		for(z+=bufferI[z+1]+1;z<DIMBUF-2&&bufferI[z]!=SPI_READ;z++);
+		d6=bufferI[z+2];
+		for(z+=bufferI[z+1]+1;z<DIMBUF-2&&bufferI[z]!=SPI_READ;z++);
+		d7=bufferI[z+2];
+		//vrify that received data is correct
+		if(d0==0x53&&d6==0x53&&d1==d2&&d1==d3&&d1==d4&&d1==d5&&d1==d7) break;
 	}
-	if(i<33){
+	if(i>256){
 		j=1;
 		bufferU[j++]=EN_VPP_VCC;	//VDD
 		bufferU[j++]=0x0;
@@ -278,15 +521,22 @@ void ReadAT(int dim, int dim2, int options)
 		bufferU[j++]=0;
 		bufferU[j++]=FLUSH;
 		for(;j<DIMBUF;j++) bufferU[j]=0x0;
-		write();
-		msDelay(3);
-		read();
-		if(saveLog)WriteLogIO();
+		PacketIO(3);
 		PrintMessage(strings[S_SyncErr]);	//"Synchronization error\r\n"
 		if(saveLog) CloseLogFile();
 		return;
 	}
+	//Add some margin
+	i++;
+	i+=i/10;
+	if(i>255) i=255;
+	Tbyte=(20+i*4)/1000.0;  //from firmware simulation
+	PrintMessage1(strings_it[I_AT_COMM],8/Tbyte);	//"Communicating @ %.0f kbps\r\n"
 	j=1;
+	bufferU[j++]=SET_PARAMETER;
+	bufferU[j++]=SET_T1T2;
+	bufferU[j++]=i;			//force T
+	bufferU[j++]=0;
 	bufferU[j++]=SPI_WRITE;		//Read signature bytes
 	bufferU[j++]=3;
 	bufferU[j++]=0x30;
@@ -346,10 +596,7 @@ void ReadAT(int dim, int dim2, int options)
 	}
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(8);
-	read();
-	if(saveLog)WriteLogIO();
+	PacketIO(1.5+7*4.5*Tbyte);
 	for(z=1;z<DIMBUF-2&&bufferI[z]!=SPI_READ;z++);
 	signature[0]=bufferI[z+2];
 	for(z+=3;z<DIMBUF-2&&bufferI[z]!=SPI_READ;z++);
@@ -406,10 +653,7 @@ void ReadAT(int dim, int dim2, int options)
 		bufferU[j++]=1;
 		bufferU[j++]=FLUSH;
 		for(;j<DIMBUF;j++) bufferU[j]=0x0;
-		write();
-		msDelay(4);
-		read();
-		if(saveLog)WriteLogIO();
+		PacketIO(1.5+4.5*4*Tbyte);
 		for(z=1;z<DIMBUF-2&&bufferI[z]!=SPI_READ;z++);
 		PrintMessage1("Calibration bits:\t  0x%02X",bufferI[z+2]);
 		for(z+=3;z<DIMBUF-2&&bufferI[z]!=SPI_READ;z++);
@@ -430,18 +674,14 @@ void ReadAT(int dim, int dim2, int options)
 		bufferU[j++]=i>>1;
 		bufferU[j++]=FLUSH;
 		for(;j<DIMBUF;j++) bufferU[j]=0x0;
-		write();
-		msDelay(options&SLOW?30:15);	//15
-		read();
+		PacketIO(1.5+240*Tbyte);
 		if(bufferI[1]==AT_READ_DATA){
 			for(z=3;z<bufferI[2]*2+3&&z<DIMBUF;z++) memCODE[k++]=bufferI[z];
 		}
 		PrintStatus(strings[S_CodeReading],i*100/(dim+dim2),i);	//"Reading: %3d%%, add. %03X"
+		if(RWstop) i=dim;
 		j=1;
-		if(saveLog){
-			fprintf(logfile,strings[S_Log7],i,i,k,k);	//"i=%d(0x%X), k=%d(0x%X)\n"
-			WriteLogIO();
-		}
+		if(saveLog) fprintf(logfile,strings[S_Log7],i,i,k,k);	//"i=%d(0x%X), k=%d(0x%X)\n"
 	}
 	PrintStatusEnd();
 	if(k!=dim){
@@ -453,6 +693,7 @@ void ReadAT(int dim, int dim2, int options)
 	if(dim2){
 		PrintMessage(strings[S_ReadEE]);		//read EE ...
 		PrintStatusSetup();
+		int n=0;
 		for(k2=0,i=0,j=1;i<dim2;i++){
 			bufferU[j++]=SPI_WRITE;		//Read eeprom memory
 			bufferU[j++]=3;
@@ -461,12 +702,11 @@ void ReadAT(int dim, int dim2, int options)
 			bufferU[j++]=i;
 			bufferU[j++]=SPI_READ;
 			bufferU[j++]=1;
+			n++;
 			if(j>DIMBUF-9||i==dim-1){
 				bufferU[j++]=FLUSH;
 				for(;j<DIMBUF;j++) bufferU[j]=0x0;
-				write();
-				msDelay(4);
-				read();
+				PacketIO(1.5+4*n*Tbyte*1.3);
 				for(z=1;z<DIMBUF-2;z++){
 					if(bufferI[z]==SPI_READ&&bufferI[z+1]==1){
 						memEE[k2++]=bufferI[z+2];
@@ -474,10 +714,11 @@ void ReadAT(int dim, int dim2, int options)
 					}
 				}
 				PrintStatus(strings[S_CodeReading],(i+dim)*100/(dim+dim2),i);	//"Reading: %3d%%, add. %03X"
+				if(RWstop) i=dim2;
 				j=1;
+				n=0;
 				if(saveLog){
 					fprintf(logfile,strings[S_Log7],i,i,k2,k2);	//"i=%d(0x%X), k=%d(0x%X)\n"
-					WriteLogIO();
 				}
 			}
 		}
@@ -498,9 +739,7 @@ void ReadAT(int dim, int dim2, int options)
 	bufferU[j++]=0;
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(1);
-	read();
+	PacketIO(1);
 	unsigned int stop=GetTickCount();
 	PrintStatusClear();
 //****************** visualize ********************
@@ -510,7 +749,10 @@ void ReadAT(int dim, int dim2, int options)
 		DisplayEE();	//visualize EE
 	}
 	PrintMessage1(strings[S_End],(stop-start)/1000.0);	//"\r\nEnd (%.2f s)\r\n"
-	if(saveLog) CloseLogFile();
+	if(saveLog){
+		fprintf(logfile,strings[S_End],(stop-start)/1000.0);	//"\r\nEnd (%.2f s)\r\n"
+		CloseLogFile();
+	}
 }
 
 #define PB0 0x10
@@ -908,9 +1150,9 @@ void ReadAT_HV(int dim, int dim2, int options)
 }
 
 #ifdef _MSC_VER
-void COpenProgDlg::WriteAT(int dim, int dim2)
+void COpenProgDlg::WriteAT(int dim, int dim2, int dummy1, int dummy2)
 #else
-void WriteAT(int dim, int dim2)
+void WriteAT(int dim, int dim2, int dummy1, int dummy2)
 #endif
 // write ATMEL micro
 // dim=FLASH size in bytes, dim2=EEPROM size
@@ -949,7 +1191,7 @@ void WriteAT(int dim, int dim2)
 	bufferU[j++]=SPI_INIT;
 	bufferU[j++]=1;
 	bufferU[j++]=CLOCK_GEN;
-	bufferU[j++]=3;
+	bufferU[j++]=5;
 	bufferU[j++]=CLOCK_GEN;
 	bufferU[j++]=0xFF;
 	bufferU[j++]=EXT_PORT;
@@ -976,7 +1218,7 @@ void WriteAT(int dim, int dim2)
 		bufferU[j++]=0;
 		bufferU[j++]=0;
 		bufferU[j++]=CLOCK_GEN;
-		bufferU[j++]=4;
+		bufferU[j++]=5;
 		bufferU[j++]=WAIT_T3;		//20ms
 		bufferU[j++]=SPI_WRITE;		//Programming enable
 		bufferU[j++]=2;
@@ -1224,9 +1466,9 @@ void WriteATmega(int dim, int dim2, int page, int options)
 #endif
 // write ATMEL micro
 // dim=FLASH size in bytes, dim2=EEPROM, page=FLASH page size in bytes
-// options: SLOW=slow communication
 {
 	int k=0,z=0,i,j;
+	double Tbyte;	//byte delay in ms
 	int err=0,Rtry=0,maxTry=0;
 	BYTE signature[]={0,0,0};
 	if(dim>0x20000||dim<0){
@@ -1262,65 +1504,140 @@ void WriteATmega(int dim, int dim2, int page, int options)
 	j=1;
 	bufferU[j++]=SET_PARAMETER;
 	bufferU[j++]=SET_T3;
-	bufferU[j++]=20000>>8;
-	bufferU[j++]=20000&0xff;
+	bufferU[j++]=2000>>8;
+	bufferU[j++]=2000&0xff;
 	bufferU[j++]=VREG_DIS;		//Disable HV reg
 	bufferU[j++]=EN_VPP_VCC;	//VDD
 	bufferU[j++]=0x0;
 	bufferU[j++]=SPI_INIT;
-	bufferU[j++]=options&SLOW?0:1;				//0=100k, 1=200k
-	bufferU[j++]=CLOCK_GEN;
-	bufferU[j++]=3;
-	bufferU[j++]=CLOCK_GEN;
+	bufferU[j++]=2;				//0~=100k, 1~=200k, 2~=300k but really is 200k
+	bufferU[j++]=FLUSH;
+	for(;j<DIMBUF;j++) bufferU[j]=0x0;
+	PacketIO(1);
+	for(i=1;i<256;i++){		//increase T more than linearly; Tmin=1
+		if(i>10) i++;
+		if(i>20) i+=2;
+		if(i>40) i+=4;
+		if(i>80) i+=4;
+		if(i>160) i+=8;
+		Tbyte=(20+i*4)/1000.0;  //from firmware simulation
+		j=1;
+		bufferU[j++]=CLOCK_GEN;	//reset with clock at 0
 	bufferU[j++]=0xFF;
+		bufferU[j++]=EN_VPP_VCC;	//VDD=0
+		bufferU[j++]=0x0;
 	bufferU[j++]=EXT_PORT;
 	bufferU[j++]=0;
 	bufferU[j++]=0;
-	bufferU[j++]=WAIT_T3;		//20ms
+		bufferU[j++]=WAIT_T3;
 	bufferU[j++]=EN_VPP_VCC;	//VDD
 	bufferU[j++]=0x1;
-	bufferU[j++]=WAIT_T3;		//20ms
-	bufferU[j++]=FLUSH;
-	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(50);
-	read();
-	if(saveLog)WriteLogIO();
-	for(i=0;i<32;i++){
-		j=1;
-		bufferU[j++]=CLOCK_GEN;
-		bufferU[j++]=0xFF;
+		bufferU[j++]=WAIT_T3;
+		bufferU[j++]=SET_PARAMETER;
+		bufferU[j++]=SET_T1T2;
+		bufferU[j++]=i;			//force T
+		bufferU[j++]=0;
 		bufferU[j++]=EXT_PORT;
 		bufferU[j++]=0;
 		bufferU[j++]=RST;
-		bufferU[j++]=EN_VPP_VCC;		//VDD+VPP (for 14 pin and 8pin devices)
-		bufferU[j++]=0x5;
+		bufferU[j++]=WAIT_T3;
 		bufferU[j++]=EXT_PORT;
 		bufferU[j++]=0;
 		bufferU[j++]=0;
-		bufferU[j++]=EN_VPP_VCC;		//VDD
-		bufferU[j++]=0x1;
 		bufferU[j++]=CLOCK_GEN;
-		bufferU[j++]=4;
-		bufferU[j++]=WAIT_T3;		//20ms
+		bufferU[j++]=5;				//0=100k,200k,500k,1M,2M,3M
+		bufferU[j++]=FLUSH;
+		for(;j<DIMBUF;j++) bufferU[j]=0x0;
+		PacketIO(9);
+		msDelay(20); 	//min 20ms from reset
+		j=1;
 		bufferU[j++]=SPI_WRITE;		//Programming enable
 		bufferU[j++]=2;
 		bufferU[j++]=0xAC;
 		bufferU[j++]=0x53;
 		bufferU[j++]=SPI_READ;
 		bufferU[j++]=2;
+		bufferU[j++]=SPI_WRITE;		//just to test communication
+		bufferU[j++]=11;
+		bufferU[j++]=0x55;
+		bufferU[j++]=0x00;
+		bufferU[j++]=0xAA;
+		bufferU[j++]=0x00;
+		bufferU[j++]=0x55;
+		bufferU[j++]=0x00;
+		bufferU[j++]=0xAA;
+		bufferU[j++]=0x00;
+		bufferU[j++]=0x30;
+		bufferU[j++]=0x00;
+		bufferU[j++]=0x00;
+		bufferU[j++]=SPI_READ;
+		bufferU[j++]=1;
+		bufferU[j++]=SPI_WRITE;
+		bufferU[j++]=3;
+		bufferU[j++]=0x30;
+		bufferU[j++]=0x00;
+		bufferU[j++]=0x00;
+		bufferU[j++]=SPI_READ;
+		bufferU[j++]=1;
+		bufferU[j++]=SPI_WRITE;
+		bufferU[j++]=3;
+		bufferU[j++]=0x30;
+		bufferU[j++]=0x00;
+		bufferU[j++]=0x00;
+		bufferU[j++]=SPI_READ;
+		bufferU[j++]=1;
+		bufferU[j++]=SPI_WRITE;
+		bufferU[j++]=3;
+		bufferU[j++]=0x30;
+		bufferU[j++]=0x00;
+		bufferU[j++]=0x00;
+		bufferU[j++]=SPI_READ;
+		bufferU[j++]=1;
+		bufferU[j++]=SPI_WRITE;
+		bufferU[j++]=3;
+		bufferU[j++]=0x30;
+		bufferU[j++]=0x00;
+		bufferU[j++]=0x00;
+		bufferU[j++]=SPI_READ;
+		bufferU[j++]=1;
+		bufferU[j++]=SPI_WRITE;		//Programming enable
+		bufferU[j++]=2;
+		bufferU[j++]=0xAC;
+		bufferU[j++]=0x53;
+		bufferU[j++]=SPI_READ;
+		bufferU[j++]=2;
+		bufferU[j++]=SPI_WRITE;
+		bufferU[j++]=3;
+		bufferU[j++]=0x30;
+		bufferU[j++]=0x00;
+		bufferU[j++]=0x00;
+		bufferU[j++]=SPI_READ;
+		bufferU[j++]=1;
 		bufferU[j++]=FLUSH;
 		for(;j<DIMBUF;j++) bufferU[j]=0x0;
-		write();
-		msDelay(25);
-		read();
-		if(saveLog)WriteLogIO();
+		PacketIO(1.5+32*Tbyte*1.1);
+		int d0,d1,d2,d3,d4,d5,d6,d7;
 		for(z=1;z<DIMBUF-2&&bufferI[z]!=SPI_READ;z++);
-		//PrintMessage("i=%d z=%d   rx:%02X%02X\r\n",i,z,bufferI[z+2],bufferI[z+3]);
-		//PrintMessage(str);
-		if(bufferI[z+2]==0x53) i=32;
+		//if(bufferI[z+2]==0x53) break;
+		d0=bufferI[z+2];
+		for(z+=bufferI[z+1]+1;z<DIMBUF-2&&bufferI[z]!=SPI_READ;z++);
+		d1=bufferI[z+2];
+		for(z+=bufferI[z+1]+1;z<DIMBUF-2&&bufferI[z]!=SPI_READ;z++);
+		d2=bufferI[z+2];
+		for(z+=bufferI[z+1]+1;z<DIMBUF-2&&bufferI[z]!=SPI_READ;z++);
+		d3=bufferI[z+2];
+		for(z+=bufferI[z+1]+1;z<DIMBUF-2&&bufferI[z]!=SPI_READ;z++);
+		d4=bufferI[z+2];
+		for(z+=bufferI[z+1]+1;z<DIMBUF-2&&bufferI[z]!=SPI_READ;z++);
+		d5=bufferI[z+2];
+		for(z+=bufferI[z+1]+1;z<DIMBUF-2&&bufferI[z]!=SPI_READ;z++);
+		d6=bufferI[z+2];
+		for(z+=bufferI[z+1]+1;z<DIMBUF-2&&bufferI[z]!=SPI_READ;z++);
+		d7=bufferI[z+2];
+		//vrify that received data is correct
+		if(d0==0x53&&d6==0x53&&d1==d2&&d1==d3&&d1==d4&&d1==d5&&d1==d7) break;
 	}
-	if(i<33){
+	if(i>256){
 		j=1;
 		bufferU[j++]=EN_VPP_VCC;	//VDD
 		bufferU[j++]=0x0;
@@ -1333,15 +1650,22 @@ void WriteATmega(int dim, int dim2, int page, int options)
 		bufferU[j++]=0;
 		bufferU[j++]=FLUSH;
 		for(;j<DIMBUF;j++) bufferU[j]=0x0;
-		write();
-		msDelay(2);
-		read();
-		if(saveLog)WriteLogIO();
+		PacketIO(3);
 		PrintMessage(strings[S_SyncErr]);	//"Synchronization error\r\n"
 		if(saveLog) CloseLogFile();
 		return;
 	}
+	//Add some margin
+	i++;
+	i+=i/10;
+	if(i>255) i=255;
+	Tbyte=(20+i*4)/1000.0;  //from firmware simulation
+	PrintMessage1(strings_it[I_AT_COMM],8/Tbyte);	//"Communicating @ %.0f kbps\r\n"
 	j=1;
+	bufferU[j++]=SET_PARAMETER;
+	bufferU[j++]=SET_T1T2;
+	bufferU[j++]=i;			//force T
+	bufferU[j++]=0;
 	bufferU[j++]=SPI_WRITE;		//Read signature bytes
 	bufferU[j++]=3;
 	bufferU[j++]=0x30;
@@ -1365,9 +1689,7 @@ void WriteATmega(int dim, int dim2, int page, int options)
 	bufferU[j++]=1;
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(2);
-	read();
+	PacketIO(1.5+3*4.5*Tbyte);
 	if(saveLog)WriteLogIO();
 	for(z=1;z<DIMBUF-2&&bufferI[z]!=SPI_READ;z++);
 	signature[0]=bufferI[z+2];
@@ -1392,10 +1714,7 @@ void WriteATmega(int dim, int dim2, int page, int options)
 	bufferU[j++]=5000&0xff;
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(15);
-	read();
-	if(saveLog)WriteLogIO();
+	PacketIO(1+4*Tbyte);
 	PrintMessage(strings[S_Compl]);	//"completed\r\n"
 //****************** write code ********************
 	PrintMessage(strings[S_StartCodeProg]);	//"Write code ... "
@@ -1414,10 +1733,7 @@ void WriteATmega(int dim, int dim2, int page, int options)
 				bufferU[j++]=FLUSH;
 				for(;j<DIMBUF;j++) bufferU[j]=0x0;
 				j=1;
-				write();
-				msDelay(options&SLOW?30:15);
-				read();
-				if(saveLog)WriteLogIO();
+				PacketIO(1.5+w*9*Tbyte);
 			}
 			bufferU[j++]=SPI_WRITE;		//Write program memory page
 			bufferU[j++]=4;
@@ -1429,11 +1745,10 @@ void WriteATmega(int dim, int dim2, int page, int options)
 			bufferU[j++]=FLUSH;
 			for(;j<DIMBUF;j++) bufferU[j]=0x0;
 			j=1;
-			write();
-			msDelay(10);
-			read();
+			PacketIO(6+4*Tbyte);
+			msDelay(5);
 			PrintStatus(strings[S_CodeWriting],i*100/dim,i);	//"Write: %d%%, addr. %03X"
-			if(saveLog)WriteLogIO();
+			if(RWstop) i=dim;
 			//write verification
 			c=(DIMBUF-5)/2;
 			for(k=0,j=1;k<page;k+=c){
@@ -1444,10 +1759,7 @@ void WriteATmega(int dim, int dim2, int page, int options)
 					bufferU[j++]=(i+k*2)>>1;
 					bufferU[j++]=FLUSH;
 					for(;j<DIMBUF;j++) bufferU[j]=0x0;
-					write();
-					msDelay(options&SLOW?30:15);	//25
-					read();
-					if(saveLog)WriteLogIO();
+					PacketIO(1.5+240*Tbyte);
 					if(bufferI[1]==AT_READ_DATA){
 						for(w=0,z=3;z<bufferI[2]*2+3&&z<DIMBUF;z++){
 							if(memCODE[i+k*2+w]!=bufferI[z]){
@@ -1498,9 +1810,7 @@ void WriteATmega(int dim, int dim2, int page, int options)
 				bufferU[j++]=FLUSH;
 				for(;j<DIMBUF;j++) bufferU[j]=0x0;
 				j=1;
-				write();
-				msDelay(12);
-				read();
+				PacketIO(11+8.5*Tbyte);
 				PrintStatus(strings[S_CodeWriting],i*100/dim2,i);	//"Write: %d%%, addr. %03X"
 				for(z=1;z<DIMBUF-2&&bufferI[z]!=SPI_READ;z++);
 				if(z==DIMBUF-2||memEE[i]!=bufferI[z+2]){
@@ -1521,7 +1831,6 @@ void WriteATmega(int dim, int dim2, int page, int options)
 				}
 				if(saveLog){
 					fprintf(logfile,strings[S_Log8],i,i,k,k,errEE);	//"i=%d, k=%d, err=%d\n"
-					WriteLogIO();
 				}
 			}
 		}
@@ -1539,7 +1848,7 @@ void WriteATmega(int dim, int dim2, int page, int options)
 		bufferU[j++]=0xA0;
 		bufferU[j++]=0;
 		bufferU[j++]=AVRfuse;
-		bufferU[j++]=WAIT_T3;		//9ms
+		bufferU[j++]=WAIT_T3;		//5ms
 		bufferU[j++]=SPI_WRITE;
 		bufferU[j++]=3;
 		bufferU[j++]=0x50;
@@ -1550,10 +1859,7 @@ void WriteATmega(int dim, int dim2, int page, int options)
 		bufferU[j++]=FLUSH;
 		for(;j<DIMBUF;j++) bufferU[j]=0x0;
 		j=1;
-		write();
-		msDelay(9);
-		read();
-		if(saveLog)WriteLogIO();
+		PacketIO(6+8.5*Tbyte);
 		for(z=1;z<DIMBUF-2&&bufferI[z]!=SPI_READ;z++);
 		if(z==DIMBUF-2||AVRfuse!=bufferI[z+2]) err_f++;
 	}
@@ -1564,7 +1870,7 @@ void WriteATmega(int dim, int dim2, int page, int options)
 		bufferU[j++]=0xA8;
 		bufferU[j++]=0;
 		bufferU[j++]=AVRfuse_h;
-		bufferU[j++]=WAIT_T3;		//9ms
+		bufferU[j++]=WAIT_T3;		//5ms
 		bufferU[j++]=SPI_WRITE;
 		bufferU[j++]=3;
 		bufferU[j++]=0x58;
@@ -1575,10 +1881,7 @@ void WriteATmega(int dim, int dim2, int page, int options)
 		bufferU[j++]=FLUSH;
 		for(;j<DIMBUF;j++) bufferU[j]=0x0;
 		j=1;
-		write();
-		msDelay(9);
-		read();
-		if(saveLog)WriteLogIO();
+		PacketIO(6+8.5*Tbyte);
 		for(z=1;z<DIMBUF-2&&bufferI[z]!=SPI_READ;z++);
 		if(z==DIMBUF-2||AVRfuse_h!=bufferI[z+2]) err_f++;
 	}
@@ -1589,7 +1892,7 @@ void WriteATmega(int dim, int dim2, int page, int options)
 		bufferU[j++]=0xA4;
 		bufferU[j++]=0;
 		bufferU[j++]=AVRfuse_x;
-		bufferU[j++]=WAIT_T3;		//9ms
+		bufferU[j++]=WAIT_T3;		//5ms
 		bufferU[j++]=SPI_WRITE;
 		bufferU[j++]=3;
 		bufferU[j++]=0x50;
@@ -1600,10 +1903,7 @@ void WriteATmega(int dim, int dim2, int page, int options)
 		bufferU[j++]=FLUSH;
 		for(;j<DIMBUF;j++) bufferU[j]=0x0;
 		j=1;
-		write();
-		msDelay(9);
-		read();
-		if(saveLog)WriteLogIO();
+		PacketIO(6+8.5*Tbyte);
 		for(z=1;z<DIMBUF-2&&bufferI[z]!=SPI_READ;z++);
 		if(z==DIMBUF-2||AVRfuse_x!=bufferI[z+2]) err_f++;
 	}
@@ -1614,7 +1914,7 @@ void WriteATmega(int dim, int dim2, int page, int options)
 		bufferU[j++]=0xE0;
 		bufferU[j++]=0;
 		bufferU[j++]=AVRlock;
-		bufferU[j++]=WAIT_T3;		//9ms
+		bufferU[j++]=WAIT_T3;		//5ms
 		bufferU[j++]=SPI_WRITE;
 		bufferU[j++]=3;
 		bufferU[j++]=0x58;
@@ -1625,10 +1925,7 @@ void WriteATmega(int dim, int dim2, int page, int options)
 		bufferU[j++]=FLUSH;
 		for(;j<DIMBUF;j++) bufferU[j]=0x0;
 		j=1;
-		write();
-		msDelay(9);
-		read();
-		if(saveLog)WriteLogIO();
+		PacketIO(6+8.5*Tbyte);
 		for(z=1;z<DIMBUF-2&&bufferI[z]!=SPI_READ;z++);
 		if(z==DIMBUF-2||AVRlock!=bufferI[z+2]) err_f++;
 	}
@@ -1647,12 +1944,13 @@ void WriteATmega(int dim, int dim2, int page, int options)
 	bufferU[j++]=0;
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(1);
-	read();
+	PacketIO(1);
 	unsigned int stop=GetTickCount();
 	PrintMessage3(strings[S_EndErr],(stop-start)/1000.0,err,err!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nEnd (%.2f s) %d %s\r\n\r\n"
-	if(saveLog)CloseLogFile();
+	if(saveLog){
+		fprintf(logfile,strings[S_EndErr],(stop-start)/1000.0,err,err!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nEnd (%.2f s) %d %s\r\n\r\n"
+		CloseLogFile();
+	}
 	PrintStatusClear();
 }
 
@@ -1941,6 +2239,7 @@ void WriteAT_HV(int dim, int dim2, int page, int options)
 				msDelay(1.5);
 				read();
 				j=1;
+				k=i;
 				for(z=1;z<DIMBUF-1;z++){
 					if(bufferI[z]==AT_HV_RTX){
 						if(memCODE[k]!=bufferI[z+1]){

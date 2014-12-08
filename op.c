@@ -26,6 +26,7 @@
 #include "I2CSPI.h"
 #include "deviceRW.h"
 #include "fileIO.h"
+#include "progAVR.h"
 
 
 #define CloseLogFile() if(logfile)fclose(logfile);
@@ -64,7 +65,7 @@ int load_calibword=0,max_err=200;
 int AVRlock=0x100,AVRfuse=0x100,AVRfuse_h=0x100,AVRfuse_x=0x100;
 int ICDenable=0,ICDaddr=0x1FF0;
 int FWVersion=0,HwID=0;
-int skipV33check=0;
+
 FILE* logfile=0;
 char LogFileName[512]="";
 char loadfile[512]="",savefile[512]="";
@@ -75,12 +76,19 @@ WORD *memCODE_W=0;
 int size=0,sizeW=0,sizeEE=0,sizeCONFIG=0,sizeUSERID=0;
 unsigned char *memCODE=0,*memEE=0,memID[8],memCONFIG[48],memUSERID[8];
 double hvreg=0;
+int DeviceDetected=0;
+int skipV33check=0;
+int progress=0;
+int RWstop=0;
+int forceConfig=0;
+char dev[64]="";
+int devType=0x10000;
 #if !defined _WIN32 && !defined __CYGWIN__
-int fd = -1;
+int fd = 0x10000;
 struct hiddev_report_info rep_info_i,rep_info_u;
 struct hiddev_usage_ref_multi ref_multi_i,ref_multi_u;
-int DIMBUF=64;
 char path[512]="";
+
 #else
 unsigned char bufferU[128],bufferI[128];
 DWORD NumberOfBytesRead,BytesWritten;
@@ -88,20 +96,21 @@ ULONG Result;
 HANDLE WriteHandle,ReadHandle;
 OVERLAPPED HIDOverlapped;
 HANDLE hEventObject;
-int DIMBUF=65;
 #endif
 
 
 int main (int argc, char **argv) {
 
 	int ee=0,r=0,ver=0,c=0,support=0,i2c=0,spi_mode=0,i,j,testhw=0,s1=0;
-	int spi_speed=0,command=0,langfile=0,help=0,CW1_force=-1,CW2_force=-1;
-	char dev[64]="null";
+	int spi_speed=0,command=0,langfile=0,help=0;
 	char lang[32]="";
 	unsigned char tmpbuf[128];
 	opterr = 0;
 	int option_index = 0;
+	int fuse3k=0;
 	char* langid=0;
+	int cw1,cw2,cw3,cw4,cw5,cw6,cw7;
+	cw1=cw2=cw3=cw4=cw5=cw6=cw7=0x10000;
 
 
 	struct option long_options[] =
@@ -111,6 +120,11 @@ int main (int argc, char **argv) {
 		{"command",       no_argument,        &command, 1},
 		{"cw1",           required_argument,       0, '1'},
 		{"cw2",           required_argument,       0, '2'},
+		{"cw3",           required_argument,       0, '3'},
+		{"cw4",           required_argument,       0, '4'},
+		{"cw5",           required_argument,       0, '5'},
+		{"cw6",           required_argument,       0, '6'},
+		{"cw7",           required_argument,       0, '7'},
 		{"d",             required_argument,       0, 'd'},
 		{"device",        required_argument,       0, 'd'},
 		{"ee",            no_argument,             &ee, 1},
@@ -118,6 +132,7 @@ int main (int argc, char **argv) {
 		{"fuse",          required_argument,       0, 'f'},
 		{"fuseh",         required_argument,       0, 'F'},
 		{"fusex",         required_argument,       0, 'X'},
+		{"fuse3k",        required_argument,       0, 'k'},
 		{"h",             no_argument,            &help,1},
 		{"help",          no_argument,            &help,1},
 		{"HWtest",        no_argument,         &testhw, 1},
@@ -174,12 +189,32 @@ int main (int argc, char **argv) {
 		switch (c)
 		{
 			case '1':	//force config word 1
-				i=sscanf(optarg, "%x", &CW1_force);
-				if(i!=1||CW1_force<0||CW1_force>0x3FFF) CW1_force=-1;
+				i=sscanf(optarg, "%x", &cw1);
+				if(i!=1||cw1<0||cw1>0x3FFF) cw1=0x10000;
 				break;
 			case '2':	//force config word 2
-				i=sscanf(optarg, "%x", &CW2_force);
-				if(i!=1||CW2_force<0||CW2_force>0x3FFF) CW2_force=-1;
+				i=sscanf(optarg, "%x", &cw2);
+				if(i!=1||cw2<0||cw2>0x3FFF) cw2=0x10000;
+				break;
+			case '3':	//force config word 3
+				i=sscanf(optarg, "%x", &cw3);
+				if(i!=1||cw3<0||cw3>0x3FFF) cw3=0x10000;
+				break;
+			case '4':	//force config word 4
+				i=sscanf(optarg, "%x", &cw4);
+				if(i!=1||cw4<0||cw4>0x3FFF) cw4=0x10000;
+				break;
+			case '5':	//force config word 5
+				i=sscanf(optarg, "%x", &cw5);
+				if(i!=1||cw5<0||cw5>0x3FFF) cw5=0x10000;
+				break;
+			case '6':	//force config word 6
+				i=sscanf(optarg, "%x", &cw6);
+				if(i!=1||cw6<0||cw6>0x3FFF) cw6=0x10000;
+				break;
+			case '7':	//force config word 7
+				i=sscanf(optarg, "%x", &cw7);
+				if(i!=1||cw7<0||cw7>0x3FFF) cw7=0x10000;
 				break;
 			case 'd':	//device
 				strncpy(dev,optarg,sizeof(dev)-1);
@@ -204,6 +239,11 @@ int main (int argc, char **argv) {
 				i=sscanf(optarg, "%x", &ICDaddr);
 				if(i!=1||ICDaddr<0||ICDaddr>0xFFFF) ICDaddr=0x1F00;
 				ICDenable=1;
+				break;
+			case 'k':	//Atmel FUSE low @ 3kHz
+				i=sscanf(optarg, "%x", &AVRfuse);
+				if(i!=1||AVRfuse<0||AVRfuse>0xFF) AVRfuse=0x100;
+				else fuse3k=1;
 				break;
 			case 'l':	//save Log
 				saveLog=1;
@@ -230,7 +270,7 @@ int main (int argc, char **argv) {
 				sscanf(optarg, "%x", &pid);
 				break;
 			case 'R':	//USB HID report size
-				DIMBUF = atoi(optarg);
+				//DIMBUF = atoi(optarg);
 				break;
 			case 's':	//save
 				strncpy(savefile,optarg,sizeof(savefile)-1);
@@ -326,7 +366,9 @@ Foundation; either version 2 of the License, or (at your option) any later versi
 		printf("%s\n",list);
 		return 0;
 	}
-	if(FindDevice()<0) exit(1);
+	DeviceDetected=FindDevice();	//connect to USB programmer
+	if(DeviceDetected<0) exit(1);
+	ProgID();		//get firmware version and reset
 
 #if !defined _WIN32 && !defined __CYGWIN__
 	if(info){
@@ -344,7 +386,6 @@ Foundation; either version 2 of the License, or (at your option) any later versi
 
 	DWORD t0,t;
 	t=t0=GetTickCount();
-	ProgID();
 	if(testhw){
 		TestHw();
 		return 0;
@@ -388,9 +429,15 @@ Foundation; either version 2 of the License, or (at your option) any later versi
 		return 0 ;
 	}
 
-//this is needed to use the same code on both win and linux
-#define EQ(s) !strncmp(s,dev,64)
-#define PrintMessage printf
+	struct DevInfo info;
+	info=GetDevInfo(dev);
+	devType=info.type;
+	CleanIO();
+
+	if(fuse3k){ //write fuse low @ 3kHz
+		if(AVRfuse<0x100) WriteATfuseSlow(AVRfuse);
+		return 0;
+	}
 
 	if(loadfile[0]){ 		//write
 		if(Load(dev,loadfile)==-1){
@@ -399,7 +446,72 @@ Foundation; either version 2 of the License, or (at your option) any later versi
 			exit(-1);
 		}
 		if(!strncmp(dev,"AT",2)&&loadfileEE[0]) LoadEE(dev,loadfileEE);
-		if(CW1_force!=-1||CW2_force!=-1){
+		//force config words
+		if(devType==PIC16){
+			if((!strncmp(dev,"16F1",4)||!strncmp(dev,"12F1",4))&&sizeW>0x8008){		//16F1xxx
+				if(cw1<=0x3FFF){
+					memCODE_W[0x8007]=cw1;
+					PrintMessage3(strings[S_ForceConfigWx],1,0x8007,cw1); //"forcing config word%d [0x%04X]=0x%04X"
+				}
+				if(cw2<=0x3FFF){
+					memCODE_W[0x8008]=cw2;
+					PrintMessage3(strings[S_ForceConfigWx],2,0x8008,cw2); //"forcing config word%d [0x%04X]=0x%04X"
+				}
+			}
+			else{	//16Fxxx
+				if(cw1<=0x3FFF&&sizeW>0x2007){
+					memCODE_W[0x2007]=cw1;
+					PrintMessage3(strings[S_ForceConfigWx],1,0x2007,cw1); //"forcing config word%d [0x%04X]=0x%04X"
+				}
+				if(cw2<=0x3FFF&&sizeW>0x2008){
+					memCODE_W[0x2008]=cw2;
+					printf("2\n");
+					PrintMessage3(strings[S_ForceConfigWx],2,0x2008,cw2); //"forcing config word%d [0x%04X]=0x%04X"
+				}
+			}
+		}
+		else if(devType==PIC12){	//12Fxxx
+			if(cw1<=0xFFF&&sizeW>0xFFF){
+				memCODE_W[0xFFF]=cw1;
+				PrintMessage3(strings[S_ForceConfigWx],1,0xFFF,cw1); //"forcing config word%d [0x%04X]=0x%04X"
+			}
+		}
+		else if(devType==PIC18){	//18Fxxx
+			if(cw1<=0xFFFF){
+				memCONFIG[0]=cw1&0xFF;
+				memCONFIG[1]=(cw1>>8)&0xFF;
+			}
+			if(cw2<=0xFFFF){
+				memCONFIG[2]=cw2&0xFF;
+				memCONFIG[3]=(cw2>>8)&0xFF;
+			}
+			if(cw3<=0xFFFF){
+				memCONFIG[4]=cw3&0xFF;
+				memCONFIG[5]=(cw3>>8)&0xFF;
+			}
+			if(cw4<=0xFFFF){
+				memCONFIG[6]=cw4&0xFF;
+				memCONFIG[7]=(cw4>>8)&0xFF;
+			}
+			if(cw5<=0xFFFF){
+				memCONFIG[8]=cw5&0xFF;
+				memCONFIG[9]=(cw5>>8)&0xFF;
+			}
+			if(cw6<=0xFFFF){
+				memCONFIG[10]=cw6&0xFF;
+				memCONFIG[11]=(cw6>>8)&0xFF;
+			}
+			if(cw7<=0xFFFF){
+				memCONFIG[12]=cw7&0xFF;
+				memCONFIG[13]=(cw7>>8)&0xFF;
+			}
+			PrintMessage(strings[S_ForceConfigW]); //"forcing config words"
+			for(i=0;i<7;i++){
+				PrintMessage2(strings[S_ConfigWordH],i+1,memCONFIG[i*2+1]);	//"CONFIG%dH: 0x%02X\t"
+				PrintMessage2(strings[S_ConfigWordL],i+1,memCONFIG[i*2]);	//"CONFIG%dL: 0x%02X\r\n"
+			}
+		}
+/*		if(CW1_force!=-1||CW2_force!=-1){
 			if((!strncmp(dev,"16F1",4)||!strncmp(dev,"12F1",4))){		//16F1xxx
 				if(CW1_force!=-1&&sizeW>0x8007) memCODE_W[0x8007]=CW1_force;
 				if(CW2_force!=-1&&sizeW>0x8008) memCODE_W[0x8008]=CW2_force;
@@ -411,9 +523,11 @@ Foundation; either version 2 of the License, or (at your option) any later versi
 			else if((!strncmp(dev,"12F",3)||!strncmp(dev,"10F",3)||!strncmp(dev,"16F5",4))){	//12Fxxx
 				if(CW1_force!=-1&&sizeW>0xFFF) memCODE_W[0xFFF]=CW1_force&0xFFF;
 			}
-			if(CW1_force!=-1) PrintMessage1(strings[S_ForceConfigW1],CW1_force); //"forcing config word1 (0x%04X)"
-			if(CW2_force!=-1) PrintMessage1(strings[S_ForceConfigW2],CW2_force); //"forcing config word2 (0x%04X)"
+			if(CW1_force!=-1) PrintMessage1(strings[S_ForceConfigWx],CW1_force); //"forcing config word1 (0x%04X)"
+			if(CW2_force!=-1) PrintMessage1(strings[S_ForceConfigWx],CW2_force); //"forcing config word2 (0x%04X)"
 		}
+*/
+		//Start with button
 		if(s1){
 			PrintMessage(strings[S_WaitS1W]);	//"Press S1 to program, any key to exit"
 			fflush(stdout);
@@ -449,18 +563,20 @@ Foundation; either version 2 of the License, or (at your option) any later versi
 		if(!strncmp(dev,"AT",2)&&savefileEE[0]) SaveEE(dev,savefileEE);
 	}
 
-#if !defined _WIN32 && !defined __CYGWIN__
+#if !defined _WIN32 && !defined __CYGWIN__	//Linux
 	close(fd);
 #endif
 	return 0 ;
 }
 
 
+#if !defined _WIN32 && !defined __CYGWIN__	//Linux
 DWORD GetTickCount(){
 	struct timeb now;
 	ftime(&now);
 	return now.time*1000+now.millitm;
 }
+#endif
 
 
 
@@ -490,6 +606,8 @@ void DisplayEE(){
 	if(empty) PrintMessage(strings[S_Empty]);	//empty
 }
 
+///
+///Start HV regulator
 int StartHVReg(double V){
 	int j=1,z;
 	int vreg=(int)(V*10.0);
@@ -501,12 +619,12 @@ int StartHVReg(double V){
 		write();
 		msDelay(40);
 		read();
-		return -1;
+		return 0x10000;
 	}
 	t=t0=GetTickCount();
 	bufferU[j++]=VREG_EN;			//enable HV regulator
 	bufferU[j++]=SET_VPP;
-	bufferU[j++]=vreg<80?vreg-8:vreg;		//set VPP, compensate for offset at low voltage
+	bufferU[j++]=vreg;
 	bufferU[j++]=SET_PARAMETER;
 	bufferU[j++]=SET_T3;
 	bufferU[j++]=2000>>8;
@@ -520,30 +638,30 @@ int StartHVReg(double V){
 	read();
 	for(z=1;z<DIMBUF-2&&bufferI[z]!=READ_ADC;z++);
 	int v=(bufferI[z+1]<<8)+bufferI[z+2];
-//	printf("v=%d=%fV\n",v,v/G);
+//	PrintMessage2("v=%d=%fV\n",v,v/G);
 	if(v==0){
 		PrintMessage(strings[S_lowUsbV]);	//"Tensione USB troppo bassa (VUSB<4.5V)\r\n"
 		return 0;
 	}
-	for(;(v<(vreg/10.0-0.9)*G||v>(vreg/10.0+0.9)*G)&&t<t0+1500;t=GetTickCount()){
 		j=1;
 		bufferU[j++]=WAIT_T3;
 		bufferU[j++]=READ_ADC;
 		bufferU[j++]=FLUSH;
 		for(;j<DIMBUF;j++) bufferU[j]=0x0;
+	for(;(v<(vreg/10.0-1)*G||v>(vreg/10.0+1)*G)&&t<t0+1500;t=GetTickCount()){
 		write();
 		msDelay(20);
 		read();
 		for(z=1;z<DIMBUF-2&&bufferI[z]!=READ_ADC;z++);
 		v=(bufferI[z+1]<<8)+bufferI[z+2];
 		if(HwID==3) v>>=2;		//if 12 bit ADC
-//		printf("v=%d=%fV\n",v,v/G);
+//		PrintMessage2("v=%d=%fV\n",v,v/G);
 	}
-	if(v>(vreg/10.0+0.9)*G){
+	if(v>(vreg/10.0+1)*G){
 		PrintMessage(strings[S_HiVPP]);	//"Attenzione: tensione regolatore troppo alta\r\n\r\n"
 		return 0;
 	}
-	else if(v<(vreg/10.0-0.9)*G){
+	else if(v<(vreg/10.0-1)*G){
 		PrintMessage(strings[S_LowVPP]);	//"Attenzione: tensione regolatore troppo bassa\r\n\r\n"
 		return 0;
 	}
@@ -552,13 +670,16 @@ int StartHVReg(double V){
 		return 0;
 	}
 	else{
-		PrintMessage(strings[S_reg],t-t0,v/G);	//"Regolatore avviato e funzionante dopo T=%d ms VPP=%.1f\r\n\r\n"
+		PrintMessage2(strings[S_reg],t-t0,v/G);	//"Regolatore avviato e funzionante dopo T=%d ms VPP=%.1f\r\n\r\n"
 		return vreg;
 	}
 }
 
+///
+///Read programmer ID
 void ProgID()
 {
+	if(DeviceDetected!=1) return;
 	int j=1;
 	bufferU[0]=0;
 	bufferU[j++]=PROG_RST;
@@ -567,16 +688,18 @@ void ProgID()
 	write();
 	msDelay(2);
 	read();
-	printf(strings[S_progver],bufferI[2],bufferI[3],bufferI[4]); //"FW versione %d.%d.%d\r\n"
+	PrintMessage3(strings[S_progver],bufferI[2],bufferI[3],bufferI[4]); //"FW versione %d.%d.%d\r\n"
 	FWVersion=(bufferI[2]<<16)+(bufferI[3]<<8)+bufferI[4];
-	printf(strings[S_progid],bufferI[5],bufferI[6],bufferI[7]);	//"ID Hw: %d.%d.%d"
+	PrintMessage3(strings[S_progid],bufferI[5],bufferI[6],bufferI[7]);	//"ID Hw: %d.%d.%d"
 	HwID=bufferI[7];
-	if(HwID==1) printf(" (18F2550)\r\n\r\n");
-	else if(HwID==2) printf(" (18F2450)\r\n\r\n");
-	else if(HwID==3) printf(" (18F2458/2553)\r\n\r\n");
-	else printf(" (?)\r\n\r\n");
+	if(HwID==1) PrintMessage(" (18F2550)\r\n\r\n");
+	else if(HwID==2) PrintMessage(" (18F2450)\r\n\r\n");
+	else if(HwID==3) PrintMessage(" (18F2458/2553)\r\n\r\n");
+	else PrintMessage(" (?)\r\n\r\n");
 }
 
+///
+///Check if a 3.3V regulator is present
 int CheckV33Regulator()
 {
 	int i,j=1;
@@ -612,6 +735,8 @@ int CheckV33Regulator()
 	return (i+(bufferI[j+3]&0x2))==2?1:0;
 }
 
+///
+///Check if S1 is pressed
 int CheckS1()
 {
 	int i,j=1;
@@ -628,12 +753,19 @@ int CheckS1()
 	return i?0:1;			//S1 open -> E3=1
 }
 
-void TestHw() {
+///
+///Execute hardware test
+void TestHw()
+{
+#ifndef DEBUG
+	if(DeviceDetected!=1) return;
+#endif
+	char str[256];
+	StartHVReg(13);
 	int j=1;
 	bufferU[0]=0;
 	PrintMessage(strings[I_TestHW]);		//"Test hardware ..."
 	getchar();
-	StartHVReg(13);
 	bufferU[j++]=SET_CK_D;
 	bufferU[j++]=0x0;
 	bufferU[j++]=EN_VPP_VCC;		//VDD+VPP
@@ -641,9 +773,11 @@ void TestHw() {
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
 	write();
-	msDelay(20);
+	msDelay(2);
 	read();
-	PrintMessage("VDD=5V, VPP=13V, D=0V, CK=0V, PGM=0V");
+	strcpy(str,strings[I_TestMSG]);
+	strcat(str,"\n VDD=5V\n VPP=13V\n PGD(RB5)=0V\n PGC(RB6)=0V\n PGM(RB7)=0V");
+	PrintMessage(str);
 	getchar();
 	j=1;
 	bufferU[j++]=SET_CK_D;
@@ -653,9 +787,11 @@ void TestHw() {
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
 	write();
-	msDelay(20);
+	msDelay(2);
 	read();
-	PrintMessage("VDD=5V, VPP=0V, D=5V, CK=5V, PGM=5V");
+	strcpy(str,strings[I_TestMSG]);
+	strcat(str,"\n VDD=5V\n VPP=0V\n PGD(RB5)=5V\n PGC(RB6)=5V\n PGM(RB7)=5V");
+	PrintMessage(str);
 	getchar();
 	j=1;
 	bufferU[j++]=SET_CK_D;
@@ -665,9 +801,11 @@ void TestHw() {
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
 	write();
-	msDelay(20);
+	msDelay(2);
 	read();
-	PrintMessage("VDD=0V, VPP=13V, D=5V, CK=0V, PGM=0V");
+	strcpy(str,strings[I_TestMSG]);
+	strcat(str,"\n VDD=0V\n VPP=13V\n PGD(RB5)=5V\n PGC(RB6)=0V\n PGM(RB7)=0V");
+	PrintMessage(str);
 	getchar();
 	j=1;
 	bufferU[j++]=SET_CK_D;
@@ -677,37 +815,192 @@ void TestHw() {
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
 	write();
-	msDelay(20);
+	msDelay(2);
 	read();
-	PrintMessage("VDD=0V, VPP=0V, D=0V, CK=5V, PGM=0V");
+	strcpy(str,strings[I_TestMSG]);
+	strcat(str,"\n VDD=0V\n VPP=0V\n PGD(RB5)=0V\n PGC(RB6)=5V\n PGM(RB7)=0V");
+	PrintMessage(str);
 	getchar();
 	j=1;
 	bufferU[j++]=SET_CK_D;
 	bufferU[j++]=0x0;
 	bufferU[j++]=EN_VPP_VCC;
-	bufferU[j++]=0x0;			//VPP
+	bufferU[j++]=0x0;
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
 	write();
-	msDelay(20);
+	msDelay(2);
 	read();
+	if(FWVersion>=0x900){	//IO test
+		int j=1,i,x,r;
+		strcpy(str,"0000000000000");
+		bufferU[0]=0;
+		PrintMessage("IO test\nRC|RA|--RB--|\n");
+		for(i=0;i<13;i++){
+			x=1<<i;
+			j=1;
+			bufferU[j++]=EN_VPP_VCC;
+			bufferU[j++]=0x0;
+			bufferU[j++]=SET_PORT_DIR;
+			bufferU[j++]=0x0;	//TRISB
+			bufferU[j++]=0x0;	//TRISA-C  (RC7:RC6:RA5:RA4:RA3:X:X:X)
+			bufferU[j++]=EXT_PORT;
+			bufferU[j++]=x&0xFF;	//PORTB
+			bufferU[j++]=(x>>5)&0xFF;	//PORTA-C
+			bufferU[j++]=READ_B;
+			bufferU[j++]=READ_AC;
+			bufferU[j++]=FLUSH;
+			for(;j<DIMBUF;j++) bufferU[j]=0x0;
+			write();
+			msDelay(2);
+			read();
+			for(j=1;j<DIMBUF-1&&bufferI[j]!=READ_B;j++);
+			r=bufferI[j+1];
+			for(j+=2;j<DIMBUF-1&&bufferI[j]!=READ_AC;j++);
+			r+=(bufferI[j+1]&0xF8)<<5;
+			for(j=0;j<13;j++) str[12-j]=x&(1<<j)?'1':'0';
+			PrintMessage(str);
+			PrintMessage1(" (%s)\n",r==x?"OK":strings[S_ErrSing]);
+		}
+	}
 }
 
+///
+///Wait for X milliseconds
 void msDelay(double delay)
 {
 #if !defined _WIN32 && !defined __CYGWIN__
-	long x=(int)delay*1000.0;
+	long x=(int)(delay*1000.0);
 	usleep(x>MinDly?x:MinDly);
 #else
 	Sleep((long)ceil(delay)>MinDly?(long)ceil(delay):MinDly);
 #endif
 }
 
+#if !defined _WIN32 && !defined __CYGWIN__	//Linux
+///
+/// Get system time
+DWORD GetTickCount(){
+	struct timeb now;
+	ftime(&now);
+	return now.time*1000+now.millitm;
+}
+#endif
+
+///
+///Clean read buffer
+void CleanIO(){
+#if !defined _WIN32 && !defined __CYGWIN__	//Linux
+#undef read()
+	fd_set set;
+	struct timeval timeout;
+	struct hiddev_event ev[80];
+	FD_ZERO(&set); /* clear the set */
+	FD_SET(fd, &set); /* add our file descriptor to the set */
+	timeout.tv_sec = 0;
+	timeout.tv_usec = 0;
+	//read all packets left
+	for(;select(fd + 1, &set, NULL, NULL, &timeout)>0;){
+		read(fd, ev,sizeof(struct hiddev_event) *DIMBUF);
+		if(saveLog) WriteLogIO();
+	}
+#endif
+}
+
+
+///
+///Write data packet, wait for X milliseconds, read response
+void PacketIO(double delay){
+	#define TIMEOUT 50
+	if(saveLog) fprintf(logfile,"PacketIO(%.2f)\n",delay);
+#if !defined _WIN32 && !defined __CYGWIN__	//Linux
+	fd_set set;
+	struct hiddev_event ev[80];
+	struct timeval timeout;
+	int rv,i,n=DIMBUF;
+    struct timespec ts;
+    uint64_t start,stop;
+	FD_ZERO(&set); /* clear the set */
+	FD_SET(fd, &set); /* add our file descriptor to the set */
+	timeout.tv_sec = 0;
+	timeout.tv_usec = TIMEOUT*1000;
+    clock_gettime( CLOCK_REALTIME, &ts );
+    start  = ts.tv_nsec / 1000 ;//+ ts.tv_sec * 1000000;
+	//unsigned int start=GetTickCount();
+	//write
+	ioctl(fd, HIDIOCSUSAGES, &ref_multi_u);
+	ioctl(fd,HIDIOCSREPORT, &rep_info_u);
+	//delay(delay)
+	delay-=TIMEOUT-10;	//shorter delays are covered by 50ms timeout
+	if(delay<0) delay=0;
+	long x=(int)(delay*1000.0);
+	usleep(x>MinDly?x:MinDly);
+	//read
+	rv = select(fd + 1, &set, NULL, NULL, &timeout);
+	if(rv == -1){
+		PrintMessage(strings[S_ErrSing]);	/*error*/
+		if(saveLog) fprintf(logfile,strings[S_ErrSing]);
+	}
+	else if(rv == 0){
+		PrintMessage(strings[S_comTimeout]);	/*"comm timeout\r\n"*/
+		if(saveLog) fprintf(logfile,strings[S_comTimeout]);
+	}
+	else{
+//		ioctl(fd, HIDIOCGUSAGES, &ref_multi_i);
+//		ioctl(fd,HIDIOCGREPORT, &rep_info_i);
+#undef read()
+		rv=read(fd, ev,sizeof(struct hiddev_event) *n);
+		for(i=0;i<n;i++) bufferI[i]=ev[i].value;
+
+	}
+	if(saveLog) WriteLogIO();
+	//	unsigned int stop=GetTickCount();
+    clock_gettime( CLOCK_REALTIME, &ts );
+    stop  = ts.tv_nsec / 1000 ;//+ ts.tv_sec * 1000000;
+	if(saveLog) fprintf(logfile,"T=%.2f ms\n",(stop-start)/1000.0);
+#else	//Windows
+	__int64 start,stop,freq;
+	QueryPerformanceCounter((LARGE_INTEGER *)&start);
+	QueryPerformanceFrequency((LARGE_INTEGER *)&freq);
+	delay-=TIMEOUT-10;	//shorter delays are covered by 50ms timeout
+	if(delay<0) delay=0;
+	//write
+	Result = WriteFile(WriteHandle,bufferU,DIMBUF,&BytesWritten,NULL);
+	//delay(delay)
+	Sleep((long)ceil(delay)>MinDly?(long)ceil(delay):MinDly);
+	//read
+	Result = ReadFile(ReadHandle,bufferI,DIMBUF,&NumberOfBytesRead,(LPOVERLAPPED) &HIDOverlapped);
+	Result = WaitForSingleObject(hEventObject,50);
+	if(saveLog) WriteLogIO();
+	ResetEvent(hEventObject);
+	if(Result!=WAIT_OBJECT_0){
+		PrintMessage(strings[S_comTimeout]);	/*"comm timeout\r\n"*/
+		if(saveLog) fprintf(logfile,strings[S_comTimeout]);
+	}
+	QueryPerformanceCounter((LARGE_INTEGER *)&stop);
+	if(saveLog) fprintf(logfile,"T=%.2f ms\n",(stop-start)*1000.0/freq);
+#endif
+}
+
+
+///
+///Find the USB peripheral with proper vid&pid code
+/// return 0 if not found
 int FindDevice(){
+	int MyDeviceDetected = FALSE;
 #if !defined _WIN32 && !defined __CYGWIN__
 	struct hiddev_devinfo device_info;
-	int i;
+	int i=0x10000;
 	if(path[0]==0){	//search all devices
+		if((fd = open("/dev/openprogrammer", O_RDONLY ))>0){ //try with this first
+			ioctl(fd, HIDIOCGDEVINFO, &device_info);
+			if(device_info.vendor==vid&&device_info.product==pid) i=0;
+			else{
+				close(fd);
+				i=0x10000;
+			}
+		}
+		if(i){
 		for(i=0;i<16;i++){
 			sprintf(path,"/dev/usb/hiddev%d",i);
 			if((fd = open(path, O_RDONLY ))>0){
@@ -716,24 +1009,26 @@ int FindDevice(){
 				else close(fd);
 			}
 		}
+		}
 		if(i==16){
-			printf(strings[S_noprog]);
-			return -1;
+			PrintMessage(strings[S_noprog]);
+			path[0]=0;
+			return 0;
 		}
 	}
 	else{	//user supplied path
 		if ((fd = open(path, O_RDONLY )) < 0) {
-			printf(strings[S_DevPermission],path);
-			exit(1);
+			PrintMessage1(strings[S_DevPermission],path); //"cannot open %s, make sure you have read permission on it",path);
+			return 0;
 		}
 		ioctl(fd, HIDIOCGDEVINFO, &device_info);
 		if(device_info.vendor!=vid||device_info.product!=pid){
-			printf(strings[S_noprog]);
-			return -1;
+			PrintMessage(strings[S_noprog]);
+			return 0;
 		}
 	}
 	printf(strings[S_progDev],path);
-
+	MyDeviceDetected = TRUE;
 	rep_info_u.report_type=HID_REPORT_TYPE_OUTPUT;
 	rep_info_i.report_type=HID_REPORT_TYPE_INPUT;
 	rep_info_u.report_id=rep_info_i.report_id=HID_REPORT_ID_FIRST;
@@ -746,12 +1041,10 @@ int FindDevice(){
 	ref_multi_u.num_values=ref_multi_i.num_values=DIMBUF;
 
 #else
-	char string[256];
 	PSP_DEVICE_INTERFACE_DETAIL_DATA detailData;
 	HANDLE DeviceHandle;
 	HANDLE hDevInfo;
 	GUID HidGuid;
-	int MyDeviceDetected;
 	char MyDevicePathName[1024];
 	ULONG Length;
 	ULONG Required;
@@ -797,7 +1090,7 @@ int FindDevice(){
 	GETPRODUCTSTRING HidD_GetProductString=0;
 	hHID = LoadLibrary("hid.dll");
 	if(!hHID){
-		printf("Can't find hid.dll");
+		PrintMessage("Can't find hid.dll");
 		return 0;
 	}
 	HidD_GetHidGuid=(GETHIDGUID)GetProcAddress(hHID,"HidD_GetHidGuid");
@@ -819,13 +1112,13 @@ int FindDevice(){
 		||HidD_GetManufacturerString==NULL\
 		||HidD_GetProductString==NULL\
 		||HidD_SetNumInputBuffers==NULL\
-		||HidD_GetNumInputBuffers==NULL) return -1;
+		||HidD_GetNumInputBuffers==NULL) return 0;
 
 
 	HMODULE hSAPI=0;
 	hSAPI = LoadLibrary("setupapi.dll");
 	if(!hSAPI){
-		printf("Can't find setupapi.dll");
+		PrintMessage("Can't find setupapi.dll");
 		return 0;
 	}
 	typedef HDEVINFO (WINAPI* SETUPDIGETCLASSDEVS) (CONST GUID*,PCSTR,HWND,DWORD);
@@ -843,7 +1136,7 @@ int FindDevice(){
 	if(SetupDiGetClassDevsA==NULL\
 		||SetupDiEnumDeviceInterfaces==NULL\
 		||SetupDiDestroyDeviceInfoList==NULL\
-		||SetupDiGetDeviceInterfaceDetailA==NULL) return -1;
+		||SetupDiGetDeviceInterfaceDetailA==NULL) return 0;
 
 
 	/*
@@ -993,16 +1286,20 @@ int FindDevice(){
 	//Free the memory reserved for hDevInfo by SetupDiClassDevs.
 	SetupDiDestroyDeviceInfoList(hDevInfo);
 
-	if (MyDeviceDetected == FALSE){
-		printf(strings[S_noprog]);	//"Can't find device\n"
-		return -1;
-	}
-
 	if(info){
-		printf("Device detected: vid=0x%04X pid=0x%04X\nPath: %s\n",vid,pid,MyDevicePathName);
+		char string[1024];
+		PrintMessage3("Device detected: vid=0x%04X pid=0x%04X\nPath: %s\n",vid,pid,MyDevicePathName);
 		if(HidD_GetManufacturerString(DeviceHandle,string,sizeof(string))==TRUE) wprintf(L"Manufacturer string: %s\n",string);
 		if(HidD_GetProductString(DeviceHandle,string,sizeof(string))==TRUE) wprintf(L"Product string: %s\n",string);
 	}
 #endif
-	return 0;
+	if (MyDeviceDetected == FALSE){
+		PrintMessage(strings[S_noprog]);	//"Programmer not detected\r\n"
+		//gtk_statusbar_push(status_bar,statusID,strings[S_noprog]);
+	}
+	else{
+		PrintMessage(strings[S_prog]);	//"Programmer detected\r\n");
+		//gtk_statusbar_push(status_bar,statusID,strings[S_prog]);
+	}
+	return MyDeviceDetected;
 }

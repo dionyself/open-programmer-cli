@@ -1,6 +1,6 @@
-/*
- * progP12.c - algorithms to program the PIC12 (12 bit word) family of microcontrollers
- * Copyright (C) 2009-2013 Alberto Maccioni
+/**
+ * \file progP12.c - algorithms to program the PIC12 (12 bit word) family of microcontrollers
+ * Copyright (C) 2009-2014 Alberto Maccioni
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -140,7 +140,6 @@ void Read12F5xx(int dim,int dim2)
 	bufferU[j++]=0x0;
 	bufferU[j++]=SET_CK_D;
 	bufferU[j++]=0x0;
-	bufferU[j++]=WAIT_T3;
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
 	write();

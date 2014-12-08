@@ -1,6 +1,6 @@
-/*
- * progP18F.c - algorithms to program the PIC18 family of microcontrollers
- * Copyright (C) 2009-2013 Alberto Maccioni
+/**
+ * \file progP18F.c - algorithms to program the PIC18 family of microcontrollers
+ * Copyright (C) 2009-2014 Alberto Maccioni
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,7 +27,6 @@
 	#define _GUI
 	#include "msvc_common.h"
 #else 
-	#define _CMD
 	#include "common.h"
 #endif
 
@@ -96,6 +95,16 @@ struct ID18{
 	{0x13E0,"18F8627 rev%d\r\n",0x1F},
 	{0x1400,"18F6722 rev%d\r\n",0x1F},
 	{0x1420,"18F8722 rev%d\r\n",0x1F},
+	{0x1520,"18F65J10 rev%d\r\n",0x1F},
+	{0x1540,"18F65J15 rev%d\r\n",0x1F},
+	{0x1560,"18F66J10 rev%d\r\n",0x1F},
+	{0x1580,"18F66J15 rev%d\r\n",0x1F},
+	{0x15A0,"18F67J10 rev%d\r\n",0x1F},
+	{0x15E0,"18F85J10 rev%d\r\n",0x1F},
+	{0x1700,"18F85J15 rev%d\r\n",0x1F},
+	{0x1720,"18F86J10 rev%d\r\n",0x1F},
+	{0x1740,"18F86J15 rev%d\r\n",0x1F},
+	{0x1760,"18F87J10 rev%d\r\n",0x1F},
 	{0x1800,"18F66J60 rev%d\r\n",0x1F},
 	{0x1820,"18F86J60 rev%d\r\n",0x1F},
 	{0x1840,"18F96J60 rev%d\r\n",0x1F},
@@ -142,6 +151,32 @@ struct ID18{
 	{0x2A20,"18F4458 rev%d\r\n",0x1F},
 	{0x2A40,"18F2553 rev%d\r\n",0x1F},
 	{0x2A60,"18F2458 rev%d\r\n",0x1F},
+	{0x3800,"18F63J90 rev%d\r\n",0x1F},
+	{0x3820,"18F64J90 rev%d\r\n",0x1F},
+	{0x3860,"18F65J90 rev%d\r\n",0x1F},
+	{0x3880,"18F83J90 rev%d\r\n",0x1F},
+	{0x38A0,"18F84J90 rev%d\r\n",0x1F},
+	{0x38E0,"18F85J90 rev%d\r\n",0x1F},
+	{0x3900,"18F63J11 rev%d\r\n",0x1F},
+	{0x3920,"18F64J11 rev%d\r\n",0x1F},
+	{0x3960,"18F65J11 rev%d\r\n",0x1F},
+	{0x3980,"18F83J11 rev%d\r\n",0x1F},
+	{0x39A0,"18F84J11 rev%d\r\n",0x1F},
+	{0x39E0,"18F85J11 rev%d\r\n",0x1F},
+	{0x4100,"18F65J50 rev%d\r\n",0x1F},
+	{0x4140,"18F66J50 rev%d\r\n",0x1F},
+	{0x4160,"18F66J55 rev%d\r\n",0x1F},
+	{0x4180,"18F67J50 rev%d\r\n",0x1F},
+	{0x41A0,"18F85J50 rev%d\r\n",0x1F},
+	{0x41E0,"18F86J50 rev%d\r\n",0x1F},
+	{0x4200,"18F86J55 rev%d\r\n",0x1F},
+	{0x4220,"18F87J50 rev%d\r\n",0x1F},
+	{0x4440,"18F66J11 rev%d\r\n",0x1F},
+	{0x4460,"18F66J16 rev%d\r\n",0x1F},
+	{0x4480,"18F67J11 rev%d\r\n",0x1F},
+	{0x44E0,"18F86J11 rev%d\r\n",0x1F},
+	{0x4500,"18F86J16 rev%d\r\n",0x1F},
+	{0x4520,"18F87J11 rev%d\r\n",0x1F},
 	{0x4700,"18LF13K50 rev%d\r\n",0x1F},
 	{0x4720,"18LF14K50 rev%d\r\n",0x1F},
 	{0x4740,"18F13K50 rev%d\r\n",0x1F},
@@ -170,6 +205,14 @@ struct ID18{
 	{0x4F40,"18F13K22 rev%d\r\n",0x1F},
 	{0x4F60,"18LF14K22 rev%d\r\n",0x1F},
 	{0x4F80,"18LF13K22 rev%d\r\n",0x1F},
+	{0x5000,"18F66J90 rev%d\r\n",0x1F},
+	{0x5020,"18F67J90 rev%d\r\n",0x1F},
+	{0x5040,"18F66J93/86J72 rev%d\r\n",0x1F},
+	{0x5060,"18F67J93/87J72 rev%d\r\n",0x1F},
+	{0x5080,"18F86J90 rev%d\r\n",0x1F},
+	{0x50A0,"18F87J90 rev%d\r\n",0x1F},
+	{0x50C0,"18F86J93 rev%d\r\n",0x1F},
+	{0x50E0,"18F87J93 rev%d\r\n",0x1F},
 	{0x5400,"18F46K22 rev%d\r\n",0x1F},
 	{0x5420,"18LF46K22 rev%d\r\n",0x1F},
 	{0x5440,"18F26K22 rev%d\r\n",0x1F},
@@ -202,6 +245,28 @@ struct ID18{
 	{0x5B60,"18LF27J13 rev%d\r\n",0x1F},
 	{0x5BA0,"18LF46J13 rev%d\r\n",0x1F},
 	{0x5BE0,"18LF47J13 rev%d\r\n",0x1F},
+	{0x5C00,"18F45K50 rev%d\r\n",0x1F},
+	{0x5C20,"18F25K50 rev%d\r\n",0x1F},
+	{0x5C60,"18F24K50 rev%d\r\n",0x1F},
+	{0x5C80,"18LF45K50 rev%d\r\n",0x1F},
+	{0x5CA0,"18LF25K50 rev%d\r\n",0x1F},
+	{0x5CE0,"18LF24K50 rev%d\r\n",0x1F},
+	{0x5D00,"18F46K50 rev%d\r\n",0x1F},
+	{0x5D20,"18F26K50 rev%d\r\n",0x1F},
+	{0x5D40,"18LF46K50 rev%d\r\n",0x1F},
+	{0x5D60,"18LF26K50 rev%d\r\n",0x1F},
+	{0x60E0,"18F66K80 rev%d\r\n",0x1F},
+	{0x6100,"18F46K80 rev%d\r\n",0x1F},
+	{0x6120,"18F26K80 rev%d\r\n",0x1F},
+	{0x6140,"18F65K80 rev%d\r\n",0x1F},
+	{0x6160,"18F45K80 rev%d\r\n",0x1F},
+	{0x6180,"18F25K80 rev%d\r\n",0x1F},
+	{0x61C0,"18LF66K80 rev%d\r\n",0x1F},
+	{0x61E0,"18LF46K80 rev%d\r\n",0x1F},
+	{0x6200,"18LF26K80 rev%d\r\n",0x1F},
+	{0x6220,"18LF65K80 rev%d\r\n",0x1F},
+	{0x6240,"18LF45K80 rev%d\r\n",0x1F},
+	{0x6260,"18LF25K80 rev%d\r\n",0x1F},
 };
 
 #ifdef _MSC_VER
@@ -247,7 +312,8 @@ void DisplayCODE18F(int dim){
 			lines++;
 			if(lines>500){	//limit number of lines printed
 				strcat(aux,"(...)\r\n");
-				i=size;
+				i=(dim<size?dim:size)-COL*4;
+				lines=490;
 			}
 		}
 		s[0]=0;
@@ -265,11 +331,17 @@ void Read18Fx(int dim,int dim2,int options){
 // read 16 bit PIC 18Fxxxx
 // dim=program size 	dim2=eeprom size
 // options:
+//	bit [3:0]
 //   0 = vdd before vpp (12V)
 //   1 = vdd before vpp (9V)
 //   2 = low voltage entry with 32 bit key
+//   3 = vdd before vpp (9V) with 32 bit key
+//	bit [7:4]
+//     0 = normal control registers address
+//     1 = new control registers address (18FxxK80)
 	int k=0,k2=0,z=0,i,j;
 	int entry=options&0xF;
+	int newAddr=(options>>4)&0xF;
 	if(dim>0x1FFFFF||dim<0){
 		PrintMessage(strings[S_CodeLim]);	//"Code size out of limits\r\n"
 		return;
@@ -282,7 +354,9 @@ void Read18Fx(int dim,int dim2,int options){
 		PrintMessage(strings[S_noV33reg]);	//Can't find 3.3V expansion board
 		return;
 	}
-	double vpp=entry<2?(entry==0?12:8.5):-1;
+	double vpp=-1;
+	if(entry==0) vpp=12;
+	else if(entry==1||entry==3) vpp=8.5;
 	if(!StartHVReg(vpp)){
 		PrintMessage(strings[S_HVregErr]); //"HV regulator error\r\n"
 		return;
@@ -322,6 +396,8 @@ void Read18Fx(int dim,int dim2,int options){
 	if(entry==2){					//LV entry with key
 		bufferU[j++]=EN_VPP_VCC;		//VDD
 		bufferU[j++]=0x1;
+	}
+	if(entry==2||entry==3){			//entry with key
 		bufferU[j++]=WAIT_T3;
 		bufferU[j++]=WAIT_T3;
 		bufferU[j++]=TX16;
@@ -356,14 +432,14 @@ void Read18Fx(int dim,int dim2,int options){
 	bufferU[j++]=TBLR_INC_N;		//DevID1-2	0x3FFFFE-F
 	bufferU[j++]=2;
 	bufferU[j++]=CORE_INS;
-	bufferU[j++]=0x6A;			//TBLPTRU
-	bufferU[j++]=0xF8;			//TBLPTRU
+	bufferU[j++]=0x6A;			//CLRF TBLPTRU
+	bufferU[j++]=0xF8;
 	bufferU[j++]=CORE_INS;
-	bufferU[j++]=0x6A;			//TBLPTRH
-	bufferU[j++]=0xF7;			//TBLPTRH
+	bufferU[j++]=0x6A;			//CLRF TBLPTRH
+	bufferU[j++]=0xF7;
 	bufferU[j++]=CORE_INS;
-	bufferU[j++]=0x6A;			//TBLPTRL
-	bufferU[j++]=0xF6;			//TBLPTRL
+	bufferU[j++]=0x6A;			//CLRF TBLPTRL
+	bufferU[j++]=0xF6;
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
 	write();
@@ -379,6 +455,7 @@ void Read18Fx(int dim,int dim2,int options){
 //****************** read code ********************
 	PrintMessage(strings[S_CodeReading1]);		//code read ...
 	PrintStatusSetup();
+	if(saveLog)	fprintf(logfile,"Read code\n");
 	for(i=0,j=1;i<dim;i+=DIMBUF-4){
 		bufferU[j++]=TBLR_INC_N;
 		bufferU[j++]=i<dim-(DIMBUF-4)?DIMBUF-4:dim-i;
@@ -391,6 +468,7 @@ void Read18Fx(int dim,int dim2,int options){
 			for(z=3;z<bufferI[2]+3&&z<DIMBUF;z++) memCODE[k++]=bufferI[z];
 		}
 		PrintStatus(strings[S_CodeReading2],i*100/(dim+dim2),i);	//"Read: %d%%, addr. %05X"
+		if(RWstop) i=dim;
 		j=1;
 		if(saveLog){
 			fprintf(logfile,strings[S_Log7],i,i,k,k);	//"i=%d(0x%X), k=%d(0x%X)\n"
@@ -404,6 +482,7 @@ void Read18Fx(int dim,int dim2,int options){
 	}
 	else PrintMessage(strings[S_Compl]);
 //****************** read config area ********************
+	if(saveLog)	fprintf(logfile,"Read config\n");
 	bufferU[j++]=CORE_INS;
 	bufferU[j++]=0x0E;			//TBLPTRU	ID 0x200000
 	bufferU[j++]=0x20;			//TBLPTRU	ID 0x200000
@@ -454,31 +533,32 @@ void Read18Fx(int dim,int dim2,int options){
 	if(dim2){
 		PrintMessage(strings[S_ReadEE]);		//read eeprom ...
 		PrintStatusSetup();
+		if(saveLog)	fprintf(logfile,"Read EEPROM\n");
 		bufferU[j++]=CORE_INS;
 		bufferU[j++]=0x9E;				//EEPGD=0
-		bufferU[j++]=0xA6;
+		bufferU[j++]=newAddr==0?0xA6:0x7F;
 		bufferU[j++]=CORE_INS;
 		bufferU[j++]=0x9C;				//CFGS=0
-		bufferU[j++]=0xA6;
+		bufferU[j++]=newAddr==0?0xA6:0x7F;
 		for(k2=0,i=0;i<dim2;i++){
 			bufferU[j++]=CORE_INS;
-			bufferU[j++]=0x0E;
+			bufferU[j++]=0x0E;			//MOVLW
 			bufferU[j++]=i&0xFF;
 			bufferU[j++]=CORE_INS;
-			bufferU[j++]=0x6E;			//ADDR
-			bufferU[j++]=0xA9;			//ADDR
+			bufferU[j++]=0x6E;					//MOVWF
+			bufferU[j++]=newAddr==0?0xA9:0x74;	//ADDR
 			bufferU[j++]=CORE_INS;
-			bufferU[j++]=0x0E;
+			bufferU[j++]=0x0E;		//MOVLW
 			bufferU[j++]=(i>>8)&0xFF;
 			bufferU[j++]=CORE_INS;
-			bufferU[j++]=0x6E;			//ADDRH
-			bufferU[j++]=0xAA;			//ADDRH
+			bufferU[j++]=0x6E;					//MOVWF
+			bufferU[j++]=newAddr==0?0xAA:0x75;	//ADDRH
 			bufferU[j++]=CORE_INS;
-			bufferU[j++]=0x80;			//RD=1 :Read
-			bufferU[j++]=0xA6;
+			bufferU[j++]=0x80;			//RD=1
+			bufferU[j++]=newAddr==0?0xA6:0x7F;
 			bufferU[j++]=CORE_INS;
-			bufferU[j++]=0x50;			//MOVF EEDATA,W
-			bufferU[j++]=0xA8;
+			bufferU[j++]=0x50;			//MOVF EEDATA,w
+			bufferU[j++]=newAddr==0?0xA8:0x73;
 			bufferU[j++]=CORE_INS;
 			bufferU[j++]=0x6E;			//MOVWF TABLAT
 			bufferU[j++]=0xF5;
@@ -499,6 +579,7 @@ void Read18Fx(int dim,int dim2,int options){
 					}
 				}
 				PrintStatus(strings[S_CodeReading],(i+dim)*100/(dim+dim2),i);	//"Read: %d%%, addr. %03X"
+				if(RWstop) i=dim2;
 				j=1;
 				if(saveLog){
 					fprintf(logfile,strings[S_Log7],i,i,k2,k2);	//"i=%d(0x%X), k=%d(0x%X)\n"
@@ -559,13 +640,16 @@ void Write18Fx(int dim,int dim2,int wbuf,int eraseW1,int eraseW2,int options)
 //     0 = vdd before vpp (12V)
 //     1 = vdd before vpp (9V)
 //     2 = low voltage entry with 32 bit key
+//     3 = vdd before vpp (9V) with 32 bit key
 //	bit [7:4]
 //     0 = normal eeprom write algoritm
 //     1 = with unlock sequence 55 AA
 //	bit [11:8]
-//     0 = 15ms erase delay, 1ms code write time, 5ms EE write delay, 5ms config write time
+//     0 = 15ms erase delay, 1ms code write time, 5ms EE write, 5ms config write
 //     1 = 550ms erase delay, 1.2ms code write time, no config or EEPROM
 //     2 = 550ms erase delay, 3.4ms code write time, no config or EEPROM
+//     3 = separate block erase with 5ms delay, 1ms code write, 5ms EE write, 5ms config write
+//         + new control registers address (18FxxK80)
 {
 	int k=0,k2,z=0,i,j;
 	int err=0;
@@ -586,7 +670,9 @@ void Write18Fx(int dim,int dim2,int wbuf,int eraseW1,int eraseW2,int options)
 		PrintMessage(strings[S_noV33reg]);	//Can't find 3.3V expansion board
 		return;
 	}
-	double vpp=entry<2?(entry==0?12:8.5):-1;
+	double vpp=-1;
+	if(entry==0) vpp=12;
+	else if(entry==1||entry==3) vpp=8.5;
 	if(!StartHVReg(vpp)){
 		PrintMessage(strings[S_HVregErr]); //"HV regulator error\r\n"
 		return;
@@ -628,6 +714,8 @@ void Write18Fx(int dim,int dim2,int wbuf,int eraseW1,int eraseW2,int options)
 	if(entry==2){					//LV entry with key
 		bufferU[j++]=EN_VPP_VCC;		//VDD
 		bufferU[j++]=0x1;
+	}
+	if(entry==2||entry==3){			//entry with key
 		bufferU[j++]=WAIT_T3;
 		bufferU[j++]=WAIT_T3;
 		bufferU[j++]=TX16;
@@ -680,6 +768,7 @@ void Write18Fx(int dim,int dim2,int wbuf,int eraseW1,int eraseW2,int options)
 	j=1;
 //****************** erase memory ********************
 	PrintMessage(strings[S_StartErase]);	//"Erase ... "
+	if(optWrite!=3){	//chip erase
 	bufferU[j++]=CORE_INS;
 	bufferU[j++]=0x0E;			//3C
 	bufferU[j++]=0x3C;
@@ -725,13 +814,329 @@ void Write18Fx(int dim,int dim2,int wbuf,int eraseW1,int eraseW2,int options)
 		read();
 		j=1;
 		if(saveLog)WriteLogIO();
+	}
+	else{	//separate block erase
+		bufferU[j++]=CORE_INS;
+		bufferU[j++]=0x0E;			//MOVLW 3C
+		bufferU[j++]=0x3C;
+		bufferU[j++]=CORE_INS;
+		bufferU[j++]=0x6E;			//MOVWF TBLPTRU
+		bufferU[j++]=0xF8;
+		bufferU[j++]=CORE_INS;
+		bufferU[j++]=0x6A;			//CLRF TBLPTRH
+		bufferU[j++]=0xF7;
+		bufferU[j++]=CORE_INS;
+		bufferU[j++]=0x0E;			//MOVLW 4
+		bufferU[j++]=0x04;
+		bufferU[j++]=CORE_INS;
+		bufferU[j++]=0x6E;			//MOVWF TBLPTRL
+		bufferU[j++]=0xF6;
+		bufferU[j++]=TABLE_WRITE;	//0x04 @ 0x3C0004
+		bufferU[j++]=0x04;
+		bufferU[j++]=0x04;
+		bufferU[j++]=CORE_INS;
+		bufferU[j++]=0x0E;			//MOVLW 5
+		bufferU[j++]=0x05;
+		bufferU[j++]=CORE_INS;
+		bufferU[j++]=0x6E;			//MOVWF TBLPTRL
+		bufferU[j++]=0xF6;
+		bufferU[j++]=TABLE_WRITE;	//0x01 @ 0x3C0005
+		bufferU[j++]=0x01;
+		bufferU[j++]=0x01;
+		bufferU[j++]=CORE_INS;
+		bufferU[j++]=0x0E;			//MOVLW 6
+		bufferU[j++]=0x06;
+		bufferU[j++]=CORE_INS;
+		bufferU[j++]=0x6E;			//MOVWF TBLPTRL
+		bufferU[j++]=0xF6;
+		bufferU[j++]=TABLE_WRITE;	//0x80 @ 0x3C0006
+		bufferU[j++]=0x80;
+		bufferU[j++]=0x80;
+		bufferU[j++]=CORE_INS;		//NOP
+		bufferU[j++]=0x00;
+		bufferU[j++]=0x00;
+		bufferU[j++]=CORE_INS;		//NOP
+		bufferU[j++]=0x00;
+		bufferU[j++]=0x00;
+		bufferU[j++]=FLUSH;
+		for(;j<DIMBUF;j++) bufferU[j]=0x0;
+		write();
+		msDelay(7);	//block erase delay
+		read();
+		j=1;
+		if(saveLog){
+			fprintf(logfile,"ERASE BLOCK0\n");
+			WriteLogIO();
+		}
+		bufferU[j++]=CORE_INS;
+		bufferU[j++]=0x0E;			//MOVLW 4
+		bufferU[j++]=0x04;
+		bufferU[j++]=CORE_INS;
+		bufferU[j++]=0x6E;			//MOVWF TBLPTRL
+		bufferU[j++]=0xF6;
+		bufferU[j++]=TABLE_WRITE;	//0x04 @ 0x3C0004
+		bufferU[j++]=0x04;
+		bufferU[j++]=0x04;
+		bufferU[j++]=CORE_INS;
+		bufferU[j++]=0x0E;			//MOVLW 5
+		bufferU[j++]=0x05;
+		bufferU[j++]=CORE_INS;
+		bufferU[j++]=0x6E;			//MOVWF TBLPTRL
+		bufferU[j++]=0xF6;
+		bufferU[j++]=TABLE_WRITE;	//0x02 @ 0x3C0005
+		bufferU[j++]=0x02;
+		bufferU[j++]=0x02;
+		bufferU[j++]=CORE_INS;
+		bufferU[j++]=0x0E;			//MOVLW 6
+		bufferU[j++]=0x06;
+		bufferU[j++]=CORE_INS;
+		bufferU[j++]=0x6E;			//MOVWF TBLPTRL
+		bufferU[j++]=0xF6;
+		bufferU[j++]=TABLE_WRITE;	//0x80 @ 0x3C0006
+		bufferU[j++]=0x80;
+		bufferU[j++]=0x80;
+		bufferU[j++]=CORE_INS;		//NOP
+		bufferU[j++]=0x00;
+		bufferU[j++]=0x00;
+		bufferU[j++]=CORE_INS;		//NOP
+		bufferU[j++]=0x00;
+		bufferU[j++]=0x00;
+		bufferU[j++]=FLUSH;
+		for(;j<DIMBUF;j++) bufferU[j]=0x0;
+		write();
+		msDelay(7);	//block erase delay
+		read();
+		j=1;
+		if(saveLog){
+			fprintf(logfile,"ERASE BLOCK1\n");
+			WriteLogIO();
+		}
+		bufferU[j++]=CORE_INS;
+		bufferU[j++]=0x0E;			//MOVLW 4
+		bufferU[j++]=0x04;
+		bufferU[j++]=CORE_INS;
+		bufferU[j++]=0x6E;			//MOVWF TBLPTRL
+		bufferU[j++]=0xF6;
+		bufferU[j++]=TABLE_WRITE;	//0x04 @ 0x3C0004
+		bufferU[j++]=0x04;
+		bufferU[j++]=0x04;
+		bufferU[j++]=CORE_INS;
+		bufferU[j++]=0x0E;			//MOVLW 5
+		bufferU[j++]=0x05;
+		bufferU[j++]=CORE_INS;
+		bufferU[j++]=0x6E;			//MOVWF TBLPTRL
+		bufferU[j++]=0xF6;
+		bufferU[j++]=TABLE_WRITE;	//0x04 @ 0x3C0005
+		bufferU[j++]=0x04;
+		bufferU[j++]=0x04;
+		bufferU[j++]=CORE_INS;
+		bufferU[j++]=0x0E;			//MOVLW 6
+		bufferU[j++]=0x06;
+		bufferU[j++]=CORE_INS;
+		bufferU[j++]=0x6E;			//MOVWF TBLPTRL
+		bufferU[j++]=0xF6;
+		bufferU[j++]=TABLE_WRITE;	//0x80 @ 0x3C0006
+		bufferU[j++]=0x80;
+		bufferU[j++]=0x80;
+		bufferU[j++]=CORE_INS;		//NOP
+		bufferU[j++]=0x00;
+		bufferU[j++]=0x00;
+		bufferU[j++]=CORE_INS;		//NOP
+		bufferU[j++]=0x00;
+		bufferU[j++]=0x00;
+		bufferU[j++]=FLUSH;
+		for(;j<DIMBUF;j++) bufferU[j]=0x0;
+		write();
+		msDelay(7);	//block erase delay
+		read();
+		j=1;
+		if(saveLog){
+			fprintf(logfile,"ERASE BLOCK2\n");
+			WriteLogIO();
+		}
+		bufferU[j++]=CORE_INS;
+		bufferU[j++]=0x0E;			//MOVLW 4
+		bufferU[j++]=0x04;
+		bufferU[j++]=CORE_INS;
+		bufferU[j++]=0x6E;			//MOVWF TBLPTRL
+		bufferU[j++]=0xF6;
+		bufferU[j++]=TABLE_WRITE;	//0x04 @ 0x3C0004
+		bufferU[j++]=0x04;
+		bufferU[j++]=0x04;
+		bufferU[j++]=CORE_INS;
+		bufferU[j++]=0x0E;			//MOVLW 5
+		bufferU[j++]=0x05;
+		bufferU[j++]=CORE_INS;
+		bufferU[j++]=0x6E;			//MOVWF TBLPTRL
+		bufferU[j++]=0xF6;
+		bufferU[j++]=TABLE_WRITE;	//0x08 @ 0x3C0005
+		bufferU[j++]=0x08;
+		bufferU[j++]=0x08;
+		bufferU[j++]=CORE_INS;
+		bufferU[j++]=0x0E;			//MOVLW 6
+		bufferU[j++]=0x06;
+		bufferU[j++]=CORE_INS;
+		bufferU[j++]=0x6E;			//MOVWF TBLPTRL
+		bufferU[j++]=0xF6;
+		bufferU[j++]=TABLE_WRITE;	//0x80 @ 0x3C0006
+		bufferU[j++]=0x80;
+		bufferU[j++]=0x80;
+		bufferU[j++]=CORE_INS;		//NOP
+		bufferU[j++]=0x00;
+		bufferU[j++]=0x00;
+		bufferU[j++]=CORE_INS;		//NOP
+		bufferU[j++]=0x00;
+		bufferU[j++]=0x00;
+		bufferU[j++]=FLUSH;
+		for(;j<DIMBUF;j++) bufferU[j]=0x0;
+		write();
+		msDelay(7);	//block erase delay
+		read();
+		j=1;
+		if(saveLog){
+			fprintf(logfile,"ERASE BLOCK3\n");
+			WriteLogIO();
+		}
+		bufferU[j++]=CORE_INS;
+		bufferU[j++]=0x0E;			//MOVLW 4
+		bufferU[j++]=0x04;
+		bufferU[j++]=CORE_INS;
+		bufferU[j++]=0x6E;			//MOVWF TBLPTRL
+		bufferU[j++]=0xF6;
+		bufferU[j++]=TABLE_WRITE;	//0x05 @ 0x3C0004
+		bufferU[j++]=0x05;
+		bufferU[j++]=0x05;
+		bufferU[j++]=CORE_INS;
+		bufferU[j++]=0x0E;			//MOVLW 5
+		bufferU[j++]=0x05;
+		bufferU[j++]=CORE_INS;
+		bufferU[j++]=0x6E;			//MOVWF TBLPTRL
+		bufferU[j++]=0xF6;
+		bufferU[j++]=TABLE_WRITE;	//0x00 @ 0x3C0005
+		bufferU[j++]=0x00;
+		bufferU[j++]=0x00;
+		bufferU[j++]=CORE_INS;
+		bufferU[j++]=0x0E;			//MOVLW 6
+		bufferU[j++]=0x06;
+		bufferU[j++]=CORE_INS;
+		bufferU[j++]=0x6E;			//MOVWF TBLPTRL
+		bufferU[j++]=0xF6;
+		bufferU[j++]=TABLE_WRITE;	//0x80 @ 0x3C0006
+		bufferU[j++]=0x80;
+		bufferU[j++]=0x80;
+		bufferU[j++]=CORE_INS;		//NOP
+		bufferU[j++]=0x00;
+		bufferU[j++]=0x00;
+		bufferU[j++]=CORE_INS;		//NOP
+		bufferU[j++]=0x00;
+		bufferU[j++]=0x00;
+		bufferU[j++]=FLUSH;
+		for(;j<DIMBUF;j++) bufferU[j]=0x0;
+		write();
+		msDelay(7);	//block erase delay
+		read();
+		j=1;
+		if(saveLog){
+			fprintf(logfile,"ERASE BOOT BLOCK\n");
+			WriteLogIO();
+		}
+		bufferU[j++]=CORE_INS;
+		bufferU[j++]=0x0E;			//MOVLW 4
+		bufferU[j++]=0x04;
+		bufferU[j++]=CORE_INS;
+		bufferU[j++]=0x6E;			//MOVWF TBLPTRL
+		bufferU[j++]=0xF6;
+		bufferU[j++]=TABLE_WRITE;	//0x02 @ 0x3C0004
+		bufferU[j++]=0x02;
+		bufferU[j++]=0x02;
+		bufferU[j++]=CORE_INS;
+		bufferU[j++]=0x0E;			//MOVLW 5
+		bufferU[j++]=0x05;
+		bufferU[j++]=CORE_INS;
+		bufferU[j++]=0x6E;			//MOVWF TBLPTRL
+		bufferU[j++]=0xF6;
+		bufferU[j++]=TABLE_WRITE;	//0x00 @ 0x3C0005
+		bufferU[j++]=0x00;
+		bufferU[j++]=0x00;
+		bufferU[j++]=CORE_INS;
+		bufferU[j++]=0x0E;			//MOVLW 6
+		bufferU[j++]=0x06;
+		bufferU[j++]=CORE_INS;
+		bufferU[j++]=0x6E;			//MOVWF TBLPTRL
+		bufferU[j++]=0xF6;
+		bufferU[j++]=TABLE_WRITE;	//0x80 @ 0x3C0006
+		bufferU[j++]=0x80;
+		bufferU[j++]=0x80;
+		bufferU[j++]=CORE_INS;		//NOP
+		bufferU[j++]=0x00;
+		bufferU[j++]=0x00;
+		bufferU[j++]=CORE_INS;		//NOP
+		bufferU[j++]=0x00;
+		bufferU[j++]=0x00;
+		bufferU[j++]=FLUSH;
+		for(;j<DIMBUF;j++) bufferU[j]=0x0;
+		write();
+		msDelay(7);	//block erase delay
+		read();
+		j=1;
+		if(saveLog){
+			fprintf(logfile,"ERASE CONFIG\n");
+			WriteLogIO();
+		}
+		if(programID){
+			bufferU[j++]=CORE_INS;
+			bufferU[j++]=0x8E;			//EEPGD=1
+			bufferU[j++]=0x7F;
+			bufferU[j++]=CORE_INS;
+			bufferU[j++]=0x9C;			//CFGS=0
+			bufferU[j++]=0x7F;
+			bufferU[j++]=CORE_INS;
+			bufferU[j++]=0x84;			//WREN=1
+			bufferU[j++]=0x7F;
+			bufferU[j++]=CORE_INS;		//ID 0x200000
+			bufferU[j++]=0x0E;			//MOVLW
+			bufferU[j++]=0x20;			//
+			bufferU[j++]=CORE_INS;
+			bufferU[j++]=0x6E;			//MOVWF TBLPTRU
+			bufferU[j++]=0xF8;			//
+			bufferU[j++]=CORE_INS;
+			bufferU[j++]=0x6A;			//CLRF TBLPTRH
+			bufferU[j++]=0xF7;			//CLRF TBLPTRH
+			bufferU[j++]=CORE_INS;
+			bufferU[j++]=0x6A;			//CLRF TBLPTRL
+			bufferU[j++]=0xF6;			//CLRF TBLPTRL
+			bufferU[j++]=CORE_INS;
+			bufferU[j++]=0x88;			//FREE=1
+			bufferU[j++]=0x7F;
+			bufferU[j++]=CORE_INS;
+			bufferU[j++]=0x82;			//WR=1
+			bufferU[j++]=0x7F;
+			bufferU[j++]=CORE_INS;		//NOP
+			bufferU[j++]=0x00;
+			bufferU[j++]=0x00;
+			bufferU[j++]=FLUSH;
+			for(;j<DIMBUF;j++) bufferU[j]=0x0;
+			write();
+			msDelay(7);	//row erase delay
+			read();
+			j=1;
+			if(saveLog){
+				fprintf(logfile,"ERASE ID\n");
+				WriteLogIO();
+			}
+		}
+	}
+	PrintMessage(strings[S_Compl]);	//"completed\r\n"
 //****************** prepare write ********************
 	bufferU[j++]=CORE_INS;
 	bufferU[j++]=0x8E;			//EEPGD=1
-	bufferU[j++]=0xA6;
+	bufferU[j++]=optWrite!=3?0xA6:0x7F;
 	bufferU[j++]=CORE_INS;
 	bufferU[j++]=0x9C;			//CFCGS=0
-	bufferU[j++]=0xA6;
+	bufferU[j++]=optWrite!=3?0xA6:0x7F;
+	bufferU[j++]=CORE_INS;
+	bufferU[j++]=0x84;			//WREN=1
+	bufferU[j++]=optWrite!=3?0xA6:0x7F;
 	bufferU[j++]=CORE_INS;
 	bufferU[j++]=0x6A;			//TBLPTRU
 	bufferU[j++]=0xF8;			//TBLPTRU
@@ -748,7 +1153,6 @@ void Write18Fx(int dim,int dim2,int wbuf,int eraseW1,int eraseW2,int options)
 	read();
 	j=1;
 	if(saveLog)WriteLogIO();
-	PrintMessage(strings[S_Compl]);	//"completed\r\n"
 //****************** write code ********************
 	PrintMessage(strings[S_StartCodeProg]);	//"code write ... "
 	PrintStatusSetup();
@@ -842,6 +1246,7 @@ void Write18Fx(int dim,int dim2,int wbuf,int eraseW1,int eraseW2,int options)
 		read();
 		j=1;
 		PrintStatus(strings[S_CodeWriting2],i*100/(dim+dim2),i/2);	//"Write: %d%%,addr. %04X"
+		if(RWstop) i=dim;
 		if(saveLog){
 			fprintf(logfile,strings[S_Log7],i,i,k,k);	//"i=%d, k=%d 0=%d\n"
 			WriteLogIO();
@@ -850,14 +1255,15 @@ void Write18Fx(int dim,int dim2,int wbuf,int eraseW1,int eraseW2,int options)
 	PrintStatusEnd();
 	PrintMessage(strings[S_Compl]);	//"completed\r\n"
 //****************** write ID ********************
-	if(optWrite==0){
+	if(programID&&(optWrite==0||optWrite==3)){
 		PrintMessage(strings[S_IDW]);	//"Write ID ... "
+		if(saveLog)	fprintf(logfile,"Write ID\n");
 		bufferU[j++]=CORE_INS;
-		bufferU[j++]=0x8E;
-		bufferU[j++]=0xA6;
+		bufferU[j++]=0x8E;			//EEPGD=1
+		bufferU[j++]=optWrite!=3?0xA6:0x7F;
 		bufferU[j++]=CORE_INS;
-		bufferU[j++]=0x9C;
-		bufferU[j++]=0xA6;
+		bufferU[j++]=0x9C;			//CFCGS=0
+		bufferU[j++]=optWrite!=3?0xA6:0x7F;
 		bufferU[j++]=CORE_INS;
 		bufferU[j++]=0x0E;			//TBLPTRU	ID 0x200000
 		bufferU[j++]=0x20;			//TBLPTRU	ID 0x200000
@@ -865,11 +1271,11 @@ void Write18Fx(int dim,int dim2,int wbuf,int eraseW1,int eraseW2,int options)
 		bufferU[j++]=0x6E;			//TBLPTRU
 		bufferU[j++]=0xF8;			//TBLPTRU
 		bufferU[j++]=CORE_INS;
-		bufferU[j++]=0x6A;			//TBLPTRH
-		bufferU[j++]=0xF7;			//TBLPTRH
+		bufferU[j++]=0x6A;			//CLRF TBLPTRH
+		bufferU[j++]=0xF7;			//CLRF TBLPTRH
 		bufferU[j++]=CORE_INS;
-		bufferU[j++]=0x6A;			//TBLPTRL
-		bufferU[j++]=0xF6;			//TBLPTRL
+		bufferU[j++]=0x6A;			//CLRF TBLPTRL
+		bufferU[j++]=0xF6;			//CLRF TBLPTRL
 		bufferU[j++]=TBLW_INC_N;
 		bufferU[j++]=3;
 		for(i=0;i<3;i++){
@@ -879,7 +1285,7 @@ void Write18Fx(int dim,int dim2,int wbuf,int eraseW1,int eraseW2,int options)
 		bufferU[j++]=TBLW_PROG;
 		bufferU[j++]=memID[i*2+1];
 		bufferU[j++]=memID[i*2];
-		bufferU[j++]=1000>>8;
+		bufferU[j++]=1000>>8;		//only one write so no need to specify different delay
 		bufferU[j++]=1000&0xFF;
 		bufferU[j++]=FLUSH;
 		for(;j<DIMBUF;j++) bufferU[j]=0x0;
@@ -894,58 +1300,59 @@ void Write18Fx(int dim,int dim2,int wbuf,int eraseW1,int eraseW2,int options)
 		PrintMessage(strings[S_Compl]);	//"completed\r\n"
 	}
 //****************** write and verify EEPROM ********************
-	if(dim2&&optWrite==0){
+	if(dim2&&(optWrite==0||optWrite==3)){
 		PrintMessage(strings[S_EEAreaW]);	//"Write EEPROM ... "
 		PrintStatusSetup();
+		if(saveLog)	fprintf(logfile,"Write EEPROM\n");
 		int errEE=0;
 		bufferU[j++]=CORE_INS;
 		bufferU[j++]=0x9E;			//EEPGD=0
-		bufferU[j++]=0xA6;
+		bufferU[j++]=optWrite!=3?0xA6:0x7F;
 		bufferU[j++]=CORE_INS;
 		bufferU[j++]=0x9C;			//CFGS=0
-		bufferU[j++]=0xA6;
+		bufferU[j++]=optWrite!=3?0xA6:0x7F;
 		bufferU[j++]=CORE_INS;
 		bufferU[j++]=0x84;			//WREN=1
-		bufferU[j++]=0xA6;
+		bufferU[j++]=optWrite!=3?0xA6:0x7F;
 		for(i=0;i<dim2&&err<=max_err;i++){
 			if(memEE[i]!=0xFF){
 				bufferU[j++]=CORE_INS;
-				bufferU[j++]=0x0E;
+				bufferU[j++]=0x0E;			//MOVLW
 				bufferU[j++]=i&0xFF;
 				bufferU[j++]=CORE_INS;
-				bufferU[j++]=0x6E;
-				bufferU[j++]=0xA9;			//ADDR
+				bufferU[j++]=0x6E;					//MOVWF
+				bufferU[j++]=optWrite!=3?0xA9:0x74;	//ADDR
 				if(EEalgo==0){
 					bufferU[j++]=CORE_INS;
-					bufferU[j++]=0x0E;
+					bufferU[j++]=0x0E;		//MOVLW
 					bufferU[j++]=(i>>8)&0xFF;
 					bufferU[j++]=CORE_INS;
-					bufferU[j++]=0x6E;
-					bufferU[j++]=0xAA;		//ADDRH
+					bufferU[j++]=0x6E;					//MOVWF
+					bufferU[j++]=optWrite!=3?0xAA:0x75;	//ADDRH
 				}
 				bufferU[j++]=CORE_INS;
-				bufferU[j++]=0x0E;
+				bufferU[j++]=0x0E;			//MOVLW
 				bufferU[j++]=memEE[i];
 				bufferU[j++]=CORE_INS;
-				bufferU[j++]=0x6E;
-				bufferU[j++]=0xA8;			//EEDATA
+				bufferU[j++]=0x6E;					//MOVWF
+				bufferU[j++]=optWrite!=3?0xA8:0x73;	//EEDATA
 				if(EEalgo==1){				//memory unlock
 					bufferU[j++]=CORE_INS;
-					bufferU[j++]=0x0E;
+					bufferU[j++]=0x0E;		//MOVLW
 					bufferU[j++]=0x55;
 					bufferU[j++]=CORE_INS;
-					bufferU[j++]=0x6E;
+					bufferU[j++]=0x6E;		//MOVWF
 					bufferU[j++]=0xA7;			//EECON2
 					bufferU[j++]=CORE_INS;
-					bufferU[j++]=0x0E;
+					bufferU[j++]=0x0E;		//MOVLW
 					bufferU[j++]=0xAA;
 					bufferU[j++]=CORE_INS;
-					bufferU[j++]=0x6E;
+					bufferU[j++]=0x6E;		//MOVWF
 					bufferU[j++]=0xA7;			//EECON2
 				}
 				bufferU[j++]=CORE_INS;
 				bufferU[j++]=0x82;
-				bufferU[j++]=0xA6;			//WR=1
+				bufferU[j++]=optWrite!=3?0xA6:0x7F;	//WR=1
 				bufferU[j++]=CORE_INS;
 				bufferU[j++]=0x00;
 				bufferU[j++]=0x00;			//NOP
@@ -955,10 +1362,10 @@ void Write18Fx(int dim,int dim2,int wbuf,int eraseW1,int eraseW2,int options)
 				bufferU[j++]=WAIT_T3;		//write delay
 				bufferU[j++]=CORE_INS;
 				bufferU[j++]=0x80;			//RD=1
-				bufferU[j++]=0xA6;
+				bufferU[j++]=optWrite!=3?0xA6:0x7F;
 				bufferU[j++]=CORE_INS;
 				bufferU[j++]=0x50;			//MOVF EEDATA,w
-				bufferU[j++]=0xA8;
+				bufferU[j++]=optWrite!=3?0xA8:0x73;
 				bufferU[j++]=CORE_INS;
 				bufferU[j++]=0x6E;			//MOVWF TABLAT
 				bufferU[j++]=0xF5;
@@ -972,6 +1379,7 @@ void Write18Fx(int dim,int dim2,int wbuf,int eraseW1,int eraseW2,int options)
 				msDelay(8);
 				read();
 				PrintStatus(strings[S_CodeWriting],(i+dim)*100/(dim+dim2),i);	//"Scrittura: %d%%, ind. %03X"
+				if(RWstop) i=dim2;
 				j=1;
 				for(z=DIMBUF-1;z&&bufferI[z]!=SHIFT_TABLAT;z--);
 				if(z&&memEE[i]!=bufferI[z+1]) errEE++;
@@ -991,19 +1399,19 @@ void Write18Fx(int dim,int dim2,int wbuf,int eraseW1,int eraseW2,int options)
 	if(saveLog)fprintf(logfile,"VERIFY CODE\n");
 	bufferU[j++]=CORE_INS;
 	bufferU[j++]=0x8E;			//EEPGD=1
-	bufferU[j++]=0xA6;
+	bufferU[j++]=optWrite!=3?0xA6:0x7F;
 	bufferU[j++]=CORE_INS;
 	bufferU[j++]=0x9C;			//CFCGS=0
-	bufferU[j++]=0xA6;
+	bufferU[j++]=optWrite!=3?0xA6:0x7F;
 	bufferU[j++]=CORE_INS;
-	bufferU[j++]=0x6A;			//TBLPTRU
-	bufferU[j++]=0xF8;			//TBLPTRU
+	bufferU[j++]=0x6A;			//CLRF TBLPTRU
+	bufferU[j++]=0xF8;			//CLRF TBLPTRU
 	bufferU[j++]=CORE_INS;
-	bufferU[j++]=0x6A;			//TBLPTRH
-	bufferU[j++]=0xF7;			//TBLPTRH
+	bufferU[j++]=0x6A;			//CLRF TBLPTRH
+	bufferU[j++]=0xF7;			//CLRF TBLPTRH
 	bufferU[j++]=CORE_INS;
-	bufferU[j++]=0x6A;			//TBLPTRL
-	bufferU[j++]=0xF6;			//TBLPTRL
+	bufferU[j++]=0x6A;			//CLRF TBLPTRL
+	bufferU[j++]=0xF6;			//CLRF TBLPTRL
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
 	write();
@@ -1063,6 +1471,7 @@ void Write18Fx(int dim,int dim2,int wbuf,int eraseW1,int eraseW2,int options)
 			}
 		}
 		PrintStatus(strings[S_CodeV2],i*100/(dim+dim2),i);	//"Verifica: %d%%, ind. %04X"
+		if(RWstop) i=dim;
 		j=1;
 		if(saveLog){
 			fprintf(logfile,strings[S_Log8],i,i,k,k,err);	//"i=%d, k=%d, errors=%d\n"
@@ -1089,11 +1498,11 @@ void Write18Fx(int dim,int dim2,int wbuf,int eraseW1,int eraseW2,int options)
 		bufferU[j++]=0x6E;			//TBLPTRU
 		bufferU[j++]=0xF8;			//TBLPTRU
 		bufferU[j++]=CORE_INS;
-		bufferU[j++]=0x6A;			//TBLPTRH
-		bufferU[j++]=0xF7;			//TBLPTRH
+		bufferU[j++]=0x6A;			//CLRF TBLPTRH
+		bufferU[j++]=0xF7;			//CLRF TBLPTRH
 		bufferU[j++]=CORE_INS;
-		bufferU[j++]=0x6A;			//TBLPTRL
-		bufferU[j++]=0xF6;			//TBLPTRL
+		bufferU[j++]=0x6A;			//CLRF TBLPTRL
+		bufferU[j++]=0xF6;			//CLRF TBLPTRL
 		bufferU[j++]=TBLR_INC_N;
 		bufferU[j++]=8;
 		bufferU[j++]=FLUSH;
@@ -1117,24 +1526,25 @@ void Write18Fx(int dim,int dim2,int wbuf,int eraseW1,int eraseW2,int options)
 //****************** write CONFIG ********************
 	if(err<max_err&&optWrite==0){
 		PrintMessage(strings[S_ConfigW]);	//"Write CONFIG ..."
+		if(saveLog)	fprintf(logfile,"Write CONFIG\n");
 		bufferU[j++]=CORE_INS;
-		bufferU[j++]=0x8E;
-		bufferU[j++]=0xA6;
+		bufferU[j++]=0x8E;			//EEPGD=1
+		bufferU[j++]=optWrite!=3?0xA6:0x7F;
 		bufferU[j++]=CORE_INS;
-		bufferU[j++]=0x8C;
-		bufferU[j++]=0xA6;
-		bufferU[j++]=CORE_INS;
-		bufferU[j++]=0x0E;			//CONFIG 0x300000
+		bufferU[j++]=0x8C;			//CFCGS=1
+		bufferU[j++]=optWrite!=3?0xA6:0x7F;
+		bufferU[j++]=CORE_INS;		//CONFIG 0x300000
+		bufferU[j++]=0x0E;			//MOVLW
 		bufferU[j++]=0x30;
 		bufferU[j++]=CORE_INS;
-		bufferU[j++]=0x6E;			//TBLPTRU
-		bufferU[j++]=0xF8;			//TBLPTRU
+		bufferU[j++]=0x6E;			//MOVWF TBLPTRU
+		bufferU[j++]=0xF8;			//MOVWF TBLPTRU
 		bufferU[j++]=CORE_INS;
-		bufferU[j++]=0x6A;			//TBLPTRH
-		bufferU[j++]=0xF7;			//TBLPTRH
+		bufferU[j++]=0x6A;			//CLRF TBLPTRH
+		bufferU[j++]=0xF7;			//CLRF TBLPTRH
 		bufferU[j++]=CORE_INS;
-		bufferU[j++]=0x6A;			//TBLPTRL
-		bufferU[j++]=0xF6;			//TBLPTRL
+		bufferU[j++]=0x6A;			//CLRF TBLPTRL
+		bufferU[j++]=0xF6;			//CLRF TBLPTRL
 		for(i=0;i<14;i++){
 			if(memCONFIG[i]<0xFF){
 				bufferU[j++]=TBLW_PROG;
@@ -1174,16 +1584,16 @@ void Write18Fx(int dim,int dim2,int wbuf,int eraseW1,int eraseW2,int options)
 		int errC=0;
 		bufferU[j++]=CORE_INS;
 		bufferU[j++]=0x0E;			//TBLPTRU	CONFIG 0x300000
-		bufferU[j++]=0x30;			//TBLPTRU	CONFIG 0x300000
+		bufferU[j++]=0x30;			//
 		bufferU[j++]=CORE_INS;
-		bufferU[j++]=0x6E;			//TBLPTRU
-		bufferU[j++]=0xF8;			//TBLPTRU
+		bufferU[j++]=0x6E;			//MOVWF TBLPTRU
+		bufferU[j++]=0xF8;			//MOVWF TBLPTRU
 		bufferU[j++]=CORE_INS;
-		bufferU[j++]=0x6A;			//TBLPTRH
-		bufferU[j++]=0xF7;			//TBLPTRH
+		bufferU[j++]=0x6A;			//CLRF TBLPTRH
+		bufferU[j++]=0xF7;			//CLRF TBLPTRH
 		bufferU[j++]=CORE_INS;
-		bufferU[j++]=0x6A;			//TBLPTRL
-		bufferU[j++]=0xF6;			//TBLPTRL
+		bufferU[j++]=0x6A;			//CLRF TBLPTRL
+		bufferU[j++]=0xF6;			//CLRF TBLPTRL
 		bufferU[j++]=TBLR_INC_N;
 		bufferU[j++]=14;
 		bufferU[j++]=FLUSH;

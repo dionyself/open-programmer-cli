@@ -5,6 +5,22 @@ Questi sorgenti sono distribuiti gratuitamente sotto licenza GNU General Public 
 
 Cambiamenti (per usare i dispositivi aggiunti è richiesto un programmatore con firmware corrispondente):
 
+V 0.9.1 novembre 2014:	vari miglioramenti all'interfaccia utente;
+						corretta verifica ATTiny11-12; corretta scrittura 24FJ128GA3xx-GB2xx-GCxx-DAxx;
+						aggiunti: forza configurazione per PIC18, test hardware linee IO,
+						velocità SPI automatica per AVR, scrivi AVR Fuse Low @ 3kHz;
+						verifica veloce per memorie FLASH SPI;
+						aggiunti 10F320-22,12F529T39A,12F752,12F1612-13-14-15-18-19,
+						16F1512-13,16F1574-75-78-79,16F1703-04-05-07-08-09-13-16-17-18-19,
+						16F1788-89,16F570,16LF1554-59,
+						18F24K50-25K50-26K50-45K50-46K50,
+						18F25K80-26K80-45K80-46K80-65K80-66K80,
+						18F63J11-90,18F64J11-90,18F65J10-11-15-50-90,
+						18F66J10-11-15-16-50-55-90-93,18F67J10-11-50-90-93,
+						18F83J11-90,18F84J11-90,18F85J10-11-15-50-90,
+						18F86J10-11-15-16-50-55-90-93,18F87J10-11-50-72-90-93,
+						25X128,25Q40
+
 V 0.9.0 marzo 2014:		Write16F72x richiede solo la config-word1;
 						aggiunto HV serial programming per ATtiny11-12-13-24-25-44-45-84-85;
 						aggiunti 24FJ64GA3xx-GCxx,24FJ128GA3xx-GB2xx-GCxx-DAxx,24FJ256DAxx,24EPx,33EPx;

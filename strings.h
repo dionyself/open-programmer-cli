@@ -1,4 +1,4 @@
-// Strings.h v0.9.0
+// Strings.h v0.9.1
 
 enum S {
 	S_NL,
@@ -176,8 +176,7 @@ enum S {
 	S_Empty,
 	S_NextIns,
 	S_ForceConfigW,
-	S_ForceConfigW1,
-	S_ForceConfigW2,
+	S_ForceConfigWx,
 	S_WaitS1W,
 	S_WaitS1R,
 // GUI strings
@@ -214,14 +213,22 @@ enum S {
 	I_I2CReceive,
 	I_TestHW,
 	I_TestHWB,
+	I_TestMSG,
 	I_IO_Enable,
-	I_PIC_CONFIG,
+	I_SPIMEM,
+	I_I2CMEM,
+	I_UWMEM,
+	I_OWMEM,
+	I_OWDEV,
+	I_UNIOMEM,
+	I_3V3REQUIRED,
 	I_PIC_FORCECW,
-	I_AT_CONFIG,
 	I_AT_FUSE,
 	I_AT_FUSEH,
 	I_AT_FUSEX,
 	I_AT_LOCK,
+	I_AT_FUSELF,
+	I_AT_COMM,
 	I_W_LANGFILE,
 	I_WAITS1,
 	I_PRESSS1,
@@ -235,6 +242,7 @@ enum S {
 	I_SHOW_BANK2,
 	I_SHOW_BANK3,
 	I_SHOW_EE,
+	I_STOP,
 	I_ICD_RUN,
 	I_ICD_HALT,
 	I_ICD_STEP,

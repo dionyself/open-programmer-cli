@@ -45,7 +45,7 @@
 int FindDevice();
 
 #if !defined _WIN32 && !defined __CYGWIN__
-
+DWORD GetTickCount();
 struct hiddev_report_info rep_info_i,rep_info_u;
 struct hiddev_usage_ref_multi ref_multi_i,ref_multi_u;
 struct hiddev_devinfo device_info;
@@ -165,39 +165,6 @@ int main (int argc, char **argv) {
 
 	if(FindDevice()<0) exit(1);
 
-/*	if(path[0]==0){	//search all devices
-		for(i=0;i<16;i++){
-			sprintf(path,"/dev/usb/hiddev%d",i);
-			if((fd = open(path, O_RDONLY ))>0){
-				ioctl(fd, HIDIOCGDEVINFO, &device_info);
-				if(device_info.vendor==vid&&device_info.product==pid) break;
-				else close(fd);
-			}
-		}
-		if(i==16){
-			return -1;
-		}
-	}
-	else{	//user supplied path
-		if ((fd = open(path, O_RDONLY )) < 0) {
-			printf("cannot open %s, make sure you have read permission on it",path);
-			return -1;
-		}
-	}
-
-
-	if(info){
-		ioctl(fd, HIDIOCGDEVINFO, &device_info);
-		printf("vendor 0x%04hx product 0x%04hx version 0x%04hx ",
-			device_info.vendor, device_info.product, device_info.version);
-		printf("has %i application%s ", device_info.num_applications,
-			(device_info.num_applications==1?"":"s"));
-		printf("and is on bus: %d devnum: %d ifnum: %d\n",
-			device_info.busnum, device_info.devnum, device_info.ifnum);
-		char name[256]= "Unknown";
-		if(ioctl(fd, HIDIOCGNAME(sizeof(name)), name) < 0) perror("evdev ioctl");
-		printf("The device on %s says its name is %s\n", path, name);
-	}*/
 	if(!q){
 		printf("-> ");
 	 	for(i=0;i<j;i++) printf("%02X ",(unsigned char)buf[i]);
@@ -242,21 +209,31 @@ int main (int argc, char **argv) {
 	}
 	close(fd);
 #else
+	__int64 start,stop,freq;
+	QueryPerformanceFrequency((LARGE_INTEGER *)&freq);
 	bufferU[0]=0;
 	for(i=0;i<n;i++) bufferU[i+1]=buf[i];
 	for(j=0;j<r;j++){
-		Sleep(d);
+		QueryPerformanceCounter((LARGE_INTEGER *)&start);
 		write();
+		Sleep(d);
 		read();
+		QueryPerformanceCounter((LARGE_INTEGER *)&stop);
 		if(!q) printf("<- ");
 		for(i=1;i<n;i++) printf("%02X ",bufferI[i]);
-		printf("\n");
+		printf("\nT=%.2fms\n",(stop-start)*1000.0/freq);
 	}
 
 #endif
 	return 0;
 }
 
+
+DWORD GetTickCount(){
+	struct timeb now;
+	ftime(&now);
+	return now.time*1000+now.millitm;
+}
 
 
 int FindDevice(){
@@ -300,6 +277,19 @@ int FindDevice(){
 	ref_multi_u.uref.field_index=ref_multi_i.uref.field_index=0;
 	ref_multi_u.uref.usage_index=ref_multi_i.uref.usage_index=0;
 	ref_multi_u.num_values=ref_multi_i.num_values=DIMBUF;
+
+	if(info){
+		ioctl(fd, HIDIOCGDEVINFO, &device_info);
+		printf("vendor 0x%04hx product 0x%04hx version 0x%04hx ",
+			device_info.vendor, device_info.product, device_info.version);
+		printf("has %i application%s ", device_info.num_applications,
+			(device_info.num_applications==1?"":"s"));
+		printf("and is on bus: %d devnum: %d ifnum: %d\n",
+			device_info.busnum, device_info.devnum, device_info.ifnum);
+		char name[256]= "Unknown";
+		if(ioctl(fd, HIDIOCGNAME(sizeof(name)), name) < 0) perror("evdev ioctl");
+		printf("The device on %s says its name is %s\n", path, name);
+	}
 
 #else
 	char string[256];

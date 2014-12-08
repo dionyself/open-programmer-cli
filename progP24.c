@@ -20,13 +20,15 @@
 
 /*
                 ICSP  Code(KWord) EE(B) Config     Code_er Row Row_wr EE_er EE_wr Conf_wr wr_seq
-24F0xKAxxx      HV-LV  1.375-5.5   512  00-10(8b)   4064   32  4004   4050  4004   4004    NO
+24F0xKAxxx      HV|LV  1.375-5.5   512  00-10(8b)   4064   32  4004   4050  4004   4004    NO
 24FJxxGA0xx     LV     5.5-44      NO   Code-2(16b) 404F   64  4001   -     -      4003    NO
 24FJxxGA1x/GB0x LV     11-22       NO   Code-4(16b) 404F   64  4001   -     -      4003    NO
 xDA/GB2/GA3/GC   "     22-87                   "            "                 "
+(new TABLPAG)
 24FJxxGB1x      LV     22-87       NO   Code-3(16b) 404F   64  4001   -     -      4003    NO
 24HJ-33FJ       LV      2-88       NO  00-12/16(8b) 404F   64  4001   -     -      4000    NO
 24E-33E         LV     11-88       NO   Code-20(8b) 400F    2  4001   -     -      4001   55-AA
+(new TABLPAG, new algorithm)
 30Fxx10-16      HV2     4-48      0-4K  00-0C(16b)  407F   32  4001   seq.  4004   4008   55-AA
 30F2020-23      LV5V    2-4        NO   00-0E(16b)  407F   32  4001   -     -      4008   55-AA
 
@@ -325,6 +327,18 @@ struct ID24{
 	{0x4005,"33FJ64GS608"},
 	{0x4008,"33FJ32GS610"},
 	{0x4009,"33FJ64GS610"},
+	{0x4100,"24FJ128GB206"},
+	{0x4102,"24FJ128GB210"},
+	{0x4104,"24FJ256GB206"},
+	{0x4106,"24FJ256GB210"},
+	{0x4108,"24FJ128DA206"},
+	{0x4109,"24FJ128DA106"},
+	{0x410A,"24FJ128DA210"},
+	{0x410B,"24FJ128DA110"},
+	{0x410C,"24FJ256DA206"},
+	{0x410D,"24FJ256DA106"},
+	{0x410E,"24FJ256DA210"},
+	{0x410F,"24FJ256DA110"},
 	{0x4202,"24FJ32GA102"},
 	{0x4203,"24FJ32GB002"},
 	{0x4206,"24FJ64GA102"},
@@ -333,6 +347,18 @@ struct ID24{
 	{0x420B,"24FJ32GB004"},
 	{0x420E,"24FJ64GA104"},
 	{0x420F,"24FJ64GB004"},
+	{0x46C0,"24FJ64GA306"},
+	{0x46C2,"24FJ128GA306"},
+	{0x46C4,"24FJ64GA308"},
+	{0x46C6,"24FJ128GA308"},
+	{0x46C8,"24FJ64GA310"},
+	{0x46CA,"24FJ128GA310"},
+	{0x4884,"24FJ64GC010"},
+	{0x4885,"24FJ128GC010"},
+	{0x4888,"24FJ64GC006"},
+	{0x4889,"24FJ128GC006"},
+	{0x488A,"24FJ64GC008"},
+	{0x488B,"24FJ128GC008"},
 };
 
 #ifdef _MSC_VER
@@ -379,7 +405,8 @@ void DisplayCODE24F(int dim){
 			lines++;
 			if(lines>500){	//limit number of lines printed
 				strcat(aux,"(...)\r\n");
-				i=size;
+				i=(dim<size?dim:size)-COL*4;
+				lines=490;
 			}
 		}
 		s[0]=0;
@@ -465,12 +492,16 @@ void Read24Fx(int dim,int dim2,int options,int appIDaddr,int executiveArea){
 //     4 = 0xF80000 to 0xF80016 (24H-33F)
 //     5 = 0xF80000 to 0xF8000C (x16 bit, 30F)
 //     6 = 0xF80000 to 0xF8000E (30FSMPS)
+//	bit [8]
+//	   0 = standard TABLPAG address
+//	   1 = new TABLPAG address
 // appIDaddr = application ID word lower address (high is 0x80)
 // executiveArea = size of executive area (16 bit words, starting at 0x800000)
 	int k=0,k2=0,z=0,i,j;
 	int entry=options&0xF;
 	int config=(options>>4)&0xF;
 	int EEbaseAddr=0x1000-dim2;
+	int newTABLPAG=options&0x100?1:0;
 	if(FWVersion<0x700){
 		PrintMessage1(strings[S_FWver2old],"0.7.0");	//"This firmware is too old. Version %s is required\r\n"
 		return;
@@ -520,8 +551,8 @@ void Read24Fx(int dim,int dim2,int options,int appIDaddr,int executiveArea){
 	j=1;
 	bufferU[j++]=SET_PARAMETER;
 	bufferU[j++]=SET_T3;
-	bufferU[j++]=2000>>8;
-	bufferU[j++]=2000&0xff;
+	bufferU[j++]=10000>>8;
+	bufferU[j++]=10000&0xff;
 	bufferU[j++]=EN_VPP_VCC;		//enter program mode
 	bufferU[j++]=0x0;
 	bufferU[j++]=SET_CK_D;
@@ -536,7 +567,7 @@ void Read24Fx(int dim,int dim2,int options,int appIDaddr,int executiveArea){
 		bufferU[j++]=0x1;
 	}
 	else PrintMessage(strings[S_HVICSP]); //"High Voltage ICSP\r\n"
-	bufferU[j++]=WAIT_T3;
+	bufferU[j++]=WAIT_T3;	//>10ms before key (GA3xx-GC0xx)
 	bufferU[j++]=TX16;
 	bufferU[j++]=2;
 	bufferU[j++]=0x4D;
@@ -597,7 +628,7 @@ void Read24Fx(int dim,int dim2,int options,int appIDaddr,int executiveArea){
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
 	write();
-	msDelay(37);
+	msDelay(55);
 	read();
 	if(saveLog)WriteLogIO();
 	j=1;
@@ -608,8 +639,14 @@ void Read24Fx(int dim,int dim2,int options,int appIDaddr,int executiveArea){
 	bufferU[j++]=0x0F;
 	bufferU[j++]=0xF0;				//0xFF
 	bufferU[j++]=0x88;				//MOV W0,TABLPAG
+	if(newTABLPAG){
+		bufferU[j++]=0x02;
+		bufferU[j++]=0xA0;
+	}
+	else{
 	bufferU[j++]=0x01;
 	bufferU[j++]=0x90;
+	}
 	bufferU[j++]=0x20;				//MOV XXXX,W6
 	bufferU[j++]=0x00;
 	bufferU[j++]=0x06;				//0x0000
@@ -653,8 +690,14 @@ void Read24Fx(int dim,int dim2,int options,int appIDaddr,int executiveArea){
 	bufferU[j++]=0x08;
 	bufferU[j++]=0x00;
 	bufferU[j++]=0x88;				//MOV W0,TABLPAG
+	if(newTABLPAG){
+		bufferU[j++]=0x02;
+		bufferU[j++]=0xA0;
+	}
+	else{
 	bufferU[j++]=0x01;
 	bufferU[j++]=0x90;
+	}
 	bufferU[j++]=0x20+((appIDaddr>>12)&0xF);	//MOV XXXX,W6
 	bufferU[j++]=(appIDaddr>>4)&0xFF;
 	bufferU[j++]=((appIDaddr<<4)&0xF0)+6;
@@ -676,8 +719,14 @@ void Read24Fx(int dim,int dim2,int options,int appIDaddr,int executiveArea){
 	bufferU[j++]=0x00;
 	bufferU[j++]=0x00;
 	bufferU[j++]=0x88;				//MOV W0,TABLPAG
+	if(newTABLPAG){
+		bufferU[j++]=0x02;
+		bufferU[j++]=0xA0;
+	}
+	else{
 	bufferU[j++]=0x01;
 	bufferU[j++]=0x90;
+	}
 	bufferU[j++]=0x20;				//MOV 0,W6
 	bufferU[j++]=0x00;
 	bufferU[j++]=0x06;
@@ -709,8 +758,14 @@ void Read24Fx(int dim,int dim2,int options,int appIDaddr,int executiveArea){
 			bufferU[j++]=(i>>13)&0xF0;
 			bufferU[j++]=SIX;				//MOV W0,TABLPAG
 			bufferU[j++]=0x88;
+			if(newTABLPAG){
+				bufferU[j++]=0x02;
+				bufferU[j++]=0xA0;
+			}
+			else{
 			bufferU[j++]=0x01;
 			bufferU[j++]=0x90;
+			}
 			bufferU[j++]=SIX;				//GOTO 0x200
 			bufferU[j++]=0x04;
 			bufferU[j++]=0x02;
@@ -866,8 +921,14 @@ void Read24Fx(int dim,int dim2,int options,int appIDaddr,int executiveArea){
 		bufferU[j++]=0x0F;
 		bufferU[j++]=0x80;
 		bufferU[j++]=0x88;				//MOV W0,TABLPAG
+		if(newTABLPAG){
+			bufferU[j++]=0x02;
+			bufferU[j++]=0xA0;
+		}
+		else{
 		bufferU[j++]=0x01;
 		bufferU[j++]=0x90;
+		}
 		bufferU[j++]=0x20;				//MOV XXXX,W6
 		bufferU[j++]=0x00;
 		bufferU[j++]=0x06;
@@ -982,8 +1043,14 @@ void Read24Fx(int dim,int dim2,int options,int appIDaddr,int executiveArea){
 		bufferU[j++]=0x07;
 		bufferU[j++]=0xF0;
 		bufferU[j++]=0x88;				//MOV W0,TABLPAG
+		if(newTABLPAG){
+			bufferU[j++]=0x02;
+			bufferU[j++]=0xA0;
+		}
+		else{
 		bufferU[j++]=0x01;
 		bufferU[j++]=0x90;
+		}
 		bufferU[j++]=0x2F;		//MOV #<ADDR[15:0]>,W6   (base address)
 		bufferU[j++]=(EEbaseAddr>>4)&0xFF;
 		bufferU[j++]=(EEbaseAddr&0xF0)+6;
@@ -1040,8 +1107,14 @@ void Read24Fx(int dim,int dim2,int options,int appIDaddr,int executiveArea){
 		bufferU[j++]=0x08;
 		bufferU[j++]=0x00;
 		bufferU[j++]=0x88;				//MOV W0,TABLPAG
+		if(newTABLPAG){
+			bufferU[j++]=0x02;
+			bufferU[j++]=0xA0;
+		}
+		else{
 		bufferU[j++]=0x01;
 		bufferU[j++]=0x90;
+		}
 		bufferU[j++]=0x20;				//MOV XXXX,W6
 		bufferU[j++]=0x00;
 		bufferU[j++]=0x06;
@@ -1256,13 +1329,11 @@ void COpenProgDlg::Read24Ex(int dim,int dim2,int options,int appIDaddr,int execu
 #else
 void Read24Ex(int dim,int dim2,int options,int appIDaddr,int executiveArea){
 #endif
-// read 16 bit PIC 24Fxxxx
+// read 16 bit PIC 24Exxxx
 // deviceID @ 0xFF0000
 // dim=program size (16 bit words)
 // dim2=dummy parameter
-// options:
-//	bit [3:0]
-//	bit [7:4]
+// options: not used
 // appIDaddr = application ID word lower address (high is 0x80)
 // executiveArea = size of executive area (16 bit words, starting at 0x800000)
 	int k=0,z=0,i,j;
@@ -1612,6 +1683,7 @@ void Read24Ex(int dim,int dim2,int options,int appIDaddr,int executiveArea){
 			k+=8;
 		}
 		PrintStatus(strings[S_CodeReading2],i*100/dim,i/2);	//"Read: %d%%, addr. %05X"
+		if(RWstop) i=dim;
 		j=1;
 		if(saveLog){
 			fprintf(logfile,strings[S_Log7],i,i,k,k);	//"i=%d(0x%X), k=%d(0x%X)\n"
@@ -1739,6 +1811,7 @@ void Read24Ex(int dim,int dim2,int options,int appIDaddr,int executiveArea){
 		}
 			k+=16;
 			PrintStatus(strings[S_CodeReading2],i*100/executiveArea,0x800000+i/2);	//"Read: %d%%, addr. %05X"
+			if(RWstop) i=dim;
 		if(saveLog){
 				fprintf(logfile,strings[S_Log7],i,i,k,k);	//"i=%d(0x%X), k=%d(0x%X)\n"
 			WriteLogIO();
@@ -1959,6 +2032,9 @@ void Write24Fx(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 //	   1 = config write is 0x4003
 //	   2 = config write is 0x4004
 //	   3 = config write is 0x4008
+//	bit [20]
+//	   0 = standard TABLPAG address
+//	   1 = new TABLPAG address
 // appIDaddr = application ID word lower address (high is 0x80)
 // rowSize = row size in instruction words (a row is written altogether)
 // wait = write delay in ms
@@ -1966,6 +2042,7 @@ void Write24Fx(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 	int entry=options&0xF;
 	int config=(options>>4)&0xF;
 	int EEbaseAddr=0x1000-dim2;
+	int newTABLPAG=options&0x100000?1:0;
 	int err=0;
 	if(FWVersion<0x700){
 		PrintMessage1(strings[S_FWver2old],"0.7.0");	//"This firmware is too old. Version %s is required\r\n"
@@ -2144,8 +2221,14 @@ void Write24Fx(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 		bufferU[j++]=0x0F;
 	bufferU[j++]=0xF0;				//0xFF
 		bufferU[j++]=0x88;				//MOV W0,TABLPAG
+	if(newTABLPAG){
+		bufferU[j++]=0x02;
+		bufferU[j++]=0xA0;
+	}
+	else{
 		bufferU[j++]=0x01;
 		bufferU[j++]=0x90;
+	}
 		bufferU[j++]=0x20;				//MOV XXXX,W6
 		bufferU[j++]=0x00;
 	bufferU[j++]=0x06;				//0x0000
@@ -2189,8 +2272,14 @@ void Write24Fx(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 	bufferU[j++]=0x08;
 	bufferU[j++]=0x00;
 	bufferU[j++]=0x88;				//MOV W0,TABLPAG
+	if(newTABLPAG){
+		bufferU[j++]=0x02;
+		bufferU[j++]=0xA0;
+	}
+	else{
 	bufferU[j++]=0x01;
 	bufferU[j++]=0x90;
+	}
 	bufferU[j++]=0x20+((appIDaddr>>12)&0xF);	//MOV XXXX,W6
 	bufferU[j++]=(appIDaddr>>4)&0xFF;
 	bufferU[j++]=((appIDaddr<<4)&0xF0)+6;
@@ -2247,8 +2336,14 @@ void Write24Fx(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 	bufferU[j++]=0x00;
 	bufferU[j++]=0x00;
 		bufferU[j++]=0x88;				//MOV W0,TABLPAG
+	if(newTABLPAG){
+		bufferU[j++]=0x02;
+		bufferU[j++]=0xA0;
+	}
+	else{
 		bufferU[j++]=0x01;
 		bufferU[j++]=0x90;
+	}
 		bufferU[j++]=ICSP_NOP;
 	bufferU[j++]=SIX_LONG;			//TBLWTL W0,[W0] (dummy write)
 		bufferU[j++]=0xBB;
@@ -2356,8 +2451,14 @@ void Write24Fx(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 		bufferU[j++]=0x00;
 		bufferU[j++]=0x00;
 	bufferU[j++]=0x88;				//MOV W0,TABLPAG
+	if(newTABLPAG){
+		bufferU[j++]=0x02;
+		bufferU[j++]=0xA0;
+	}
+	else{
 	bufferU[j++]=0x01;
 	bufferU[j++]=0x90;
+	}
 	bufferU[j++]=0x04;				//GOTO 0x200
 	bufferU[j++]=0x02;
 	bufferU[j++]=0x00;
@@ -2391,8 +2492,14 @@ void Write24Fx(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 				bufferU[j++]=(i>>13)&0xF0;
 				bufferU[j++]=SIX;				//MOV W0,TABLPAG
 				bufferU[j++]=0x88;
+				if(newTABLPAG){
+					bufferU[j++]=0x02;
+					bufferU[j++]=0xA0;
+				}
+				else{
 				bufferU[j++]=0x01;
 				bufferU[j++]=0x90;
+				}
 				bufferU[j++]=SIX;				//GOTO 0x200
 				bufferU[j++]=0x04;
 				bufferU[j++]=0x02;
@@ -2531,6 +2638,7 @@ void Write24Fx(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 			read();
 			j=1;
 			PrintStatus(strings[S_CodeWriting2],i*100/(dim+dim2),i/2);	//"Write: %d%%,addr. %04X"
+			if(RWstop) i=dim;
 			if(saveLog){
 				fprintf(logfile,strings[S_Log7],i/2,i/2,k,k);	//"i=%d, k=%d 0=%d\n"
 				WriteLogIO();
@@ -2559,8 +2667,14 @@ void Write24Fx(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 			bufferU[j++]=(i>>13)&0xF0;
 			bufferU[j++]=SIX;				//MOV W0,TABLPAG
 			bufferU[j++]=0x88;
+			if(newTABLPAG){
+				bufferU[j++]=0x02;
+				bufferU[j++]=0xA0;
+			}
+			else{
 			bufferU[j++]=0x01;
 			bufferU[j++]=0x90;
+			}
 			bufferU[j++]=SIX;				//GOTO 0x200
 			bufferU[j++]=0x04;
 			bufferU[j++]=0x02;
@@ -2632,6 +2746,7 @@ void Write24Fx(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 		msDelay(3);
 		read();
 		PrintStatus(strings[S_CodeV2],i*100/(dim+dim2),i/2);	//"Verify: %d%%, addr. %04X"
+		if(RWstop) i=dim;
 		for(z=1;bufferI[z]!=REGOUT&&z<DIMBUF;z++);
 		if(z<DIMBUF-2){
 			r0=(bufferI[z+1]<<8)+bufferI[z+2];
@@ -2701,8 +2816,14 @@ void Write24Fx(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 			bufferU[j++]=0xF0;
 			bufferU[j++]=SIX;				//MOV W0,TABLPAG
 			bufferU[j++]=0x88;
+			if(newTABLPAG){
+				bufferU[j++]=0x02;
+				bufferU[j++]=0xA0;
+			}
+			else{
 			bufferU[j++]=0x01;
 			bufferU[j++]=0x90;
+			}
 			bufferU[j++]=SIX;				//MOV EEbaseAddr,W0
 			bufferU[j++]=0x2F;
 			bufferU[j++]=EEbaseAddr>>4;
@@ -2861,8 +2982,14 @@ void Write24Fx(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 			bufferU[j++]=0xF0;
 			bufferU[j++]=SIX;				//MOV W0,TABLPAG
 			bufferU[j++]=0x88;
+			if(newTABLPAG){
+				bufferU[j++]=0x02;
+				bufferU[j++]=0xA0;
+			}
+			else{
 			bufferU[j++]=0x01;
 			bufferU[j++]=0x90;
+			}
 			bufferU[j++]=FLUSH;
 			for(;j<DIMBUF;j++) bufferU[j]=0x0;
 			write();
@@ -2933,6 +3060,7 @@ void Write24Fx(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 				read();
 				j=1;
 				PrintStatus(strings[S_CodeWriting],(i-0x1000+dim2)*100/(dim2),i);	//"Scrittura: %d%%, ind. %03X"
+				if(RWstop) i=dim;
 				if(saveLog){
 					fprintf(logfile,strings[S_Log7],i,i,k,k);	//"i=%d, k=%d 0=%d\n"
 					WriteLogIO();
@@ -2976,6 +3104,7 @@ void Write24Fx(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 					}
 				}
 				PrintStatus(strings[S_CodeReading],(i-EEbaseAddr)*100/(dim2),i);	//"Read: %d%%, addr. %03X"
+				if(RWstop) i=EEbaseAddr+dim2;
 				j=1;
 				if(saveLog){
 					fprintf(logfile,strings[S_Log7],i,i,k2,k2);	//"i=%d(0x%X), k=%d(0x%X)\n"
@@ -3001,8 +3130,14 @@ void Write24Fx(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 		bufferU[j++]=0x0F;
 		bufferU[j++]=0x80;
 		bufferU[j++]=0x88;				//MOV W0,TABLPAG
+		if(newTABLPAG){
+			bufferU[j++]=0x02;
+			bufferU[j++]=0xA0;
+		}
+		else{
 		bufferU[j++]=0x01;
 		bufferU[j++]=0x90;
+		}
 		bufferU[j++]=0x24;				//MOV 0x400x,W10
 		bufferU[j++]=0x00;
 		if(confword==0)bufferU[j++]=0x0A;		//0x4000
@@ -3168,8 +3303,14 @@ void Write24Fx(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 		bufferU[j++]=0x0F;
 		bufferU[j++]=0x80;
 		bufferU[j++]=0x88;				//MOV W0,TABLPAG
+		if(newTABLPAG){
+			bufferU[j++]=0x02;
+			bufferU[j++]=0xA0;
+		}
+		else{
 		bufferU[j++]=0x01;
 		bufferU[j++]=0x90;
+		}
 		bufferU[j++]=0x20;				//MOV 0,W7
 		bufferU[j++]=0x00;
 		bufferU[j++]=0x07;
@@ -3777,6 +3918,7 @@ void Write24Ex(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 		read();
 		j=1;
 		PrintStatus(strings[S_CodeWriting2],i*100/(dim+dim2),i/2);	//"Write: %d%%,addr. %04X"
+		if(RWstop) i=dim;
 		if(saveLog){
 			fprintf(logfile,strings[S_Log7],i/2,i/2,k,k);	//"i=%d, k=%d 0=%d\n"
 			WriteLogIO();
@@ -3908,6 +4050,7 @@ void Write24Ex(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 		msDelay(4);
 		read();
 		PrintStatus(strings[S_CodeV2],i*100/(dim+dim2),i/2);	//"Verify: %d%%, addr. %04X"
+		if(RWstop) i=dim;
 		for(z=1;bufferI[z]!=REGOUT&&z<DIMBUF;z++);
 		if(z<DIMBUF-2){
 			r0=(bufferI[z+1]<<8)+bufferI[z+2];
