@@ -14,10 +14,17 @@ OBJECTS = 	op.o \
 			I2CSPI.o \
 			strings.o
 
+UNAME := $(shell uname)
+ifneq (, $(findstring _NT-, $(UNAME)))
+	OPFLAG =
+else
+	OPFLAG = -lrt 
+endif
+
 all: op
 
 op : $(OBJECTS)
-	$(CC) $(CFLAGS) $(OBJECTS) -o op
+	$(CC) $(CFLAGS) $(OBJECTS) -o op $(OPFLAG)
 
 %.o : %.c
 	$(CC) $(CFLAGS) -c $<

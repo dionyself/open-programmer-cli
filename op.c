@@ -570,16 +570,6 @@ Foundation; either version 2 of the License, or (at your option) any later versi
 }
 
 
-#if !defined _WIN32 && !defined __CYGWIN__	//Linux
-DWORD GetTickCount(){
-	struct timeb now;
-	ftime(&now);
-	return now.time*1000+now.millitm;
-}
-#endif
-
-
-
 void DisplayEE(){
 	char s[256],t[256],v[256];
 	int valid=0,empty=1;
@@ -982,7 +972,8 @@ void PacketIO(double delay){
 #endif
 }
 
-
+#define FALSE 0
+#define TRUE 1
 ///
 ///Find the USB peripheral with proper vid&pid code
 /// return 0 if not found

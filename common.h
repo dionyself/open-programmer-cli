@@ -11,6 +11,7 @@
 	#include <linux/hiddev.h>
 	#include <linux/input.h>
 	#include <sys/timeb.h>
+	#include <stdint.h>
 #else
 	#include <windows.h>
 	#include <setupapi.h>

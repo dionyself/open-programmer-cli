@@ -5,6 +5,8 @@ Questi sorgenti sono distribuiti gratuitamente sotto licenza GNU General Public 
 
 Cambiamenti (per usare i dispositivi aggiunti è richiesto un programmatore con firmware corrispondente):
 
+V 0.9.1.1 dicembre 2014:corretti errori di compilazione su Linux;
+
 V 0.9.1 novembre 2014:	vari miglioramenti all'interfaccia utente;
 						corretta verifica ATTiny11-12; corretta scrittura 24FJ128GA3xx-GB2xx-GCxx-DAxx;
 						aggiunti: forza configurazione per PIC18, test hardware linee IO,
