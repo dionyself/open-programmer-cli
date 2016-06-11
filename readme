@@ -5,6 +5,11 @@ These sources are given free of charge under the GNU General Public License vers
 
 Changelog (to use new features the corresponding firmware is required):
 
+V 0.10.0 june 2016:  	added 16F18313-23-24-25-26-44-45-46;
+						improved USB communication
+
+V 0.9.1.2 june 2015 	fixed log write error
+
 V 0.9.1.1 december 2014:Fixed build errors in Linux;
 
 V 0.9.1 november 2014:	Fixed verification of ATTiny11-12;

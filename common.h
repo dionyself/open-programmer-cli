@@ -15,8 +15,10 @@
 #else
 	#include <windows.h>
 	#include <setupapi.h>
-	#include <ddk/hidusage.h>
-	#include <ddk/hidpi.h>
+	#include <hidusage.h>
+	#include <hidpi.h>
+//	#include <ddk/hidusage.h>
+//	#include <ddk/hidpi.h>
 	#include <math.h>
 	#include <sys/timeb.h>
 	#include <wchar.h>
@@ -47,7 +49,9 @@ typedef unsigned char BYTE;
 #define	PrintStatusEnd() printf("\b\b\b\b");
 #define	PrintStatusClear() //only for GUI
 #define COL 16
-#define VERSION "0.9.1"
+#if !defined VERSION
+  #define VERSION "0.10.0"
+#endif
 #define G (12.0/34*1024/5)		//=72,2823529412
 #define LOCK	1
 #define FUSE	2
@@ -57,34 +61,38 @@ typedef unsigned char BYTE;
 #define SLOW	256
 
 #if !defined _WIN32 && !defined __CYGWIN__		//Linux
+	#define SYSNAME "Linux"
 	#define DIMBUF 64
-	#define write() ioctl(fd, HIDIOCSUSAGES, &ref_multi_u); ioctl(fd,HIDIOCSREPORT, &rep_info_u);
-	#define read() ioctl(fd, HIDIOCGUSAGES, &ref_multi_i); ioctl(fd,HIDIOCGREPORT, &rep_info_i);
-	#define bufferU ref_multi_u.values
-	#define bufferI ref_multi_i.values
+//	#define write() ioctl(fd, HIDIOCSUSAGES, &ref_multi_u); ioctl(fd,HIDIOCSREPORT, &rep_info_u);
+//	#define read() ioctl(fd, HIDIOCGUSAGES, &ref_multi_i); ioctl(fd,HIDIOCGREPORT, &rep_info_i);
+//	#define bufferU ref_multi_u.values
+//	#define bufferI ref_multi_i.values
 	DWORD GetTickCount();
-	struct hiddev_report_info rep_info_i,rep_info_u;
-	struct hiddev_usage_ref_multi ref_multi_i,ref_multi_u;
+//	struct hiddev_report_info rep_info_i,rep_info_u;
+//	struct hiddev_usage_ref_multi ref_multi_i,ref_multi_u;
+	extern unsigned char bufferU[128],bufferI[128];
 #else	//Windows
-	#define DIMBUF 65
-	#define write()	Result = WriteFile(WriteHandle,bufferU,DIMBUF,&BytesWritten,NULL);
-	#define read()	Result = ReadFile(ReadHandle,bufferI,DIMBUF,&NumberOfBytesRead,(LPOVERLAPPED) &HIDOverlapped);\
+	#define SYSNAME "Windows"
+	//#define DIMBUF 65
+	#define DIMBUF 64
+//	#define write()	Result = WriteFile(WriteHandle,bufferU0,DIMBUF+1,&BytesWritten,NULL);
+//	#define read()	Result = ReadFile(ReadHandle,bufferI0,DIMBUF+1,&NumberOfBytesRead,(LPOVERLAPPED) &HIDOverlapped);\
 					Result = WaitForSingleObject(hEventObject,10);\
 					ResetEvent(hEventObject);\
 					if(Result!=WAIT_OBJECT_0){\
 						PrintMessage(strings[S_comTimeout]);	/*"comm timeout\r\n"*/\
 					}
-
-extern unsigned char bufferU[128],bufferI[128];
-extern DWORD NumberOfBytesRead,BytesWritten;
-extern ULONG Result;
-extern HANDLE WriteHandle,ReadHandle;
-extern OVERLAPPED HIDOverlapped;
-extern HANDLE hEventObject;
+	extern unsigned char bufferU0[128],bufferI0[128];
+	extern unsigned char *bufferU,*bufferI;
+	extern DWORD NumberOfBytesRead,BytesWritten;
+	extern ULONG Result;
+	extern HANDLE WriteHandle,ReadHandle;
+	extern OVERLAPPED HIDOverlapped;
+	extern HANDLE hEventObject;
 
 #endif
 
-
+extern char str[4096];
 extern int saveLog;
 extern char** strings;
 extern int fd;
@@ -114,3 +122,5 @@ void CloseLogFile();
 unsigned int htoi(const char *hex, int length);
 void PacketIO(double delay);
 void CleanIO();
+void readP();
+void writeP();

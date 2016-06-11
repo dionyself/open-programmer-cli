@@ -1,6 +1,6 @@
 /**
  * \file progP12.c - algorithms to program the PIC12 (12 bit word) family of microcontrollers
- * Copyright (C) 2009-2014 Alberto Maccioni
+ * Copyright (C) 2009-2016 Alberto Maccioni
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,11 +22,10 @@
 //#include "stdafx.h"
 
 
-//configure for GUI or command-line
 #ifdef _MSC_VER 
 	#include "msvc_common.h"
 #else 
-#include "common.h"
+	#include "common.h"
 #endif
 
 #ifdef _MSC_VER
@@ -52,8 +51,7 @@ void Read12F5xx(int dim,int dim2)
 		fprintf(logfile,"Read12F5xx(%d,%d)\n",dim,dim2);
 	}
 	unsigned int start=GetTickCount();
-	bufferU[0]=0;
-	j=1;
+	j=0;
 	bufferU[j++]=SET_PARAMETER;
 	bufferU[j++]=SET_T1T2;
 	bufferU[j++]=1;						//T1=1u
@@ -75,10 +73,7 @@ void Read12F5xx(int dim,int dim2)
 	bufferU[j++]=INC_ADDR;			// 7FF->000
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(2);
-	read();
-	if(saveLog)WriteLogIO();
+	PacketIO(2);
 	for(z=0;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
 	if(z<DIMBUF-2){
 		memCODE_W[0xfff]=(bufferI[z+1]<<8)+bufferI[z+2];
@@ -109,26 +104,23 @@ void Read12F5xx(int dim,int dim2)
 //****************** read code ********************
 	PrintMessage(strings[S_CodeReading1]);		//reading code ...
 	PrintStatusSetup();
-	for(i=0,j=1;i<dim+dim2;i++){
+	for(i=0,j=0;i<dim+dim2;i++){
 		bufferU[j++]=READ_DATA_PROG;
 		bufferU[j++]=INC_ADDR;
-		if(j>DIMBUF*2/4-2||i==dim+dim2-1){		//2 ins -> 4 ans
+		if(j>DIMBUF*2/4-3||i==dim+dim2-1){		//2 ins -> 4 ans
 			bufferU[j++]=FLUSH;
 			for(;j<DIMBUF;j++) bufferU[j]=0x0;
-			write();
-			msDelay(5);
-			read();
-			for(z=1;z<DIMBUF-2;z++){
+			PacketIO(5);
+			for(z=0;z<DIMBUF-2;z++){
 				if(bufferI[z]==READ_DATA_PROG){
 					memCODE_W[k++]=(bufferI[z+1]<<8)+bufferI[z+2];
 					z+=2;
 				}
 			}
 			PrintStatus(strings[S_CodeReading],i*100/(dim+dim2),i);	//"Read: %d%%, addr. %03X"
-			j=1;
+			j=0;
 			if(saveLog){
 				fprintf(logfile,strings[S_Log7],i,i,k,k);	//"i=%d(0x%X), k=%d(0x%X)\n"
-				WriteLogIO();
 			}
 		}
 	}
@@ -142,11 +134,8 @@ void Read12F5xx(int dim,int dim2)
 	bufferU[j++]=0x0;
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(1);
-	read();
+	PacketIO(1);
 	unsigned int stop=GetTickCount();
-	if(saveLog)CloseLogFile();
 	for(i=k;i<0xfff;i++) memCODE_W[i]=0xfff;
 	if(k!=dim+dim2){
 		PrintMessage("\r\n");
@@ -206,10 +195,13 @@ void Read12F5xx(int dim,int dim2)
 		else PrintMessage(aux);
 		free(aux);
 	}
+	sprintf(str,strings[S_End],(stop-start)/1000.0);	//"\r\nEnd (%.2f s)\r\n"
+	PrintMessage(str);
+	if(saveLog){
+		fprintf(logfile,str);
+		CloseLogFile();
+	}
 	PrintStatusClear();			//clear status report
-	PrintMessage("\r\n");
-	PrintMessage1(strings[S_End],(stop-start)/1000.0);	//"\r\nEnd (%.2f s)\r\n"
-
 }
 
 #ifdef _MSC_VER
@@ -241,8 +233,7 @@ void Write12F5xx(int dim,int OscAddr)
 	}
 	for(i=0;i<sizeW;i++) memCODE_W[i]&=0xFFF;
 	unsigned int start=GetTickCount();
-	bufferU[0]=0;
-	j=1;
+	j=0;
 	bufferU[j++]=SET_PARAMETER;
 	bufferU[j++]=SET_T1T2;
 	bufferU[j++]=1;						//T1=1u
@@ -287,10 +278,7 @@ void Write12F5xx(int dim,int OscAddr)
 	bufferU[j++]=WAIT_T3;
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(15);
-	read();
-	if(saveLog)WriteLogIO();
+	PacketIO(15);
 	if(OscAddr!=-1){
 		for(z=4;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
 		if(z<DIMBUF-2) osccal=(bufferI[z+1]<<8)+bufferI[z+2];
@@ -306,7 +294,7 @@ void Write12F5xx(int dim,int OscAddr)
  	}
 //****************** erase memory ********************
 	PrintMessage(strings[S_StartErase]);	//"Erase ... "
-	j=1;
+	j=0;
 	bufferU[j++]=EN_VPP_VCC;			// enter program mode
 	bufferU[j++]=0x1;
 	bufferU[j++]=NOP;
@@ -362,12 +350,8 @@ void Write12F5xx(int dim,int OscAddr)
 	bufferU[j++]=2000&0xff;
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(30);
-	if(dim>OscAddr+1) msDelay(20);
-	read();
+	PacketIO((dim>OscAddr+1)?50:30);
 	PrintMessage(strings[S_Compl]);	//"completed\r\n"
-	if(saveLog)WriteLogIO();
 //****************** write code ********************
 	PrintMessage(strings[S_StartCodeProg]);	//"Write code ... "
 	PrintStatusSetup();
@@ -376,7 +360,7 @@ void Write12F5xx(int dim,int OscAddr)
 	if(memCODE_W[dim+4]>=0xFFF) memCODE_W[dim+4]=BKosccal;  //reload BKosccal if not present
 	if(use_BKosccal) memCODE_W[OscAddr]=BKosccal;
 	else if(use_osccal) memCODE_W[OscAddr]=osccal;
-	for(i=k=w=0,j=1;i<dim1;i++){
+	for(i=k=w=0,j=0;i<dim1;i++){
 		if(memCODE_W[i]<0xfff){
 			bufferU[j++]=LOAD_DATA_PROG;
 			bufferU[j++]=memCODE_W[i]>>8;		//MSB
@@ -393,11 +377,9 @@ void Write12F5xx(int dim,int OscAddr)
 			PrintStatus(strings[S_CodeWriting],i*100/dim,i);	//"Write: %d%%, ind. %03X"
 			bufferU[j++]=FLUSH;
 			for(;j<DIMBUF;j++) bufferU[j]=0x0;
-			write();
-			msDelay(w*3+3);
+			PacketIO(w*3+3);
 			w=0;
-			read();
-			for(z=1;z<DIMBUF-7;z++){
+			for(z=0;z<DIMBUF-7;z++){
 				if(bufferI[z]==INC_ADDR&&memCODE_W[k]>=0xfff) k++;
 				else if(bufferI[z]==LOAD_DATA_PROG&&bufferI[z+5]==READ_DATA_PROG){
 					if (memCODE_W[k]!=(bufferI[z+6]<<8)+bufferI[z+7]){
@@ -415,10 +397,9 @@ void Write12F5xx(int dim,int OscAddr)
 					z+=8;
 				}
 			}
-			j=1;
+			j=0;
 			if(saveLog){
-				fprintf(logfile,strings[S_Log8],i,i,k,k,err);	//"i=%d, k=%d, errori=%d\n"
-				WriteLogIO();
+				fprintf(logfile,strings[S_Log8],i,i,k,k,err);	//"i=%d, k=%d, errors=%d\n"
 			}
 		}
 	}
@@ -462,11 +443,9 @@ void Write12F5xx(int dim,int OscAddr)
 	bufferU[j++]=0x0;
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(20);
-	read();
+	PacketIO(20);
 	unsigned int stop=GetTickCount();
-	for(z=10;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
+	for(z=0;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
 	if (~memCODE_W[0xfff]&((bufferI[z+1]<<8)+bufferI[z+2])){	//error if written 0 and read 1 (~W&R)
 		PrintMessage("\r\n");
 		PrintMessage2(strings[S_ConfigWErr],memCODE_W[0xfff],(bufferI[z+1]<<8)+bufferI[z+2]);	//"Error writing CONFIG:\r\nwritten %03X, read %03X\r\n"
@@ -480,10 +459,13 @@ void Write12F5xx(int dim,int OscAddr)
 	PrintMessage1(strings[S_ComplErr],err_c);	//"completed, %d errors\r\n"
 	if(saveLog){
 		fprintf(logfile,strings[S_Log8],i,i,k,k,err);	//"i=%d, k=%d, errors=%d\n"
-		WriteLogIO();
+	}
+	sprintf(str,strings[S_EndErr],(stop-start)/1000.0,err,err!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nEnd (%.2f s) %d %s\r\n\r\n"
+	PrintMessage(str);
+	if(saveLog){
+		fprintf(logfile,str);
 		CloseLogFile();
 	}
-	PrintMessage3(strings[S_EndErr],(stop-start)/1000.0,err,err!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nEnd (%.2f s) %d %s\r\n\r\n"
 	PrintStatusClear();			//clear status report
 }
 
@@ -517,8 +499,7 @@ void Write12C5xx(int dim,int dummy)
 	}
 	for(i=0;i<sizeW;i++) memCODE_W[i]&=0xFFF;
 	unsigned int start=GetTickCount();
-	bufferU[0]=0;
-	j=1;
+	j=0;
 	bufferU[j++]=SET_PARAMETER;
 	bufferU[j++]=SET_T1T2;
 	bufferU[j++]=1;						//T1=1u
@@ -558,11 +539,8 @@ void Write12C5xx(int dim,int dummy)
 	bufferU[j++]=WAIT_T3;
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(15);
-	read();
-	j=1;
-	if(saveLog)WriteLogIO();
+	PacketIO(15);
+	j=0;
 	for(z=4;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
 	if(z<DIMBUF-2) osccal=(bufferI[z+1]<<8)+bufferI[z+2];
 	if(osccal==-1){
@@ -580,11 +558,8 @@ void Write12C5xx(int dim,int dummy)
 	bufferU[j++]=READ_ADC;
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(2);
-	read();
-	j=1;
-	if(saveLog)WriteLogIO();
+	PacketIO(2);
+	j=0;
 //****************** write code ********************
 	PrintMessage(strings[S_StartCodeProg]);	//"Write code ... "
 	PrintStatusSetup(); 
@@ -592,7 +567,7 @@ void Write12C5xx(int dim,int dummy)
 	int dim1=dim;
 	if(programID) dim1=dim+5;
 	if(use_osccal) memCODE_W[OscAddr]=osccal;
-	for(i=k=0,j=1;i<dim1;i++){
+	for(i=k=0,j=0;i<dim1;i++){
 		if(memCODE_W[i]<0xfff){
 			bufferU[j++]=PROG_C;				//prog&verify with 8 pulses and 11N overpulses
 			bufferU[j++]=memCODE_W[i]>>8;		//MSB
@@ -608,11 +583,8 @@ void Write12C5xx(int dim,int dummy)
 		PrintStatus(strings[S_CodeWriting],i*100/dim,i);	//"Write: %d%%, ind. %03X"
 		bufferU[j++]=FLUSH;
 		for(;j<DIMBUF;j++) bufferU[j]=0x0;
-		write();
-		msDelay(10+3);			//Tprogram max 100u*96 ~ 10ms
-		read();
-		j=1;
-		if(saveLog)WriteLogIO();
+		PacketIO(10+3);			//Tprogram max 100u*96 ~ 10ms
+		j=0;
 		if(bufferI[1]==PROG_C&&bufferI[3]==READ_DATA_PROG){
 			N=bufferI[2];
 				if(N<0xF0){
@@ -634,7 +606,7 @@ void Write12C5xx(int dim,int dummy)
 				}
 				k++;
 				}
-		else for(z=1;z<DIMBUF;z++){
+		else for(z=0;z<DIMBUF;z++){
 			if(bufferI[z]==INC_ADDR&&memCODE_W[k]>=0xfff) k++;
 		}
 		if(saveLog){
@@ -663,11 +635,8 @@ void Write12C5xx(int dim,int dummy)
 	bufferU[j++]=memCODE_W[0xfff]&0xff;			//LSB
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(12);
-	read();
-	j=1;
-	if(saveLog)WriteLogIO();
+	PacketIO(12);
+	j=0;
 	for(i=0;i<20;i++){		//20 pulses
 		bufferU[j++]=BEGIN_PROG;
 		bufferU[j++]=WAIT_T2;			//Tprogram 100us
@@ -675,21 +644,15 @@ void Write12C5xx(int dim,int dummy)
 	}
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	j=1;
+	j=0;
 	for(i=0;i<5;i++){		//20*5=100 pulses
-		write();
-		msDelay(3);
-		read();
-		if(saveLog)WriteLogIO();
+		PacketIO(3);
 	}
 	bufferU[j++]=READ_DATA_PROG;
 		bufferU[j++]=FLUSH;
 		for(;j<DIMBUF;j++) bufferU[j]=0x0;
-		write();
-		msDelay(2);
-		read();
-		j=1;
-		if(saveLog)WriteLogIO();
+		PacketIO(2);
+		j=0;
 		if (~memCODE_W[0xfff]&((bufferI[2]<<8)+bufferI[3])){	//error if written 0 and read 1 (~W&R)
 			PrintMessage("\r\n");
 			PrintMessage2(strings[S_ConfigWErr],memCODE_W[0xfff],(bufferI[2]<<8)+bufferI[3]);	//"Error writing CONFIG:\r\nwritten %03X, read %03X\r\n"
@@ -707,17 +670,17 @@ void Write12C5xx(int dim,int dummy)
 	bufferU[j++]=0x0;
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(2);
-	read();
-	j=1;
-	if(saveLog)WriteLogIO();
+	PacketIO(2);
+	j=0;
 	unsigned int stop=GetTickCount();
 	if(saveLog){
 		fprintf(logfile,strings[S_Log8],i,i,k,k,err);	//"i=%d, k=%d, errors=%d\n"
-		WriteLogIO();
+	}
+	sprintf(str,strings[S_EndErr],(stop-start)/1000.0,err,err!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nEnd (%.2f s) %d %s\r\n\r\n"
+	PrintMessage(str);
+	if(saveLog){
+		fprintf(logfile,str);
 		CloseLogFile();
 	}
-	PrintMessage3(strings[S_EndErr],(stop-start)/1000.0,err,err!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nEnd (%.2f s) %d %s\r\n\r\n"
 	PrintStatusClear();			//clear status report
 }

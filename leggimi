@@ -5,6 +5,11 @@ Questi sorgenti sono distribuiti gratuitamente sotto licenza GNU General Public 
 
 Cambiamenti (per usare i dispositivi aggiunti è richiesto un programmatore con firmware corrispondente):
 
+V 0.10.0 giugno 2016:  	aggiunti 16F18313-23-24-25-26-44-45-46;
+						migliorata comunicazione USB
+
+V 0.9.1.2 giugno 2015 	corretto baco scrittura logfile
+
 V 0.9.1.1 dicembre 2014:corretti errori di compilazione su Linux;
 
 V 0.9.1 novembre 2014:	vari miglioramenti all'interfaccia utente;

@@ -1,6 +1,6 @@
 /**
  * \file progP16.c - algorithms to program the PIC16 (14 bit word) family of microcontrollers
- * Copyright (C) 2009-2014 Alberto Maccioni
+ * Copyright (C) 2009-2016 Alberto Maccioni
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -202,6 +202,7 @@ struct ID16{
 	{0x2E0>>1,"16LF1509 rev%d\r\n",0x1F},		//10 1110 000x xxxx
 	{0x2F0>>1,"16LF1554 rev%d\r\n",0x1F},		//10 1111 000x xxxx
 	{0x2F2>>1,"16LF1559 rev%d\r\n",0x1F},		//10 1111 001x xxxx
+// New devices with DevID & DevRev in different locations:
 	{0x3000,"16F1574\r\n",0},
 	{0x3001,"16F1575\r\n",0},
 	{0x3002,"16F1578\r\n",0},
@@ -222,6 +223,14 @@ struct ID16{
 	{0x302D,"16LF1788\r\n",0},
 	{0x3030,"16F753\r\n",0},
 	{0x3031,"16HV753\r\n",0},
+	{0x303A,"16F18324\r\n",0},
+	{0x303B,"16F18344\r\n",0},
+	{0x303C,"16LF18324\r\n",0},
+	{0x303D,"16LF18344\r\n",0},
+	{0x303E,"16F18325\r\n",0},
+	{0x303F,"16F18345\r\n",0},
+	{0x3040,"16LF18325\r\n",0},
+	{0x3041,"16LF18345\r\n",0},
 	{0x3042,"16F1708\r\n",0},
 	{0x3043,"16F1704\r\n",0},
 	{0x3044,"16LF1708\r\n",0},
@@ -252,6 +261,10 @@ struct ID16{
 	{0x3061,"16F1703\r\n",0},
 	{0x3062,"16LF1707\r\n",0},
 	{0x3063,"16LF1703\r\n",0},
+	{0x3066,"16F18313\r\n",0},
+	{0x3067,"16F18323\r\n",0},
+	{0x3068,"16LF18313\r\n",0},
+	{0x3069,"16LF18323\r\n",0},
 	{0x3078,"16F1614\r\n",0},
 	{0x3079,"16F1618\r\n",0},
 	{0x307A,"16LF1614\r\n",0},
@@ -260,6 +273,10 @@ struct ID16{
 	{0x307D,"16F1619\r\n",0},
 	{0x307E,"16LF1615\r\n",0},
 	{0x307F,"16LF1619\r\n",0},
+	{0x30A4,"16F18326\r\n",0},
+	{0x30A5,"16F18346\r\n",0},
+	{0x30A6,"16LF18326\r\n",0},
+	{0x30A7,"16LF18346\r\n",0},
 };
 
 #ifdef _MSC_VER
@@ -301,7 +318,7 @@ void DisplayCODE16F(int size){
 		for(j=i;j<i+COL&&j<sizeW&&i<size;j++){
 			sprintf(t,"%04X ",memCODE_W[j]);
 			strcat(s,t);
-			if(memCODE_W[j]<0x3fff) valid=1;
+			if((memCODE_W[j]&0x3fff)<0x3fff) valid=1;
 	}
 		if(valid){
 			sprintf(t,"%04X: %s\r\n",i,s);
@@ -408,8 +425,7 @@ void Read16Fxxx(int dim,int dim2,int dim3,int vdd){
 	if(memCODE_W) free(memCODE_W);
 	memCODE_W=(WORD*)malloc(sizeof(WORD)*sizeW);
 	unsigned int start=GetTickCount();
-	bufferU[0]=0;
-	j=1;
+	j=0;
 	bufferU[j++]=SET_PARAMETER;
 	bufferU[j++]=SET_T1T2;
 	bufferU[j++]=1;						//T1=1u
@@ -453,34 +469,28 @@ void Read16Fxxx(int dim,int dim2,int dim3,int vdd){
 	}
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(2);
-	if(vdd) msDelay(50);
-	read();
-	if(saveLog)WriteLogIO();
+	PacketIO(vdd?55:5);
 //****************** read code ********************
 	PrintMessage(strings[S_CodeReading1]);		//read code ...
+	if(saveLog) fprintf(logfile,"%s\n",strings[S_CodeReading1]);		//read code ...
 	PrintStatusSetup();
-	for(i=0,j=1;i<dim;i++){
+	for(i=0,j=0;i<dim;i++){
 		bufferU[j++]=READ_DATA_PROG;
 		bufferU[j++]=INC_ADDR;
-		if(j>DIMBUF*2/4-2||i==dim-1){		//2B cmd -> 4B data
+		if(j>DIMBUF*2/4-3||i==dim-1){		//2B cmd -> 4B data
 			bufferU[j++]=FLUSH;
 			for(;j<DIMBUF;j++) bufferU[j]=0x0;
-			write();
-			msDelay(5);
-			read();
-			for(z=1;z<DIMBUF-2;z++){
+			PacketIO(5);
+			for(z=0;z<DIMBUF-2;z++){
 				if(bufferI[z]==READ_DATA_PROG){
 					memCODE_W[k++]=(bufferI[z+1]<<8)+bufferI[z+2];
 					z+=2;
 				}
 			}
 			PrintStatus(strings[S_CodeReading],i*100/(dim+dim2+dim3),i);	//"Read: %d%%, addr. %03X"
-			j=1;
+			j=0;
 			if(saveLog){
 				fprintf(logfile,strings[S_Log7],i,i,k,k);	//"i=%d(0x%X), k=%d(0x%X)\n"
-				WriteLogIO();
 			}
 		}
 	}
@@ -493,29 +503,27 @@ void Read16Fxxx(int dim,int dim2,int dim3,int vdd){
 	for(i=k;i<0x2000;i++) memCODE_W[i]=0x3fff;
 //****************** read config area ********************
 	PrintMessage(strings[S_Read_CONFIG_A]);		//read config ...
+	if(saveLog) fprintf(logfile,"%s\n",strings[S_Read_CONFIG_A]);		//read config ...
 	bufferU[j++]=LOAD_CONF;			//counter at 0x2000
 	bufferU[j++]=0xFF;				//fake config
 	bufferU[j++]=0xFF;				//fake config
 	for(i=0x2000;i<0x2000+dim3;i++){		//Config
 		bufferU[j++]=READ_DATA_PROG;
 		bufferU[j++]=INC_ADDR;
-		if(j>DIMBUF*2/4-2||i==0x2000+dim3-1){		//2B cmd -> 4B data
+		if(j>DIMBUF*2/4-3||i==0x2000+dim3-1){		//2B cmd -> 4B data
 			bufferU[j++]=FLUSH;
 			for(;j<DIMBUF;j++) bufferU[j]=0x0;
-			write();
-			msDelay(5);
-			read();
-			for(z=1;z<DIMBUF-2;z++){
+			PacketIO(5);
+			for(z=0;z<DIMBUF-2;z++){
 				if(bufferI[z]==READ_DATA_PROG){
 					memCODE_W[0x2000+k2++]=(bufferI[z+1]<<8)+bufferI[z+2];
 					z+=2;
 				}
 			}
 			PrintStatus(strings[S_CodeReading],(i-0x2000+dim)*100/(dim+dim2+dim3),i);	//"Read: %d%%, addr. %03X"
-			j=1;
+			j=0;
 			if(saveLog){
 				fprintf(logfile,strings[S_Log7],i,i,k2,k2);	//"i=%d(0x%X), k=%d(0x%X)\n"
-				WriteLogIO();
 			}
 		}
 	}
@@ -528,6 +536,7 @@ void Read16Fxxx(int dim,int dim2,int dim3,int vdd){
 //****************** read eeprom ********************
 	if(dim2){
 		PrintMessage(strings[S_ReadEE]);		//Read EEPROM ...
+		if(saveLog) fprintf(logfile,"%s\n",strings[S_ReadEE]);		//Read EEPROM ...
 		PrintStatusSetup();
 		if(ee2200){		//eeprom a 0x2200
 			bufferU[j++]=INC_ADDR_N;
@@ -539,23 +548,20 @@ void Read16Fxxx(int dim,int dim2,int dim3,int vdd){
 		for(k2=0,i=0x2100;i<0x2100+dim2;i++){
 			bufferU[j++]=READ_DATA_DATA;
 			bufferU[j++]=INC_ADDR;
-			if(j>DIMBUF*2/4-2||i==0x2100+dim2-1){		//2B cmd -> 4B data
+			if(j>DIMBUF*2/3-3||i==0x2100+dim2-1){		//2B cmd -> 3B data
 				bufferU[j++]=FLUSH;
 				for(;j<DIMBUF;j++) bufferU[j]=0x0;
-				write();
-				msDelay(10);
-				read();
-				for(z=1;z<DIMBUF-1;z++){
+				PacketIO(8);
+				for(z=0;z<DIMBUF-1;z++){
 					if(bufferI[z]==READ_DATA_DATA){
 						memCODE_W[0x2100+k2++]=bufferI[z+1];
 						z++;
 					}
 				}
 				PrintStatus(strings[S_CodeReading],(i-0x2100+dim)*100/(dim+dim2+dim3),i);	//"Read: %d%%, addr. %03X"
-				j=1;
+				j=0;
 				if(saveLog){
 					fprintf(logfile,strings[S_Log7],i,i,k2,k2);	//"i=%d(0x%X), k=%d(0x%X)\n"
-					WriteLogIO();
 				}
 			}
 		}
@@ -576,9 +582,7 @@ void Read16Fxxx(int dim,int dim2,int dim3,int vdd){
 	bufferU[j++]=0x0;
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(1);
-	read();
+	PacketIO(2);
 	unsigned int stop=GetTickCount();
 	PrintStatusClear();			//clear status report
 //****************** visualize ********************
@@ -626,8 +630,13 @@ void Read16Fxxx(int dim,int dim2,int dim3,int vdd){
 		PrintMessage(strings[S_EEMem]);	//"\r\nEEPROM memory:\r\n"
 		DisplayEE16F(dim2);
 	}
-	PrintMessage1(strings[S_End],(stop-start)/1000.0);	//"\r\nEnd (%.2f s)\r\n"
-	if(saveLog) CloseLogFile();
+	sprintf(str,strings[S_End],(stop-start)/1000.0);	//"\r\nEnd (%.2f s)\r\n"
+
+	PrintMessage(str);
+	if(saveLog){
+		fprintf(logfile,str);
+		CloseLogFile();
+	}
 	PrintStatusClear();			//clear status report
 }
 
@@ -637,24 +646,27 @@ void COpenProgDlg::Read16F1xxx(int dim,int dim2,int dim3,int options){
 void Read16F1xxx(int dim,int dim2,int dim3,int options){
 #endif
 // read 14 bit enhanced PIC
-// dim=program size
-// dim2=eeprom size
-// dim3=config size
+// dim=program size (up to 0x8000)
+// dim2=eeprom size (up to 0x400)
+// dim3=config area size @0x8000
 // options:
 //		bit0=0 -> vpp before vdd
 //		bit0=1 -> vdd before vpp
 //		bit1=1 -> LVP programming
 //		bit2=1 -> Config3@0x8009
-// DevREV@0x8005
-// DevID@0x8006
-// Config1@0x8007
-// Config2@0x8008
-// Config3@0x8009
-// Calib1@0x8009/A
-// Calib2@0x800A/B
-// Calib3@0x800B/C
-// eeprom@0x0
+//		bit3=1 -> Config4@0x800A
+//		bit4=1 -> PIC16F18xxx (calib words @0xE000 + new commands)
+// DevREV@0x8005     DevID@0x8006
+// Config1@0x8007    Config2@0x8008
+// Config3@0x8009    Config4@0x800A
+// Calib1@0x8009/A   Calib2@0x800A/B    Calib3@0x800B/C
+// eeprom@0x0 or 0xF000
 	int k=0,k2=0,z=0,i,j;
+	int F18x=options&16;
+	if(F18x&&FWVersion<0xA00){		//only for 16F18xxx
+		PrintMessage1(strings[S_FWver2old],"0.10.0");	//"This firmware is too old. Version %s is required\r\n"
+		return;
+	}
 	if(!CheckV33Regulator()){
 		PrintMessage(strings[S_noV33reg]);	//Can't find 3.3V expansion board
 		return;
@@ -685,16 +697,17 @@ void Read16F1xxx(int dim,int dim2,int dim3,int options){
 		else hvreg=8.5;
 	}
 	else StartHVReg(-1);			//LVP mode, turn off HV
-	sizeW=0x8000+dim3;
+	sizeW=0x8200;
+	if(F18x) sizeW=0xE004;
 	sizeEE=dim2;
 	if(memCODE_W) free(memCODE_W);
 	memCODE_W=(WORD*)malloc(sizeof(WORD)*sizeW);
+	for(i=0;i<sizeW;i++) memCODE_W[i]=0x3fff;
 	if(memEE) free(memEE);
 	memEE=(unsigned char*)malloc(sizeEE);			//EEPROM
 	for(i=0;i<sizeEE;i++) memEE[i]=0xFF;
 	unsigned int start=GetTickCount();
-	bufferU[0]=0;
-	j=1;
+	j=0;
 	bufferU[j++]=SET_PARAMETER;
 	bufferU[j++]=SET_T1T2;
 	bufferU[j++]=1;						//T1=1u
@@ -738,33 +751,28 @@ void Read16F1xxx(int dim,int dim2,int dim3,int options){
 	}
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(2);
-	read();
-	if(saveLog)WriteLogIO();
+	PacketIO(2);
 //****************** read code ********************
 	PrintMessage(strings[S_CodeReading1]);		//read code ...
+	if(saveLog) fprintf(logfile,"%s\n",strings[S_CodeReading1]);		//read code ...
 	PrintStatusSetup();
-	for(i=0,j=1;i<dim;i++){
+	for(i=0,j=0;i<dim;i++){
 		bufferU[j++]=READ_DATA_PROG;
 		bufferU[j++]=INC_ADDR;
-		if(j>DIMBUF*2/4-2||i==dim-1){		//2B cmd -> 4B data
-			bufferU[j++]=FLUSH;
+		if(j>DIMBUF*2/4-3||i==dim-1){		//2B cmd -> 4B data
+			bufferU[j++]=FLUSH;				//remember: FLUSH generates a response even empty!
 			for(;j<DIMBUF;j++) bufferU[j]=0x0;
-			write();
-			msDelay(5);
-			read();
-			for(z=1;z<DIMBUF-2;z++){
+			PacketIO(5);
+			for(z=0;z<DIMBUF-2;z++){
 				if(bufferI[z]==READ_DATA_PROG){
 					memCODE_W[k++]=(bufferI[z+1]<<8)+bufferI[z+2];
 					z+=2;
 				}
 			}
 			PrintStatus(strings[S_CodeReading],i*100/(dim+dim2+dim3),i);	//"Read: %d%%, addr. %03X"
-			j=1;
+			j=0;
 			if(saveLog){
 				fprintf(logfile,strings[S_Log7],i,i,k,k);	//"i=%d(0x%X), k=%d(0x%X)\n"
-				WriteLogIO();
 			}
 		}
 	}
@@ -774,32 +782,30 @@ void Read16F1xxx(int dim,int dim2,int dim3,int options){
 		PrintMessage2(strings[S_ReadCodeErr],dim,k);	//"Error reading code area, requested %d words, read %d\r\n"
 	}
 	else PrintMessage(strings[S_Compl]);
-	for(i=k;i<0x8000;i++) memCODE_W[i]=0x3fff;
+//	for(i=k;i<0x8000;i++) memCODE_W[i]=0x3fff;
 //****************** read config area ********************
 	PrintMessage(strings[S_Read_CONFIG_A]);		//read config ...
+	if(saveLog) fprintf(logfile,"%s\n",strings[S_Read_CONFIG_A]);		//read config ...
 	bufferU[j++]=LOAD_CONF;			//counter at 0x8000
 	bufferU[j++]=0xFF;
 	bufferU[j++]=0xFF;
 	for(i=0x8000;i<0x8000+dim3;i++){		//Config
 		bufferU[j++]=READ_DATA_PROG;
 		bufferU[j++]=INC_ADDR;
-		if(j>DIMBUF*2/4-2||i==0x8000+dim3-1){		//2B cmd -> 4B data
+		if(j>DIMBUF*2/4-3||i==0x8000+dim3-1){		//2B cmd -> 4B data
 			bufferU[j++]=FLUSH;
 			for(;j<DIMBUF;j++) bufferU[j]=0x0;
-			write();
-			msDelay(5);
-			read();
-			for(z=1;z<DIMBUF-2;z++){
+			PacketIO(5);
+			for(z=0;z<DIMBUF-2;z++){
 				if(bufferI[z]==READ_DATA_PROG){
 					memCODE_W[0x8000+k2++]=(bufferI[z+1]<<8)+bufferI[z+2];
 					z+=2;
 				}
 			}
 			PrintStatus(strings[S_CodeReading],(i-0x8000+dim)*100/(dim+dim2+dim3),i);	//"Read: %d%%, addr %03X"
-			j=1;
+			j=0;
 			if(saveLog){
 				fprintf(logfile,strings[S_Log7],i,i,k2,k2);	//"i=%d(0x%X), k=%d(0x%X)\n"
-				WriteLogIO();
 			}
 		}
 	}
@@ -808,32 +814,58 @@ void Read16F1xxx(int dim,int dim2,int dim3,int options){
 		PrintMessage2(strings[S_ConfigErr],dim3,k2);	//"Error reading config area, requested %d words, read %d\r\n"
 	}
 	else PrintMessage(strings[S_Compl]);
-	for(i=0x8000+k2;i<0x8000+dim3;i++) memCODE_W[i]=0x3fff;
+//	for(i=0x8000+k2;i<0x8000+dim3;i++) memCODE_W[i]=0x3fff;
+//****************** read calibration area ********************
+	if(F18x){
+		k2=0;
+		PrintMessage(strings[S_Read_CONFIG_A]);		//read config ...
+		bufferU[j++]=LOAD_PC;			//counter at 0xE000
+		bufferU[j++]=0xE0;
+		bufferU[j++]=0x00;
+		for(i=0;i<4;i++) bufferU[j++]=READ_DATA_INC;
+		bufferU[j++]=FLUSH;
+		for(;j<DIMBUF;j++) bufferU[j]=0x0;
+		PacketIO(5);
+		for(z=0;z<DIMBUF-2;z++){
+			if(bufferI[z]==READ_DATA_INC){
+				memCODE_W[0xE000+k2++]=(bufferI[z+1]<<8)+bufferI[z+2];
+				z+=2;
+			}
+		}
+		j=0;
+		if(saveLog){
+			fprintf(logfile,"Calibration area @0xE000\n");
+		}
+		if(k2!=4){
+			PrintMessage("\r\n");
+			PrintMessage2(strings[S_ConfigErr],dim3,k2);	//"Error reading config area, requested %d words, read %d\r\n"
+		}
+		else PrintMessage(strings[S_Compl]);
+	}
 //****************** read eeprom ********************
-	if(dim2){
+	if(dim2&&!F18x){					//16F1xxx
 		PrintMessage(strings[S_ReadEE]);		//Read EEPROM ...
+		if(saveLog) fprintf(logfile,"%s\n",strings[S_ReadEE]);		//Read EEPROM ...
 		bufferU[j++]=CUST_CMD;
 		bufferU[j++]=0x16;		//Reset address
 		for(i=k=0;i<dim2;i++){
 			bufferU[j++]=READ_DATA_DATA;
 			bufferU[j++]=INC_ADDR;
-			if(j>DIMBUF*2/4-2||i==dim2-1){		//2B cmd -> 4B data
+			if(j>DIMBUF*2/3-3||i==dim2-1){		//2B cmd -> 3B data
 				bufferU[j++]=FLUSH;
 				for(;j<DIMBUF;j++) bufferU[j]=0x0;
-				write();
-				msDelay(5);
-				read();
-				for(z=1;z<DIMBUF-1;z++){
+				PacketIO(5);
+				for(z=0;z<DIMBUF-1;z++){
 					if(bufferI[z]==READ_DATA_DATA){
 						memEE[k++]=bufferI[z+1];
 						z++;
 					}
 				}
 				PrintStatus(strings[S_CodeReading],i*100/(dim+dim2+dim3),i);	//"Read: %d%%, addr %03X"
-				j=1;
+				j=0;
+
 				if(saveLog){
 					fprintf(logfile,strings[S_Log7],i,i,k,k);	//"i=%d(0x%X), k=%d(0x%X)\n"
-					WriteLogIO();
 				}
 			}
 		}
@@ -845,6 +877,40 @@ void Read16F1xxx(int dim,int dim2,int dim3,int options){
 		}
 		else PrintMessage(strings[S_Compl]);
 	}
+	else if(dim2&&F18x){					//16F18xxx
+		PrintMessage(strings[S_ReadEE]);		//Read EEPROM ...
+		if(saveLog) fprintf(logfile,"%s\n",strings[S_ReadEE]);		//Read EEPROM ...
+		bufferU[j++]=LOAD_PC;				//counter at 0xF000
+		bufferU[j++]=0xF0;
+		bufferU[j++]=0x00;
+		for(i=k=0;i<dim2;i++){
+			bufferU[j++]=READ_DATA_INC;
+			if(j>DIMBUF/3-3||i==dim2-1){		//1B cmd -> 3B answer
+				bufferU[j++]=FLUSH;
+				for(;j<DIMBUF;j++) bufferU[j]=0x0;
+				PacketIO(5);
+				for(z=0;z<DIMBUF-1;z++){
+					if(bufferI[z]==READ_DATA_INC){
+						memEE[k++]=bufferI[z+2];	//LSB
+						z+=2;
+					}
+				}
+				PrintStatus(strings[S_CodeReading],i*100/(dim+dim2+dim3),i);	//"Read: %d%%, addr %03X"
+				j=0;
+				if(saveLog){
+					fprintf(logfile,strings[S_Log7],i,i,k,k);	//"i=%d(0x%X), k=%d(0x%X)\n"
+				}
+			}
+		}
+		PrintStatusEnd();
+		if(i!=dim2){
+			PrintMessage("\r\n");
+			PrintMessage2(strings[S_ReadEEErr],dim2,i);	//"Error reading EE area, ..."
+			for(;i<dim2;i++) memEE[i]=0xff;
+		}
+		else PrintMessage(strings[S_Compl]);
+	}
+/***********************************/
 	bufferU[j++]=NOP;				//exit program mode
 	bufferU[j++]=EN_VPP_VCC;
 	bufferU[j++]=1;					//VDD
@@ -854,9 +920,7 @@ void Read16F1xxx(int dim,int dim2,int dim3,int options){
 	bufferU[j++]=0x0;
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(1);
-	read();
+	PacketIO(2);
 	unsigned int stop=GetTickCount();
 	PrintStatusClear();			//clear status report
 //****************** visualize ********************
@@ -868,16 +932,26 @@ void Read16F1xxx(int dim,int dim2,int dim3,int options){
 	PIC16_ID(memCODE_W[0x8006]);
 	PrintMessage2(strings[S_ConfigWordX],1,memCODE_W[0x8007]);	//"Configuration word %d: 0x%04X\r\n"
 	PrintMessage2(strings[S_ConfigWordX],2,memCODE_W[0x8008]);	//"Configuration word %d: 0x%04X\r\n"
-	if((options&4)==0){	//2 config + 2/3 calib words
+	if((options&0xC)==0&&F18x==0){	//2 config + 2/3 calib words
 	PrintMessage2(strings[S_CalibWordX],1,memCODE_W[0x8009]);	//"Calibration word %d: 0x%04X\r\n"
 	PrintMessage2(strings[S_CalibWordX],2,memCODE_W[0x800A]);	//"Calibration word %d: 0x%04X\r\n"
 	if(memCODE_W[0x800B]<0x3FFF) PrintMessage2(strings[S_CalibWordX],3,memCODE_W[0x800B]);	//"Calibration word %d: 0x%04X\r\n"
 	}
-	else{	//3 config + 3 calib words
+	else if((options&0xC)==4&&F18x==0){	//3 config + 3 calib words
 		PrintMessage2(strings[S_ConfigWordX],3,memCODE_W[0x8009]);	//"Configuration word %d: 0x%04X\r\n"
 		PrintMessage2(strings[S_CalibWordX],1,memCODE_W[0x800A]);	//"Calibration word %d: 0x%04X\r\n"
 		PrintMessage2(strings[S_CalibWordX],2,memCODE_W[0x800B]);	//"Calibration word %d: 0x%04X\r\n"
 		PrintMessage2(strings[S_CalibWordX],3,memCODE_W[0x800C]);	//"Calibration word %d: 0x%04X\r\n"
+	}
+	else if((options&0xC)==8){		//4 config
+		PrintMessage2(strings[S_ConfigWordX],3,memCODE_W[0x8009]);	//"Configuration word %d: 0x%04X\r\n"
+		PrintMessage2(strings[S_ConfigWordX],4,memCODE_W[0x800A]);	//"Configuration word %d: 0x%04X\r\n"
+	}
+	if(F18x){			//4 calib words @0xE000
+		PrintMessage2(strings[S_CalibWordX],1,memCODE_W[0xE000]);	//"Calibration word %d: 0x%04X\r\n"
+		PrintMessage2(strings[S_CalibWordX],2,memCODE_W[0xE001]);	//"Calibration word %d: 0x%04X\r\n"
+		PrintMessage2(strings[S_CalibWordX],3,memCODE_W[0xE002]);	//"Calibration word %d: 0x%04X\r\n"
+		PrintMessage2(strings[S_CalibWordX],4,memCODE_W[0xE003]);	//"Calibration word %d: 0x%04X\r\n"
 	}
 	PrintMessage(strings[S_CodeMem2]);	//"\r\nCode memory:\r\n"
 	DisplayCODE16F(dim);
@@ -907,8 +981,12 @@ void Read16F1xxx(int dim,int dim2,int dim3,int options){
 		free(aux);
 	}
 	if(dim2) DisplayEE();	//visualize
-	PrintMessage1(strings[S_End],(stop-start)/1000.0);	//"\r\nEnd (%.2f s)\r\n"
-	if(saveLog) CloseLogFile();
+	sprintf(str,strings[S_End],(stop-start)/1000.0);	//"\r\nEnd (%.2f s)\r\n"
+	PrintMessage(str);
+	if(saveLog){
+		fprintf(logfile,str);
+		CloseLogFile();
+	}
 	PrintStatusClear();			//clear status report
 }
 
@@ -959,8 +1037,7 @@ void Write12F6xx(int dim,int dim2)
 	}
 	for(i=0;i<0x2009&&i<sizeW;i++) memCODE_W[i]&=0x3FFF;
 	unsigned int start=GetTickCount();
-	bufferU[0]=0;
-	j=1;
+	j=0;
 	bufferU[j++]=SET_PARAMETER;
 	bufferU[j++]=SET_T1T2;
 	bufferU[j++]=1;						//T1=1u
@@ -998,10 +1075,7 @@ void Write12F6xx(int dim,int dim2)
 	bufferU[j++]=WAIT_T3;			//delay after exiting prog mode
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(15);
-	read();
-	if(saveLog)WriteLogIO();
+	PacketIO(15);
 	for(z=0;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
 	devID=(bufferI[z+1]<<8)+bufferI[z+2];
 	PrintMessage1(strings[S_DevID],devID);	//"DevID: 0x%04X\r\n"
@@ -1018,7 +1092,7 @@ void Write12F6xx(int dim,int dim2)
 	}
 //****************** erase memory ********************
 	PrintMessage(strings[S_StartErase]);	//"Erase ... "
-	j=1;
+	j=0;
 	bufferU[j++]=EN_VPP_VCC;		//VPP
 	bufferU[j++]=0x4;
 	bufferU[j++]=NOP;
@@ -1061,15 +1135,12 @@ void Write12F6xx(int dim,int dim2)
 	bufferU[j++]=4000&0xff;
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(50);
-	read();
-	if(saveLog)WriteLogIO();
+	PacketIO(50);
 	PrintMessage(strings[S_Compl]);	//"completed\r\n"
 //****************** write code ********************
 	PrintMessage(strings[S_StartCodeProg]);	//"Write code ... "
 	PrintStatusSetup();
-	for(w=i=k=0,j=1;i<dim;i++){
+	for(w=i=k=0,j=0;i<dim;i++){
 		if(memCODE_W[i]<0x3fff){
 			bufferU[j++]=LOAD_DATA_PROG;
 			bufferU[j++]=memCODE_W[i]>>8;		//MSB
@@ -1084,11 +1155,9 @@ void Write12F6xx(int dim,int dim2)
 			PrintStatus(strings[S_CodeWriting],i*100/dim,i);	//"Writing: %d%%, add. %03X"
 			bufferU[j++]=FLUSH;
 			for(;j<DIMBUF;j++) bufferU[j]=0x0;
-			write();
-			msDelay(w*5+2);
+			PacketIO(w*5+2);
 			w=0;
-			read();
-			for(z=1;z<DIMBUF-5;z++){
+			for(z=0;z<DIMBUF-5;z++){
 				if(bufferI[z]==INC_ADDR&&memCODE_W[k]>=0x3fff) k++;
 				else if(bufferI[z]==LOAD_DATA_PROG&&bufferI[z+3]==READ_DATA_PROG){
 					if (memCODE_W[k]!=(bufferI[z+4]<<8)+bufferI[z+5]){
@@ -1106,10 +1175,9 @@ void Write12F6xx(int dim,int dim2)
 					z+=6;
 				}
 			}
-			j=1;
+			j=0;
 			if(saveLog){
 				fprintf(logfile,strings[S_Log8],i,i,k,k,err);	//"i=%d, k=%d, errors=%d,\n"
-				WriteLogIO();
 			}
 		}
 	}
@@ -1121,7 +1189,7 @@ void Write12F6xx(int dim,int dim2)
 		int err_e=0;
 		PrintMessage(strings[S_EEAreaW]);	//"Writing EEPROM ... "
 		PrintStatusSetup();
-		j=1;
+		j=0;
 		bufferU[j++]=SET_PARAMETER;
 		bufferU[j++]=SET_T3;
 		bufferU[j++]=8000>>8;
@@ -1149,11 +1217,9 @@ void Write12F6xx(int dim,int dim2)
 				PrintStatus(strings[S_CodeWriting],(i-0x2100+dim)*100/(dim+dim2),i);	//"Writing: %d%%, add. %03X"
 				bufferU[j++]=FLUSH;
 				for(;j<DIMBUF;j++) bufferU[j]=0x0;
-				write();
-				msDelay(w*9+2);
+				PacketIO(w*9+2);
 				w=0;
-				read();
-				for(z=1;z<DIMBUF-4;z++){
+				for(z=0;z<DIMBUF-4;z++){
 					if(bufferI[z]==INC_ADDR&&memCODE_W[k]>=0xff) k++;
 					else if(bufferI[z]==LOAD_DATA_DATA&&bufferI[z+3]==READ_DATA_DATA){
 						if (memCODE_W[k]!=bufferI[z+4]){
@@ -1171,10 +1237,9 @@ void Write12F6xx(int dim,int dim2)
 						z+=5;
 					}
 				}
-				j=1;
+				j=0;
 				if(saveLog){
 					fprintf(logfile,strings[S_Log8],i,i,k,k,err);	//"i=%d, k=%d, errors=%d \n"
-					WriteLogIO();
 				}
 			}
 		}
@@ -1243,9 +1308,7 @@ void Write12F6xx(int dim,int dim2)
 	}
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(35);
-	read();
+	PacketIO(35);
 	for(i=0,z=0;programID&&i<4;i++){
 		for(;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
 		if (memCODE_W[0x2000+i]!=(bufferI[z+1]<<8)+bufferI[z+2]){
@@ -1289,10 +1352,9 @@ void Write12F6xx(int dim,int dim2)
 	PrintMessage1(strings[S_ComplErr],err_c);	//"completed, %d errors\r\n"
 	if(saveLog){
 		fprintf(logfile,strings[S_Log9],err);	//"Area config. 	errors=%d \n"
-		WriteLogIO();
 	}
 //****************** exit ********************
-	j=1;
+	j=0;
 	bufferU[j++]=SET_PARAMETER;
 	bufferU[j++]=SET_T3;
 	bufferU[j++]=2000>>8;
@@ -1306,12 +1368,14 @@ void Write12F6xx(int dim,int dim2)
 	bufferU[j++]=0x0;
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(1);
-	read();
+	PacketIO(2);
 	unsigned int stop=GetTickCount();
-	PrintMessage3(strings[S_EndErr],(stop-start)/1000.0,err,err!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nEnd (%.2f s) %d %s\r\n\r\n"
-	if(saveLog)CloseLogFile();
+	sprintf(str,strings[S_EndErr],(stop-start)/1000.0,err,err!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nEnd (%.2f s) %d %s\r\n\r\n"
+	PrintMessage(str);
+	if(saveLog){
+		fprintf(logfile,str);
+		CloseLogFile();
+	}
 	PrintStatusClear();			//clear status report
 }
 
@@ -1362,8 +1426,7 @@ void Write16F8x (int dim,int dim2)
 	}
 	for(i=0;i<0x2009&&i<sizeW;i++) memCODE_W[i]&=0x3FFF;
 	unsigned int start=GetTickCount();
-	bufferU[0]=0;
-	j=1;
+	j=0;
 	bufferU[j++]=SET_PARAMETER;
 	bufferU[j++]=SET_T1T2;
 	bufferU[j++]=1;						//T1=1u
@@ -1408,10 +1471,7 @@ void Write16F8x (int dim,int dim2)
 	bufferU[j++]=NOP;
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(140);
-	read();
-	if(saveLog)WriteLogIO();
+	PacketIO(140);
 	for(z=0;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
 	devID=(bufferI[z+1]<<8)+bufferI[z+2];
 	PrintMessage1(strings[S_DevID],devID);	//"DevID: 0x%04X\r\n"
@@ -1421,7 +1481,7 @@ void Write16F8x (int dim,int dim2)
 	PrintMessage1(strings[S_ConfigWord],config);	//"Config word: 0x%04X\r\n"
 //****************** erase memory ********************
 	PrintMessage(strings[S_StartErase]);	//"Erase ... "
-	j=1;
+	j=0;
 	bufferU[j++]=SET_PARAMETER;
 	bufferU[j++]=SET_T3;
 	bufferU[j++]=10000>>8;
@@ -1515,16 +1575,12 @@ void Write16F8x (int dim,int dim2)
 	bufferU[j++]=FLUSH;
 	r/=1000;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(60);
-	if(!programID) msDelay(80);
-	read();
-	if(saveLog)WriteLogIO();
+	PacketIO(!programID?140:60);
 	PrintMessage(strings[S_Compl]);	//"completed\r\n"
 //****************** write code ********************
 	PrintMessage(strings[S_StartCodeProg]);	//"Write code ... "
 	PrintStatusSetup();
-	for(w=i=k=0,j=1;i<dim;i++){
+	for(w=i=k=0,j=0;i<dim;i++){
 		if(memCODE_W[i]<0x3fff){
 			bufferU[j++]=LOAD_DATA_PROG;
 			bufferU[j++]=memCODE_W[i]>>8;		//MSB
@@ -1539,11 +1595,9 @@ void Write16F8x (int dim,int dim2)
 			PrintStatus(strings[S_CodeWriting],i*100/dim,i);	//"Writing: %d%%, add. %03X"
 			bufferU[j++]=FLUSH;
 			for(;j<DIMBUF;j++) bufferU[j]=0x0;
-			write();
-			msDelay(w*r+4);
+			PacketIO(w*r+4);
 			w=0;
-			read();
-			for(z=1;z<DIMBUF-5;z++){
+			for(z=0;z<DIMBUF-5;z++){
 				if(bufferI[z]==INC_ADDR&&memCODE_W[k]>=0x3fff) k++;
 				else if(bufferI[z]==LOAD_DATA_PROG&&bufferI[z+3]==READ_DATA_PROG){
 					if (memCODE_W[k]!=(bufferI[z+4]<<8)+bufferI[z+5]){
@@ -1561,10 +1615,9 @@ void Write16F8x (int dim,int dim2)
 					z+=6;
 				}
 			}
-			j=1;
+			j=0;
 			if(saveLog){
 				fprintf(logfile,strings[S_Log8],i,i,k,k,err);	//"i=%d, k=%d, errors=%d \n"
-				WriteLogIO();
 			}
 		}
 	}
@@ -1575,7 +1628,7 @@ void Write16F8x (int dim,int dim2)
 	if(dim2){
 		PrintMessage(strings[S_EEAreaW]);	//"Writing EEPROM ... "
 		PrintStatusSetup();
-		j=1;
+		j=0;
 		bufferU[j++]=LOAD_CONF;			//counter at 0x2000
 		bufferU[j++]=0xFF;				//fake config
 		bufferU[j++]=0xFF;				//fake config
@@ -1597,11 +1650,9 @@ void Write16F8x (int dim,int dim2)
 				PrintStatus(strings[S_CodeWriting],(i-0x2100+dim)*100/(dim+dim2),i);	//"Writing: %d%%, add. %03X"
 				bufferU[j++]=FLUSH;
 				for(;j<DIMBUF;j++) bufferU[j]=0x0;
-				write();
-				msDelay(w*r+5);
+				PacketIO(w*r+5);
 				w=0;
-				read();
-				for(z=1;z<DIMBUF-4;z++){
+				for(z=0;z<DIMBUF-4;z++){
 					if(bufferI[z]==INC_ADDR&&memCODE_W[k]>=0xff) k++;
 					else if(bufferI[z]==LOAD_DATA_DATA&&bufferI[z+3]==READ_DATA_DATA){
 						if (memCODE_W[k]!=bufferI[z+4]){
@@ -1619,10 +1670,9 @@ void Write16F8x (int dim,int dim2)
 						z+=5;
 					}
 				}
-				j=1;
+				j=0;
 				if(saveLog){
 					fprintf(logfile,strings[S_Log8],i,i,k,k,err);	//"i=%d, k=%d, errors=%d \n"
-					WriteLogIO();
 				}
 			}
 		}
@@ -1662,10 +1712,7 @@ void Write16F8x (int dim,int dim2)
 	bufferU[j++]=INC_ADDR;
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(35);
-	if(programID) msDelay(90);
-	read();
+	PacketIO(programID?125:35);
 	for(i=0,z=0;programID&&i<4;i++){
 		for(;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
 		if (memCODE_W[0x2000+i]!=(bufferI[z+1]<<8)+bufferI[z+2]){
@@ -1685,10 +1732,9 @@ void Write16F8x (int dim,int dim2)
 	PrintMessage1(strings[S_ComplErr],err_c);	//"completed, %d errors\r\n"
 	if(saveLog){
 		fprintf(logfile,strings[S_Log9],err);	//"Area config. 	errors=%d \n"
-		WriteLogIO();
 	}
 //****************** exit ********************
-	j=1;
+	j=0;
 	bufferU[j++]=NOP;				//exit program mode
 	bufferU[j++]=EN_VPP_VCC;
 	bufferU[j++]=0x1;
@@ -1702,12 +1748,14 @@ void Write16F8x (int dim,int dim2)
 	bufferU[j++]=2000&0xff;
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(1);
-	read();
+	PacketIO(2);
 	unsigned int stop=GetTickCount();
-	PrintMessage3(strings[S_EndErr],(stop-start)/1000.0,err,err!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nEnd (%.2f s) %d %s\r\n\r\n"
-	if(saveLog)CloseLogFile();
+	sprintf(str,strings[S_EndErr],(stop-start)/1000.0,err,err!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nEnd (%.2f s) %d %s\r\n\r\n"
+	PrintMessage(str);
+	if(saveLog){
+		fprintf(logfile,str);
+		CloseLogFile();
+	}
 	PrintStatusClear();			//clear status report
 }
 
@@ -1754,8 +1802,7 @@ void Write16F62x (int dim,int dim2)
 	}
 	for(i=0;i<0x2009&&i<sizeW;i++) memCODE_W[i]&=0x3FFF;
 	unsigned int start=GetTickCount();
-	bufferU[0]=0;
-	j=1;
+	j=0;
 	bufferU[j++]=SET_PARAMETER;
 	bufferU[j++]=SET_T1T2;
 	bufferU[j++]=1;						//T1=1u
@@ -1792,10 +1839,7 @@ void Write16F62x (int dim,int dim2)
 	bufferU[j++]=0x5;
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(12);
-	read();
-	if(saveLog)WriteLogIO();
+	PacketIO(12);
 	for(z=0;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
 	devID=(bufferI[z+1]<<8)+bufferI[z+2];
 	PrintMessage1(strings[S_DevID],devID);	//"DevID: 0x%04X\r\n"
@@ -1805,7 +1849,7 @@ void Write16F62x (int dim,int dim2)
 	PrintMessage1(strings[S_ConfigWord],config);	//"Config word: 0x%04X\r\n"
 //****************** erase memory ********************
 	PrintMessage(strings[S_StartErase]);	//"Erase ... "
-	j=1;
+	j=0;
 	bufferU[j++]=SET_PARAMETER;
 	bufferU[j++]=SET_T3;
 	bufferU[j++]=5000>>8;
@@ -1863,15 +1907,12 @@ void Write16F62x (int dim,int dim2)
 	bufferU[j++]=8000&0xff;
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(60);
-	read();
-	if(saveLog)WriteLogIO();
+	PacketIO(60);
 	PrintMessage(strings[S_Compl]);	//"completed\r\n"
 //****************** write code ********************
 	PrintMessage(strings[S_StartCodeProg]);	//"Write code ... "
 	PrintStatusSetup();
-	for(w=i=k=0,j=1;i<dim;i++){
+	for(w=i=k=0,j=0;i<dim;i++){
 		if(memCODE_W[i]<0x3fff){
 			bufferU[j++]=LOAD_DATA_PROG;
 			bufferU[j++]=memCODE_W[i]>>8;		//MSB
@@ -1886,11 +1927,9 @@ void Write16F62x (int dim,int dim2)
 			PrintStatus(strings[S_CodeWriting],i*100/dim,i);	//"Writing: %d%%, add. %03X"
 			bufferU[j++]=FLUSH;
 			for(;j<DIMBUF;j++) bufferU[j]=0x0;
-			write();
-			msDelay(w*9+2);
+			PacketIO(w*9+2);
 			w=0;
-			read();
-			for(z=1;z<DIMBUF-5;z++){
+			for(z=0;z<DIMBUF-5;z++){
 				if(bufferI[z]==INC_ADDR&&memCODE_W[k]>=0x3fff) k++;
 				else if(bufferI[z]==LOAD_DATA_PROG&&bufferI[z+3]==READ_DATA_PROG){
 					if (memCODE_W[k]!=(bufferI[z+4]<<8)+bufferI[z+5]){
@@ -1908,10 +1947,9 @@ void Write16F62x (int dim,int dim2)
 					z+=6;
 				}
 			}
-			j=1;
+			j=0;
 			if(saveLog){
 				fprintf(logfile,strings[S_Log8],i,i,k,k,err);	//"i=%d, k=%d, errors=%d \n"
-				WriteLogIO();
 			}
 		}
 	}
@@ -1922,7 +1960,7 @@ void Write16F62x (int dim,int dim2)
 	if(dim2){
 		PrintMessage(strings[S_EEAreaW]);	//"Writing EEPROM ... "
 		PrintStatusSetup();
-		j=1;
+		j=0;
 		bufferU[j++]=LOAD_CONF;			//counter at 0x2000
 		bufferU[j++]=0xFF;				//fake config
 		bufferU[j++]=0xFF;				//fake config
@@ -1946,11 +1984,9 @@ void Write16F62x (int dim,int dim2)
 				PrintStatus(strings[S_CodeWriting],(i-0x2100+dim)*100/(dim+dim2),i);	//"Writing: %d%%, add. %03X"
 				bufferU[j++]=FLUSH;
 				for(;j<DIMBUF;j++) bufferU[j]=0x0;
-				write();
-				msDelay(w*14+1);
+				PacketIO(w*14+1);
 				w=0;
-				read();
-				for(z=1;z<DIMBUF-4;z++){
+				for(z=0;z<DIMBUF-4;z++){
 					if(bufferI[z]==INC_ADDR&&memCODE_W[k]>=0xff) k++;
 					else if(bufferI[z]==LOAD_DATA_DATA&&bufferI[z+3]==READ_DATA_DATA){
 						if (memCODE_W[k]!=bufferI[z+4]){
@@ -1968,10 +2004,9 @@ void Write16F62x (int dim,int dim2)
 						z+=5;
 					}
 				}
-				j=1;
+				j=0;
 				if(saveLog){
 					fprintf(logfile,strings[S_Log8],i,i,k,k,err);	//"i=%d, k=%d, errors=%d \n"
-					WriteLogIO();
 				}
 			}
 		}
@@ -2012,10 +2047,7 @@ void Write16F62x (int dim,int dim2)
 	bufferU[j++]=INC_ADDR;
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(35);
-	if(programID) msDelay(90);
-	read();
+	PacketIO(programID?125:35);
 	for(i=0,z=0;programID&&i<4;i++){
 		for(;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
 		if (memCODE_W[0x2000+i]!=(bufferI[z+1]<<8)+bufferI[z+2]){
@@ -2033,10 +2065,9 @@ void Write16F62x (int dim,int dim2)
 	PrintMessage1(strings[S_ComplErr],err_c);	//"completed, %d errors\n"
 	if(saveLog){
 		fprintf(logfile,strings[S_Log9],err);	//"Area config. 	errors=%d\n"
-		WriteLogIO();
 	}
 //****************** exit ********************
-	j=1;
+	j=0;
 	bufferU[j++]=NOP;				//exit program mode
 	bufferU[j++]=EN_VPP_VCC;
 	bufferU[j++]=0x1;
@@ -2050,12 +2081,14 @@ void Write16F62x (int dim,int dim2)
 	bufferU[j++]=2000&0xff;
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(1);
-	read();
+	PacketIO(2);
 	unsigned int stop=GetTickCount();
-	PrintMessage3(strings[S_EndErr],(stop-start)/1000.0,err,err!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nEnd (%.2f s) %d %s\r\n\r\n"
-	if(saveLog)CloseLogFile();
+	sprintf(str,strings[S_EndErr],(stop-start)/1000.0,err,err!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nEnd (%.2f s) %d %s\r\n\r\n"
+	PrintMessage(str);
+	if(saveLog){
+		fprintf(logfile,str);
+		CloseLogFile();
+	}
 	PrintStatusClear();			//clear status report
 }
 
@@ -2097,8 +2130,7 @@ void Write12F62x(int dim,int dim2)
 	}
 	for(i=0;i<sizeW;i++) memCODE_W[i]&=0x3FFF;
 	unsigned int start=GetTickCount();
-	bufferU[0]=0;
-	j=1;
+	j=0;
 	bufferU[j++]=SET_PARAMETER;
 	bufferU[j++]=SET_T1T2;
 	bufferU[j++]=1;						//T1=1u
@@ -2142,11 +2174,8 @@ void Write12F62x(int dim,int dim2)
 	bufferU[j++]=WAIT_T3;			//delay after exiting prog mode
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(15);
-	read();
-	if(saveLog)WriteLogIO();
-	for(z=1;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
+	PacketIO(15);
+	for(z=0;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
 	osccal=(bufferI[z+1]<<8)+bufferI[z+2];
 	for(z+=3;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
 	devID=(bufferI[z+1]<<8)+bufferI[z+2];
@@ -2156,7 +2185,7 @@ void Write12F62x(int dim,int dim2)
 	PIC16_ID(devID);
 //****************** erase memory ********************
 	PrintMessage(strings[S_StartErase]);	//"Erase ... "
-	j=1;
+	j=0;
 	bufferU[j++]=EN_VPP_VCC;		//enter program mode
 	bufferU[j++]=0x0;
 	bufferU[j++]=SET_CK_D;
@@ -2190,16 +2219,13 @@ void Write12F62x(int dim,int dim2)
 	bufferU[j++]=3000&0xff;
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(40);
-	read();
-	if(saveLog)WriteLogIO();
+	PacketIO(40);
 	PrintMessage(strings[S_Compl]);	//"completed\r\n"
 //****************** write code ********************
 	PrintMessage(strings[S_StartCodeProg]);	//"Write code ... "
 	PrintStatusSetup();
 	if(!load_osccal) memCODE_W[dim-1]=osccal;	//backup osccal
-	for(w=i=k=0,j=1;i<dim;i++){
+	for(w=i=k=0,j=0;i<dim;i++){
 		if(memCODE_W[i]<0x3fff){
 			bufferU[j++]=LOAD_DATA_PROG;
 			bufferU[j++]=memCODE_W[i]>>8;		//MSB
@@ -2214,11 +2240,9 @@ void Write12F62x(int dim,int dim2)
 			PrintStatus(strings[S_CodeWriting],i*100/dim,i);	//"Writing: %d%%, add. %03X"
 			bufferU[j++]=FLUSH;
 			for(;j<DIMBUF;j++) bufferU[j]=0x0;
-			write();
-			msDelay(w*6.5);
+			PacketIO(w*6.5+j*0.1);
 			w=0;
-			read();
-			for(z=1;z<DIMBUF-5;z++){
+			for(z=0;z<DIMBUF-5;z++){
 				if(bufferI[z]==INC_ADDR&&memCODE_W[k]>=0x3fff) k++;
 				else if(bufferI[z]==LOAD_DATA_PROG&&bufferI[z+3]==READ_DATA_PROG){
 					if (memCODE_W[k]!=(bufferI[z+4]<<8)+bufferI[z+5]){
@@ -2236,10 +2260,9 @@ void Write12F62x(int dim,int dim2)
 					z+=6;
 				}
 			}
-			j=1;
+			j=0;
 			if(saveLog){
 				fprintf(logfile,strings[S_Log8],i,i,k,k,err);	//"i=%d, k=%d, errors=%d \n"
-				WriteLogIO();
 			}
 		}
 	}
@@ -2250,7 +2273,7 @@ void Write12F62x(int dim,int dim2)
 	if(dim2){
 		PrintMessage(strings[S_EEAreaW]);	//"Writing EEPROM ... "
 		PrintStatusSetup();
-		j=1;
+		j=0;
 		bufferU[j++]=SET_PARAMETER;
 		bufferU[j++]=SET_T3;
 		bufferU[j++]=6000>>8;
@@ -2279,11 +2302,9 @@ void Write12F62x(int dim,int dim2)
 				PrintStatus(strings[S_CodeWriting],(i-0x2100+dim)*100/(dim+dim2),i);	//"Writing: %d%%, add. %03X"
 				bufferU[j++]=FLUSH;
 				for(;j<DIMBUF;j++) bufferU[j]=0x0;
-				write();
-				msDelay(w*7+2);
+				PacketIO(w*7+2);
 				w=0;
-				read();
-				for(z=1;z<DIMBUF-4;z++){
+				for(z=0;z<DIMBUF-4;z++){
 					if(bufferI[z]==INC_ADDR&&memCODE_W[k]>=0xff) k++;
 					else if(bufferI[z]==LOAD_DATA_DATA&&bufferI[z+3]==READ_DATA_DATA){
 						if (memCODE_W[k]!=bufferI[z+4]){
@@ -2301,10 +2322,9 @@ void Write12F62x(int dim,int dim2)
 						z+=5;
 					}
 				}
-				j=1;
+				j=0;
 				if(saveLog){
 					fprintf(logfile,strings[S_Log8],i,i,k,k,err);	//"i=%d, k=%d, errors=%d \n"
-					WriteLogIO();
 				}
 			}
 		}
@@ -2344,9 +2364,7 @@ void Write12F62x(int dim,int dim2)
 	bufferU[j++]=READ_DATA_PROG;
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(35);
-	read();
+	PacketIO(35);
 	for(i=0,z=0;programID&&i<4;i++){
 		for(;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
 		if (memCODE_W[0x2000+i]!=(bufferI[z+1]<<8)+bufferI[z+2]){
@@ -2364,10 +2382,9 @@ void Write12F62x(int dim,int dim2)
 	PrintMessage1(strings[S_ComplErr],err_c);	//"completed, %d errors\r\n"
 	if(saveLog){
 		fprintf(logfile,strings[S_Log9],err);	//"Area config. 	errors=%d \n"
-		WriteLogIO();
 	}
 //****************** exit ********************
-	j=1;
+	j=0;
 	bufferU[j++]=SET_PARAMETER;
 	bufferU[j++]=SET_T3;
 	bufferU[j++]=2000>>8;
@@ -2380,12 +2397,14 @@ void Write12F62x(int dim,int dim2)
 	bufferU[j++]=0x0;
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(1);
-	read();
+	PacketIO(2);
 	unsigned int stop=GetTickCount();
-	PrintMessage3(strings[S_EndErr],(stop-start)/1000.0,err,err!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nEnd (%.2f s) %d %s\r\n\r\n"
-	if(saveLog)CloseLogFile();
+	sprintf(str,strings[S_EndErr],(stop-start)/1000.0,err,err!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nEnd (%.2f s) %d %s\r\n\r\n"
+	PrintMessage(str);
+	if(saveLog){
+		fprintf(logfile,str);
+		CloseLogFile();
+	}
 	PrintStatusClear();			//clear status report
 }
 
@@ -2438,8 +2457,7 @@ void Write16F87x (int dim,int dim2)
 	}
 	for(i=0;i<sizeW;i++) memCODE_W[i]&=0x3FFF;
 	unsigned int start=GetTickCount();
-	bufferU[0]=0;
-	j=1;
+	j=0;
 	bufferU[j++]=SET_PARAMETER;
 	bufferU[j++]=SET_T1T2;
 	bufferU[j++]=1;						//T1=1u
@@ -2475,10 +2493,7 @@ void Write16F87x (int dim,int dim2)
 	bufferU[j++]=0x5;
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(60);
-	read();
-	if(saveLog)WriteLogIO();
+	PacketIO(60);
 	for(z=0;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
 	devID=(bufferI[z+1]<<8)+bufferI[z+2];
 	PrintMessage1(strings[S_DevID],devID);	//"DevID: 0x%04X\r\n"
@@ -2488,7 +2503,7 @@ void Write16F87x (int dim,int dim2)
 	PrintMessage1(strings[S_ConfigWord],config);	//"Config word: 0x%04X\r\n"
 //****************** erase memory ********************
 	PrintMessage(strings[S_StartErase]);	//"Erase ... "
-	j=1;
+	j=0;
 	bufferU[j++]=SET_PARAMETER;
 	bufferU[j++]=SET_T3;
 	bufferU[j++]=8000>>8;
@@ -2576,15 +2591,12 @@ void Write16F87x (int dim,int dim2)
 	bufferU[j++]=4000&0xff;
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(60);
-	read();
-	if(saveLog)WriteLogIO();
+	PacketIO(60);
 	PrintMessage(strings[S_Compl]);	//"completed\r\n"
 //****************** write code ********************
 	PrintMessage(strings[S_StartCodeProg]);	//"Write code ... "
 	PrintStatusSetup();
-	for(w=i=k=0,j=1;i<dim;i++){
+	for(w=i=k=0,j=0;i<dim;i++){
 		if(memCODE_W[i]<0x3fff){
 			bufferU[j++]=LOAD_DATA_PROG;
 			bufferU[j++]=memCODE_W[i]>>8;		//MSB
@@ -2599,11 +2611,9 @@ void Write16F87x (int dim,int dim2)
 			PrintStatus(strings[S_CodeWriting],i*100/dim,i);	//"Writing: %d%%, add. %03X"
 			bufferU[j++]=FLUSH;
 			for(;j<DIMBUF;j++) bufferU[j]=0x0;
-			write();
-			msDelay(w*5+2);
+			PacketIO(w*5+2);
 			w=0;
-			read();
-			for(z=1;z<DIMBUF-5;z++){
+			for(z=0;z<DIMBUF-5;z++){
 				if(bufferI[z]==INC_ADDR&&memCODE_W[k]>=0x3fff) k++;
 				else if(bufferI[z]==LOAD_DATA_PROG&&bufferI[z+3]==READ_DATA_PROG){
 					if (memCODE_W[k]!=(bufferI[z+4]<<8)+bufferI[z+5]){
@@ -2621,10 +2631,9 @@ void Write16F87x (int dim,int dim2)
 					z+=6;
 				}
 			}
-			j=1;
+			j=0;
 			if(saveLog){
 				fprintf(logfile,strings[S_Log8],i,i,k,k,err);	//"i=%d, k=%d, errors=%d \n"
-				WriteLogIO();
 			}
 		}
 	}
@@ -2636,7 +2645,7 @@ void Write16F87x (int dim,int dim2)
 		int err_e=0;
 		PrintMessage(strings[S_EEAreaW]);	//"Writing EEPROM ... "
 		PrintStatusSetup();
-		j=1;
+		j=0;
 		bufferU[j++]=LOAD_CONF;			//counter at 0x2000
 		bufferU[j++]=0xFF;				//fake config
 		bufferU[j++]=0xFF;				//fake config
@@ -2664,11 +2673,9 @@ void Write16F87x (int dim,int dim2)
 				PrintStatus(strings[S_CodeWriting],(i-0x2100+dim)*100/(dim+dim2),i);	//"Writing: %d%%, add. %03X"
 				bufferU[j++]=FLUSH;
 				for(;j<DIMBUF;j++) bufferU[j]=0x0;
-				write();
-				msDelay(w*8+5);
+				PacketIO(w*8+5);
 				w=0;
-				read();
-				for(z=1;z<DIMBUF;z++){
+				for(z=0;z<DIMBUF;z++){
 					if(bufferI[z]==INC_ADDR&&memCODE_W[k]>=0xff) k++;
 					else if(bufferI[z]==LOAD_DATA_DATA&&bufferI[z+3]==READ_DATA_DATA){
 						if (memCODE_W[k]!=bufferI[z+4]){
@@ -2686,10 +2693,9 @@ void Write16F87x (int dim,int dim2)
 						z+=5;
 					}
 				}
-				j=1;
+				j=0;
 				if(saveLog){
 					fprintf(logfile,strings[S_Log8],i,i,k,k,err);	//"i=%d, k=%d, errors=%d \n"
-					WriteLogIO();
 				}
 			}
 		}
@@ -2742,10 +2748,7 @@ void Write16F87x (int dim,int dim2)
 	bufferU[j++]=READ_DATA_PROG;
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(35);
-	if(programID) msDelay(90);
-	read();
+	PacketIO(programID?125:35);
 	for(i=0,z=0;programID&&i<4;i++){
 		for(;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
 		if (memCODE_W[0x2000+i]!=(bufferI[z+1]<<8)+bufferI[z+2]){
@@ -2771,10 +2774,9 @@ void Write16F87x (int dim,int dim2)
 	PrintMessage1(strings[S_ComplErr],err_c);	//"completed, %d errors\r\n"
 	if(saveLog){
 		fprintf(logfile,strings[S_Log9],err);	//"Area config. 	errors=%d \n"
-		WriteLogIO();
 	}
 //****************** exit ********************
-	j=1;
+	j=0;
 	bufferU[j++]=SET_PARAMETER;
 	bufferU[j++]=SET_T3;
 	bufferU[j++]=2000>>8;
@@ -2787,12 +2789,14 @@ void Write16F87x (int dim,int dim2)
 	bufferU[j++]=0x0;
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(1);
-	read();
+	PacketIO(2);
 	unsigned int stop=GetTickCount();
-	PrintMessage3(strings[S_EndErr],(stop-start)/1000.0,err,err!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nEnd (%.2f s) %d %s\r\n\r\n"
-	if(saveLog)CloseLogFile();
+	sprintf(str,strings[S_EndErr],(stop-start)/1000.0,err,err!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nEnd (%.2f s) %d %s\r\n\r\n"
+	PrintMessage(str);
+	if(saveLog){
+		fprintf(logfile,str);
+		CloseLogFile();
+	}
 	PrintStatusClear();			//clear status report
 }
 
@@ -2836,7 +2840,7 @@ void Write16F87xA (int dim,int dim2,int seq)
 	for(i=0;i<sizeW;i++) memCODE_W[i]&=0x3FFF;
 	unsigned int start=GetTickCount();
 	bufferU[0]=0;
-	j=1;
+	j=0;
 	bufferU[j++]=SET_PARAMETER;
 	bufferU[j++]=SET_T1T2;
 	bufferU[j++]=1;						//T1=1u
@@ -2877,11 +2881,7 @@ void Write16F87xA (int dim,int dim2,int seq)
 	bufferU[j++]=0x5;
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(40);
-	if(seq==0) msDelay(50);
-	read();
-	if(saveLog)WriteLogIO();
+	PacketIO(seq==0?90:40);
 	for(z=0;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
 	devID=(bufferI[z+1]<<8)+bufferI[z+2];
 	PrintMessage1(strings[S_DevID],devID);	//"DevID: 0x%04X\r\n"
@@ -2891,7 +2891,7 @@ void Write16F87xA (int dim,int dim2,int seq)
 	PrintMessage1(strings[S_ConfigWord],config);	//"Config word: 0x%04X\r\n"
 //****************** erase memory ********************
 	PrintMessage(strings[S_StartErase]);	//"Erase ... "
-	j=1;
+	j=0;
 	bufferU[j++]=SET_PARAMETER;
 	bufferU[j++]=SET_T3;
 	bufferU[j++]=15000>>8;
@@ -2919,15 +2919,12 @@ void Write16F87xA (int dim,int dim2,int seq)
 	bufferU[j++]=1200&0xff;
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(60);
-	read();
-	if(saveLog)WriteLogIO();
+	PacketIO(60);
 	PrintMessage(strings[S_Compl]);	//"completed\r\n"
 //****************** write code ********************
 	PrintMessage(strings[S_StartCodeProg]);	//"Write code ... "
 	PrintStatusSetup();
-	for(w=i=k=0,j=1;i<dim;i++){
+	for(w=i=k=0,j=0;i<dim;i++){
 		if(memCODE_W[i]<0x3fff){
 			bufferU[j++]=LOAD_DATA_PROG;
 			bufferU[j++]=memCODE_W[i]>>8;		//MSB
@@ -2944,11 +2941,9 @@ void Write16F87xA (int dim,int dim2,int seq)
 			PrintStatus(strings[S_CodeWriting],i*100/dim,i);	//"Writing: %d%%, add. %03X"
 			bufferU[j++]=FLUSH;
 			for(;j<DIMBUF;j++) bufferU[j]=0x0;
-			write();
-			msDelay(w*1.5+(6-w)*0.2+2);
+			PacketIO(w*1.5+(6-w)*0.2+2);
 			w=0;
-			read();
-			for(z=1;z<DIMBUF-6;z++){
+			for(z=0;z<DIMBUF-6;z++){
 				if(bufferI[z]==INC_ADDR&&memCODE_W[k]>=0x3fff) k++;
 				else if(bufferI[z]==LOAD_DATA_PROG&&bufferI[z+4]==READ_DATA_PROG){
 					if (memCODE_W[k]!=(bufferI[z+5]<<8)+bufferI[z+6]){
@@ -2966,10 +2961,9 @@ void Write16F87xA (int dim,int dim2,int seq)
 					z+=7;
 				}
 			}
-			j=1;
+			j=0;
 			if(saveLog){
 				fprintf(logfile,strings[S_Log8],i,i,k,k,err);	//"i=%d, k=%d, errors=%d \n"
-				WriteLogIO();
 			}
 		}
 	}
@@ -2981,7 +2975,7 @@ void Write16F87xA (int dim,int dim2,int seq)
 		int err_e=0;
 		PrintMessage(strings[S_EEAreaW]);	//"Writing EEPROM ... "
 		PrintStatusSetup();
-		j=1;
+		j=0;
 		bufferU[j++]=SET_PARAMETER;
 		bufferU[j++]=SET_T3;
 		bufferU[j++]=12000>>8;
@@ -3007,11 +3001,9 @@ void Write16F87xA (int dim,int dim2,int seq)
 				PrintStatus(strings[S_CodeWriting],(i-0x2100+dim)*100/(dim+dim2),i);	//"Writing: %d%%, add. %03X"
 				bufferU[j++]=FLUSH;
 				for(;j<DIMBUF;j++) bufferU[j]=0x0;
-				write();
-				msDelay(w*12.5+5);
+				PacketIO(w*12.5+5);
 				w=0;
-				read();
-				for(z=1;z<DIMBUF-4;z++){
+				for(z=0;z<DIMBUF-4;z++){
 					if(bufferI[z]==INC_ADDR&&memCODE_W[k]>=0xff) k++;
 					else if(bufferI[z]==LOAD_DATA_DATA&&bufferI[z+3]==READ_DATA_DATA){
 						if (memCODE_W[k]!=bufferI[z+4]){
@@ -3029,10 +3021,9 @@ void Write16F87xA (int dim,int dim2,int seq)
 						z+=5;
 					}
 				}
-				j=1;
+				j=0;
 				if(saveLog){
 					fprintf(logfile,strings[S_Log8],i,i,k,k,err);	//"i=%d, k=%d, errors=%d \n"
-					WriteLogIO();
 				}
 			}
 		}
@@ -3094,11 +3085,10 @@ void Write16F87xA (int dim,int dim2,int seq)
 	}
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	if(programID) msDelay(50);
-	if(ICDenable) msDelay(13);
-	msDelay(28);
-	read();
+	i=28;
+	if(programID) i+=50;
+	if(ICDenable) i+=13;
+	PacketIO(i);
 	for(i=0,z=0;programID&&i<4;i++){
 		for(;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
 		if (memCODE_W[0x2000+i]!=(bufferI[z+1]<<8)+bufferI[z+2]){
@@ -3131,10 +3121,9 @@ void Write16F87xA (int dim,int dim2,int seq)
 	PrintMessage1(strings[S_ComplErr],err_c);	//"completed, %d errors\r\n"
 	if(saveLog){
 		fprintf(logfile,strings[S_Log9],err);	//"Area config. 	errors=%d \n"
-		WriteLogIO();
 	}
 //****************** exit ********************
-	j=1;
+	j=0;
 	bufferU[j++]=SET_PARAMETER;
 	bufferU[j++]=SET_T3;
 	bufferU[j++]=2000>>8;
@@ -3147,12 +3136,14 @@ void Write16F87xA (int dim,int dim2,int seq)
 	bufferU[j++]=0x0;
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(1);
-	read();
+	PacketIO(2);
 	unsigned int stop=GetTickCount();
-	PrintMessage3(strings[S_EndErr],(stop-start)/1000.0,err,err!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nEnd (%.2f s) %d %s\r\n\r\n"
-	if(saveLog)CloseLogFile();
+	sprintf(str,strings[S_EndErr],(stop-start)/1000.0,err,err!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nEnd (%.2f s) %d %s\r\n\r\n"
+	PrintMessage(str);
+	if(saveLog){
+		fprintf(logfile,str);
+		CloseLogFile();
+	}
 	PrintStatusClear();			//clear status report
 }
 
@@ -3196,8 +3187,7 @@ void Write16F81x (int dim,int dim2)
 	}
 	for(i=0;i<sizeW;i++) memCODE_W[i]&=0x3FFF;
 	unsigned int start=GetTickCount();
-	bufferU[0]=0;
-	j=1;
+	j=0;
 	bufferU[j++]=SET_PARAMETER;
 	bufferU[j++]=SET_T1T2;
 	bufferU[j++]=1;						//T1=1u
@@ -3237,10 +3227,7 @@ void Write16F81x (int dim,int dim2)
 	bufferU[j++]=0x5;
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(40);
-	read();
-	if(saveLog)WriteLogIO();
+	PacketIO(40);
 	for(z=0;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
 	devID=(bufferI[z+1]<<8)+bufferI[z+2];
 	PrintMessage1(strings[S_DevID],devID);	//"DevID: 0x%04X\r\n"
@@ -3250,7 +3237,7 @@ void Write16F81x (int dim,int dim2)
 	PrintMessage1(strings[S_ConfigWord],config);	//"Config word: 0x%04X\r\n"
 //****************** erase memory ********************
 	PrintMessage(strings[S_StartErase]);	//"Erase ... "
-	j=1;
+	j=0;
 	bufferU[j++]=SET_PARAMETER;
 	bufferU[j++]=SET_T3;
 	bufferU[j++]=2000>>8;
@@ -3290,15 +3277,12 @@ void Write16F81x (int dim,int dim2)
 	bufferU[j++]=0x5;
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(15);
-	read();
-	if(saveLog)WriteLogIO();
+	PacketIO(15);
 	PrintMessage(strings[S_Compl]);	//"completed\r\n"
 //****************** write code ********************
 	PrintMessage(strings[S_StartCodeProg]);	//"Write code ... "
 	PrintStatusSetup();
-	for(w=i=k=0,j=1;i<dim;i++){
+	for(w=i=k=0,j=0;i<dim;i++){
 		if(memCODE_W[i]<0x3fff){
 			bufferU[j++]=LOAD_DATA_PROG;
 			bufferU[j++]=memCODE_W[i]>>8;		//MSB
@@ -3315,11 +3299,9 @@ void Write16F81x (int dim,int dim2)
 			PrintStatus(strings[S_CodeWriting],i*100/dim,i);	//"Writing: %d%%, add. %03X"
 			bufferU[j++]=FLUSH;
 			for(;j<DIMBUF;j++) bufferU[j]=0x0;
-			write();
-			msDelay(w*2.5+3);
+			PacketIO(w*2.5+3);
 			w=0;
-			read();
-			for(z=1;z<DIMBUF-6;z++){
+			for(z=0;z<DIMBUF-6;z++){
 				if(bufferI[z]==INC_ADDR&&memCODE_W[k]>=0x3fff) k++;
 				else if(bufferI[z]==LOAD_DATA_PROG&&bufferI[z+4]==READ_DATA_PROG){
 					if (memCODE_W[k]!=(bufferI[z+5]<<8)+bufferI[z+6]){
@@ -3337,10 +3319,9 @@ void Write16F81x (int dim,int dim2)
 					z+=7;
 				}
 			}
-			j=1;
+			j=0;
 			if(saveLog){
 				fprintf(logfile,strings[S_Log8],i,i,k,k,err);	//"i=%d, k=%d, errors=%d \n"
-				WriteLogIO();
 			}
 		}
 	}
@@ -3352,7 +3333,7 @@ void Write16F81x (int dim,int dim2)
 		int err_e=0;
 		PrintMessage(strings[S_EEAreaW]);	//"Writing EEPROM ... "
 		PrintStatusSetup();
-		j=1;
+		j=0;
 		bufferU[j++]=EN_VPP_VCC;
 		bufferU[j++]=0x1;
 		bufferU[j++]=EN_VPP_VCC;
@@ -3373,11 +3354,8 @@ void Write16F81x (int dim,int dim2)
 		bufferU[j++]=0x17;					//END_PROGX (10111)
 		bufferU[j++]=FLUSH;
 		for(;j<DIMBUF;j++) bufferU[j]=0x0;
-		write();
-		msDelay(5);
-		read();
-		if(saveLog)WriteLogIO();
-		j=1;
+		PacketIO(5);
+		j=0;
 		for(w=0,i=k=0x2100;i<0x2100+dim2;i++){
 			if(memCODE_W[i]<0xff){
 				bufferU[j++]=LOAD_DATA_DATA;
@@ -3394,11 +3372,9 @@ void Write16F81x (int dim,int dim2)
 				PrintStatus(strings[S_CodeWriting],(i-0x2100+dim)*100/(dim+dim2),i);	//"Writing: %d%%, add. %03X"
 				bufferU[j++]=FLUSH;
 				for(;j<DIMBUF;j++) bufferU[j]=0x0;
-				write();
-				msDelay(w*2.5+5);
+				PacketIO(w*2.5+5);
 				w=0;
-				read();
-				for(z=1;z<DIMBUF-5;z++){
+				for(z=0;z<DIMBUF-5;z++){
 					if(bufferI[z]==INC_ADDR&&memCODE_W[k]>=0xff) k++;
 					else if(bufferI[z]==LOAD_DATA_DATA&&bufferI[z+4]==READ_DATA_DATA){
 						if (memCODE_W[k]!=bufferI[z+5]){
@@ -3416,10 +3392,9 @@ void Write16F81x (int dim,int dim2)
 						z+=6;
 					}
 				}
-				j=1;
+				j=0;
 				if(saveLog){
 					fprintf(logfile,strings[S_Log8],i,i,k,k,err);	//"i=%d, k=%d, errors=%d \n"
-					WriteLogIO();
 				}
 			}
 		}
@@ -3485,9 +3460,7 @@ void Write16F81x (int dim,int dim2)
 	}
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(15);
-	read();
+	PacketIO(15);
 	for(i=0,z=0;programID&&i<4;i++){
 		for(;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
 		if (memCODE_W[0x2000+i]!=(bufferI[z+1]<<8)+bufferI[z+2]){
@@ -3520,10 +3493,9 @@ void Write16F81x (int dim,int dim2)
 	PrintMessage1(strings[S_ComplErr],err_c);	//"completed, %d errors\r\n"
 	if(saveLog){
 		fprintf(logfile,strings[S_Log9],err);	//"Area config. 	errors=%d \n"
-		WriteLogIO();
 	}
 //****************** exit ********************
-	j=1;
+	j=0;
 	bufferU[j++]=SET_PARAMETER;
 	bufferU[j++]=SET_T3;
 	bufferU[j++]=2000>>8;
@@ -3536,12 +3508,14 @@ void Write16F81x (int dim,int dim2)
 	bufferU[j++]=0x0;
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(1);
-	read();
+	PacketIO(2);
 	unsigned int stop=GetTickCount();
-	PrintMessage3(strings[S_EndErr],(stop-start)/1000.0,err,err!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nEnd (%.2f s) %d %s\r\n\r\n"
-	if(saveLog)CloseLogFile();
+	sprintf(str,strings[S_EndErr],(stop-start)/1000.0,err,err!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nEnd (%.2f s) %d %s\r\n\r\n"
+	PrintMessage(str);
+	if(saveLog){
+		fprintf(logfile,str);
+		CloseLogFile();
+	}
 	PrintStatusClear();			//clear status report
 }
 
@@ -3583,8 +3557,7 @@ void Write12F61x(int dim, int d, int d2)
 	}
 	for(i=0;i<0x2009&&i<sizeW;i++) memCODE_W[i]&=0x3FFF;
 	unsigned int start=GetTickCount();
-	bufferU[0]=0;
-	j=1;
+	j=0;
 	bufferU[j++]=SET_PARAMETER;
 	bufferU[j++]=SET_T1T2;
 	bufferU[j++]=1;						//T1=1u
@@ -3626,10 +3599,7 @@ void Write12F61x(int dim, int d, int d2)
 	bufferU[j++]=WAIT_T3;			//delay after exiting prog mode
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(15);
-	read();
-	if(saveLog)WriteLogIO();
+	PacketIO(15);
 	for(z=0;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
 	devREV=(bufferI[z+1]<<8)+bufferI[z+2];
 	for(z+=3;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
@@ -3645,7 +3615,7 @@ void Write12F61x(int dim, int d, int d2)
 	if(calib2<0x3fff) PrintMessage1(strings[S_CalibWord2],calib2);	//"Calib2: 0x%04X\r\n"
 //****************** erase memory ********************
 	PrintMessage(strings[S_StartErase]);	//"Erase ... "
-	j=1;
+	j=0;
 	bufferU[j++]=EN_VPP_VCC;		//enter program mode
 	bufferU[j++]=0x0;
 	bufferU[j++]=SET_CK_D;
@@ -3683,15 +3653,12 @@ void Write12F61x(int dim, int d, int d2)
 	bufferU[j++]=4000&0xff;
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(40);
-	read();
-	if(saveLog)WriteLogIO();
+	PacketIO(40);
 	PrintMessage(strings[S_Compl]);	//"completed\r\n"
 //****************** write code ********************
 	PrintMessage(strings[S_StartCodeProg]);	//"Write code ... "
 	PrintStatusSetup();
-	for(w=i=k=0,j=1;i<dim;i++){
+	for(w=i=k=0,j=0;i<dim;i++){
 		if(memCODE_W[i]<0x3fff){
 			bufferU[j++]=LOAD_DATA_PROG;
 			bufferU[j++]=memCODE_W[i]>>8;		//MSB
@@ -3708,11 +3675,9 @@ void Write12F61x(int dim, int d, int d2)
 			PrintStatus(strings[S_CodeWriting],i*100/dim,i);	//"Writing: %d%%, add. %03X"
 			bufferU[j++]=FLUSH;
 			for(;j<DIMBUF;j++) bufferU[j]=0x0;
-			write();
-			msDelay(w*5+2.5);
+			PacketIO(w*5+2.5);
 			w=0;
-			read();
-			for(z=1;z<DIMBUF-7;z++){
+			for(z=0;z<DIMBUF-7;z++){
 				if(bufferI[z]==INC_ADDR&&memCODE_W[k]>=0x3fff) k++;
 				else if(bufferI[z]==LOAD_DATA_PROG&&bufferI[z+5]==READ_DATA_PROG){
 					if (memCODE_W[k]!=(bufferI[z+6]<<8)+bufferI[z+7]){
@@ -3730,10 +3695,9 @@ void Write12F61x(int dim, int d, int d2)
 					z+=8;
 				}
 			}
-			j=1;
+			j=0;
 			if(saveLog){
 				fprintf(logfile,strings[S_Log8],i,i,k,k,err);	//"i=%d, k=%d, errors=%d,\n"
-				WriteLogIO();
 			}
 		}
 	}
@@ -3786,9 +3750,7 @@ void Write12F61x(int dim, int d, int d2)
 	}
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(35);
-	read();
+	PacketIO(35);
 	for(i=0,z=0;programID&&i<4;i++){
 		for(;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
 		if (memCODE_W[0x2000+i]!=(bufferI[z+1]<<8)+bufferI[z+2]){
@@ -3816,10 +3778,9 @@ void Write12F61x(int dim, int d, int d2)
 	PrintMessage1(strings[S_ComplErr],err_c);	//"completed, %d errors\r\n"
 	if(saveLog){
 		fprintf(logfile,strings[S_Log9],err);	//"Area config. 	errors=%d \n"
-		WriteLogIO();
 	}
 //****************** exit ********************
-	j=1;
+	j=0;
 	bufferU[j++]=SET_PARAMETER;
 	bufferU[j++]=SET_T3;
 	bufferU[j++]=2000>>8;
@@ -3833,12 +3794,14 @@ void Write12F61x(int dim, int d, int d2)
 	bufferU[j++]=0x0;
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(1);
-	read();
+	PacketIO(2);
 	unsigned int stop=GetTickCount();
-	PrintMessage3(strings[S_EndErr],(stop-start)/1000.0,err,err!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nEnd (%.2f s) %d %s\r\n\r\n"
-	if(saveLog)CloseLogFile();
+	sprintf(str,strings[S_EndErr],(stop-start)/1000.0,err,err!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nEnd (%.2f s) %d %s\r\n\r\n"
+	PrintMessage(str);
+	if(saveLog){
+		fprintf(logfile,str);
+		CloseLogFile();
+	}
 	PrintStatusClear();			//clear status report
 }
 
@@ -3888,8 +3851,7 @@ void Write16F88x(int dim,int dim2)
 	}
 	for(i=0;i<0x200A&&i<sizeW;i++) memCODE_W[i]&=0x3FFF;
 	unsigned int start=GetTickCount();
-	bufferU[0]=0;
-	j=1;
+	j=0;
 	bufferU[j++]=SET_PARAMETER;
 	bufferU[j++]=SET_T1T2;
 	bufferU[j++]=1;						//T1=1u
@@ -3928,10 +3890,7 @@ void Write16F88x(int dim,int dim2)
 	bufferU[j++]=WAIT_T3;			//delay after exiting prog mode
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(15);
-	read();
-	if(saveLog)WriteLogIO();
+	PacketIO(15);
 	for(z=0;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
 	devID=(bufferI[z+1]<<8)+bufferI[z+2];
 	PrintMessage1(strings[S_DevID],devID);	//"DevID: 0x%04X\r\n"
@@ -3943,7 +3902,7 @@ void Write16F88x(int dim,int dim2)
 	}
 //****************** erase memory ********************
 	PrintMessage(strings[S_StartErase]);	//"Erase ... "
-	j=1;
+	j=0;
 	bufferU[j++]=EN_VPP_VCC;		//enter program mode
 	bufferU[j++]=0x0;
 	bufferU[j++]=SET_CK_D;
@@ -3979,15 +3938,12 @@ void Write16F88x(int dim,int dim2)
 	bufferU[j++]=3000&0xff;
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(40);
-	read();
-	if(saveLog)WriteLogIO();
+	PacketIO(40);
 	PrintMessage(strings[S_Compl]);	//"completed\r\n"
 //****************** write code ********************
 	PrintMessage(strings[S_StartCodeProg]);	//"Write code ... "
 	PrintStatusSetup();
-	for(w=i=k=0,j=1;i<dim;i++){
+	for(w=i=k=0,j=0;i<dim;i++){
 		if(memCODE_W[i]<0x3fff){
 			bufferU[j++]=LOAD_DATA_PROG;
 			bufferU[j++]=memCODE_W[i]>>8;		//MSB
@@ -4002,11 +3958,9 @@ void Write16F88x(int dim,int dim2)
 			PrintStatus(strings[S_CodeWriting],i*100/dim,i);	//"Writing: %d%%, add. %03X"
 			bufferU[j++]=FLUSH;
 			for(;j<DIMBUF;j++) bufferU[j]=0x0;
-			write();
-			msDelay(w*3+2);
+			PacketIO(w*3+2);
 			w=0;
-			read();
-			for(z=1;z<DIMBUF-5;z++){
+			for(z=0;z<DIMBUF-5;z++){
 				if(bufferI[z]==INC_ADDR&&memCODE_W[k]>=0x3fff) k++;
 				else if(bufferI[z]==LOAD_DATA_PROG&&bufferI[z+3]==READ_DATA_PROG){
 					if (memCODE_W[k]!=(bufferI[z+4]<<8)+bufferI[z+5]){
@@ -4024,10 +3978,9 @@ void Write16F88x(int dim,int dim2)
 					z+=6;
 				}
 			}
-			j=1;
+			j=0;
 			if(saveLog){
 				fprintf(logfile,strings[S_Log8],i,i,k,k,err);	//"i=%d, k=%d, errors=%d,\n"
-				WriteLogIO();
 			}
 		}
 	}
@@ -4038,7 +3991,7 @@ void Write16F88x(int dim,int dim2)
 	if(dim2){
 		PrintMessage(strings[S_EEAreaW]);	//"Writing EEPROM ... "
 		PrintStatusSetup();
-		j=1;
+		j=0;
 		bufferU[j++]=SET_PARAMETER;
 		bufferU[j++]=SET_T3;
 		bufferU[j++]=6000>>8;
@@ -4066,11 +4019,9 @@ void Write16F88x(int dim,int dim2)
 				PrintStatus(strings[S_CodeWriting],(i-0x2100+dim)*100/(dim+dim2),i);	//"Writing: %d%%, add. %03X"
 				bufferU[j++]=FLUSH;
 				for(;j<DIMBUF;j++) bufferU[j]=0x0;
-				write();
-				msDelay(w*6.5+2);
+				PacketIO(w*6.5+2);
 				w=0;
-				read();
-				for(z=1;z<DIMBUF-4;z++){
+				for(z=0;z<DIMBUF-4;z++){
 					if(bufferI[z]==INC_ADDR&&memCODE_W[k]>=0xff) k++;
 					else if(bufferI[z]==LOAD_DATA_DATA&&bufferI[z+3]==READ_DATA_DATA){
 						if (memCODE_W[k]!=bufferI[z+4]){
@@ -4088,10 +4039,9 @@ void Write16F88x(int dim,int dim2)
 						z+=5;
 					}
 				}
-				j=1;
+				j=0;
 				if(saveLog){
 					fprintf(logfile,strings[S_Log8],i,i,k,k,err);	//"i=%d, k=%d, errors=%d \n"
-					WriteLogIO();
 				}
 			}
 		}
@@ -4159,9 +4109,7 @@ void Write16F88x(int dim,int dim2)
 	}
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(35);
-	read();
+	PacketIO(35);
 	for(i=0,z=0;programID&&i<4;i++){
 		for(;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
 		if (memCODE_W[0x2000+i]!=(bufferI[z+1]<<8)+bufferI[z+2]){
@@ -4203,10 +4151,9 @@ void Write16F88x(int dim,int dim2)
 	PrintMessage1(strings[S_ComplErr],err_c);	//"completed, %d errors\r\n"
 	if(saveLog){
 		fprintf(logfile,strings[S_Log9],err);	//"Area config. 	errors=%d \n"
-		WriteLogIO();
 	}
 //****************** exit ********************
-	j=1;
+	j=0;
 	bufferU[j++]=SET_PARAMETER;
 	bufferU[j++]=SET_T3;
 	bufferU[j++]=2000>>8;
@@ -4217,12 +4164,14 @@ void Write16F88x(int dim,int dim2)
 	bufferU[j++]=0x0;
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(1);
-	read();
+	PacketIO(2);
 	unsigned int stop=GetTickCount();
-	PrintMessage3(strings[S_EndErr],(stop-start)/1000.0,err,err!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nEnd (%.2f s) %d %s\r\n\r\n"
-	if(saveLog)CloseLogFile();
+	sprintf(str,strings[S_EndErr],(stop-start)/1000.0,err,err!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nEnd (%.2f s) %d %s\r\n\r\n"
+	PrintMessage(str);
+	if(saveLog){
+		fprintf(logfile,str);
+		CloseLogFile();
+	}
 	PrintStatusClear();			//clear status report
 }
 
@@ -4255,8 +4204,7 @@ void Write16F7x(int dim,int vdd)
 	}
 	for(i=0;i<0x2009&&i<sizeW;i++) memCODE_W[i]&=0x3FFF;
 	unsigned int start=GetTickCount();
-	bufferU[0]=0;
-	j=1;
+	j=0;
 	bufferU[j++]=SET_PARAMETER;
 	bufferU[j++]=SET_T1T2;
 	bufferU[j++]=1;						//T1=1u
@@ -4297,18 +4245,14 @@ void Write16F7x(int dim,int vdd)
 	bufferU[j++]=WAIT_T3;			//delay after exiting prog mode
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(20);
-	if(vdd==0) msDelay(50);
-	read();
-	if(saveLog)WriteLogIO();
+	PacketIO(vdd?20:70);
 	for(z=0;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
 	devID=(bufferI[z+1]<<8)+bufferI[z+2];
 	PrintMessage1(strings[S_DevID],devID);	//"DevID: 0x%04X\r\n"
 	PIC16_ID(devID);
 //****************** erase memory ********************
 	PrintMessage(strings[S_StartErase]);	//"Erase ... "
-	j=1;
+	j=0;
 	//enter program mode
 	bufferU[j++]=EN_VPP_VCC;		//VDD
 	bufferU[j++]=0x1;
@@ -4330,13 +4274,9 @@ void Write16F7x(int dim,int vdd)
 	bufferU[j++]=0x0;
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(50);
-	if(vdd==0) msDelay(50);
-	read();
-	if(saveLog)WriteLogIO();
+	PacketIO(vdd?50:100);
 	PrintMessage(strings[S_Compl]);	//"completed\r\n"
-	j=1;
+	j=0;
 	//enter program mode
 	bufferU[j++]=EN_VPP_VCC;		//VDD
 	bufferU[j++]=0x1;
@@ -4355,15 +4295,11 @@ void Write16F7x(int dim,int vdd)
 	bufferU[j++]=1000&0xff;
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(2);
-	if(vdd==0) msDelay(50);
-	read();
-	if(saveLog)WriteLogIO();
+	PacketIO(vdd?2:52);
 //****************** write code ********************
 	PrintMessage(strings[S_StartCodeProg]);	//"Write code ... "
 	PrintStatusSetup();
-	for(w=i=k=0,j=1;i<dim;i++){
+	for(w=i=k=0,j=0;i<dim;i++){
 		if(memCODE_W[i]<0x3fff){
 			bufferU[j++]=LOAD_DATA_PROG;
 			bufferU[j++]=memCODE_W[i]>>8;		//MSB
@@ -4379,11 +4315,9 @@ void Write16F7x(int dim,int vdd)
 			PrintStatus(strings[S_CodeWriting],i*100/dim,i);	//"Writing: %d%%, add. %03X"
 			bufferU[j++]=FLUSH;
 			for(;j<DIMBUF;j++) bufferU[j]=0x0;
-			write();
-			msDelay(w*1.5+2);
+			PacketIO(w*1.5+2);
 			w=0;
-			read();
-			for(z=1;z<DIMBUF-6;z++){
+			for(z=0;z<DIMBUF-6;z++){
 				if(bufferI[z]==INC_ADDR&&memCODE_W[k]>=0x3fff) k++;
 				else if(bufferI[z]==LOAD_DATA_PROG&&bufferI[z+4]==READ_DATA_PROG){
 					if (memCODE_W[k]!=(bufferI[z+5]<<8)+bufferI[z+6]){
@@ -4401,10 +4335,9 @@ void Write16F7x(int dim,int vdd)
 					z+=7;
 				}
 			}
-			j=1;
+			j=0;
 			if(saveLog){
 				fprintf(logfile,strings[S_Log8],i,i,k,k,err);	//"i=%d, k=%d, errors=%d,\n"
-				WriteLogIO();
 			}
 		}
 	}
@@ -4456,9 +4389,7 @@ void Write16F7x(int dim,int vdd)
 	}
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(15);
-	read();
+	PacketIO(15);
 	for(i=0,z=0;programID&&i<4;i++){
 		for(;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
 		if (memCODE_W[0x2000+i]!=(bufferI[z+1]<<8)+bufferI[z+2]){
@@ -4486,10 +4417,9 @@ void Write16F7x(int dim,int vdd)
 	PrintMessage1(strings[S_ComplErr],err_c);	//"completed, %d errors\r\n"
 	if(saveLog){
 		fprintf(logfile,strings[S_Log9],err);	//"Area config. 	errors=%d \n"
-		WriteLogIO();
 	}
 //****************** exit ********************
-	j=1;
+	j=0;
 	bufferU[j++]=SET_PARAMETER;
 	bufferU[j++]=SET_T3;
 	bufferU[j++]=2000>>8;
@@ -4503,12 +4433,14 @@ void Write16F7x(int dim,int vdd)
 	bufferU[j++]=0x0;
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(1);
-	read();
+	PacketIO(2);
 	unsigned int stop=GetTickCount();
-	PrintMessage3(strings[S_EndErr],(stop-start)/1000.0,err,err!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nEnd (%.2f s) %d %s\r\n\r\n"
-	if(saveLog)CloseLogFile();
+	sprintf(str,strings[S_EndErr],(stop-start)/1000.0,err,err!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nEnd (%.2f s) %d %s\r\n\r\n"
+	PrintMessage(str);
+	if(saveLog){
+		fprintf(logfile,str);
+		CloseLogFile();
+	}
 	PrintStatusClear();			//clear status report
 }
 
@@ -4540,8 +4472,7 @@ void Write16F71x(int dim,int vdd)
 	}
 	for(i=0;i<0x2009&&i<sizeW;i++) memCODE_W[i]&=0x3FFF;
 	unsigned int start=GetTickCount();
-	bufferU[0]=0;
-	j=1;
+	j=0;
 	bufferU[j++]=SET_PARAMETER;
 	bufferU[j++]=SET_T1T2;
 	bufferU[j++]=1;						//T1=1u
@@ -4582,18 +4513,14 @@ void Write16F71x(int dim,int vdd)
 	bufferU[j++]=WAIT_T3;			//delay after exiting prog mode
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(20);
-	if(vdd==0) msDelay(50);
-	read();
-	if(saveLog)WriteLogIO();
+	PacketIO(vdd?20:70);
 	for(z=0;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
 	devID=(bufferI[z+1]<<8)+bufferI[z+2];
 	PrintMessage1(strings[S_DevID],devID);	//"DevID: 0x%04X\r\n"
 	PIC16_ID(devID);
 //****************** erase memory ********************
 	PrintMessage(strings[S_StartErase]);	//"Erase ... "
-	j=1;
+	j=0;
 	//enter program mode
 	bufferU[j++]=EN_VPP_VCC;		//VDD
 	bufferU[j++]=0x1;
@@ -4638,16 +4565,12 @@ void Write16F71x(int dim,int vdd)
 	bufferU[j++]=2000&0xff;
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(30);
-	if(vdd==0) msDelay(100);
-	read();
-	if(saveLog)WriteLogIO();
+	PacketIO(vdd?30:130);
 	PrintMessage(strings[S_Compl]);	//"completed\r\n"
 //****************** write code ********************
 	PrintMessage(strings[S_StartCodeProg]);	//"Write code ... "
 	PrintStatusSetup();
-	for(w=i=k=0,j=1;i<dim;i++){
+	for(w=i=k=0,j=0;i<dim;i++){
 		if(memCODE_W[i]<0x3fff){
 			bufferU[j++]=LOAD_DATA_PROG;
 			bufferU[j++]=memCODE_W[i]>>8;		//MSB
@@ -4664,11 +4587,9 @@ void Write16F71x(int dim,int vdd)
 			PrintStatus(strings[S_CodeWriting],i*100/dim,i);	//"Writing: %d%%, add. %03X"
 			bufferU[j++]=FLUSH;
 			for(;j<DIMBUF;j++) bufferU[j]=0x0;
-			write();
-			msDelay(w*2.5+2);
+			PacketIO(w*2.5+2);
 			w=0;
-			read();
-			for(z=1;z<DIMBUF-7;z++){
+			for(z=0;z<DIMBUF-7;z++){
 				if(bufferI[z]==INC_ADDR&&memCODE_W[k]>=0x3fff) k++;
 				else if(bufferI[z]==LOAD_DATA_PROG&&bufferI[z+5]==READ_DATA_PROG){
 					if (memCODE_W[k]!=(bufferI[z+6]<<8)+bufferI[z+7]){
@@ -4686,10 +4607,9 @@ void Write16F71x(int dim,int vdd)
 					z+=8;
 				}
 			}
-			j=1;
+			j=0;
 			if(saveLog){
 				fprintf(logfile,strings[S_Log8],i,i,k,k,err);	//"i=%d, k=%d, errors=%d,\n"
-				WriteLogIO();
 			}
 		}
 	}
@@ -4742,9 +4662,7 @@ void Write16F71x(int dim,int vdd)
 	}
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(15);
-	read();
+	PacketIO(15);
 	for(i=0,z=0;programID&&i<4;i++){
 		for(;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
 		if (memCODE_W[0x2000+i]!=(bufferI[z+1]<<8)+bufferI[z+2]){
@@ -4772,10 +4690,9 @@ void Write16F71x(int dim,int vdd)
 	PrintMessage1(strings[S_ComplErr],err_c);	//"completed, %d errors\r\n"
 	if(saveLog){
 		fprintf(logfile,strings[S_Log9],err);	//"Area config. 	errors=%d \n"
-		WriteLogIO();
 	}
 //****************** exit ********************
-	j=1;
+	j=0;
 	bufferU[j++]=SET_PARAMETER;
 	bufferU[j++]=SET_T3;
 	bufferU[j++]=2000>>8;
@@ -4789,12 +4706,14 @@ void Write16F71x(int dim,int vdd)
 	bufferU[j++]=0x0;
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(1);
-	read();
+	PacketIO(2);
 	unsigned int stop=GetTickCount();
-	PrintMessage3(strings[S_EndErr],(stop-start)/1000.0,err,err!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nEnd (%.2f s) %d %s\r\n\r\n"
-	if(saveLog)CloseLogFile();
+	sprintf(str,strings[S_EndErr],(stop-start)/1000.0,err,err!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nEnd (%.2f s) %d %s\r\n\r\n"
+	PrintMessage(str);
+	if(saveLog){
+		fprintf(logfile,str);
+		CloseLogFile();
+	}
 	PrintStatusClear();			//clear status report
 }
 
@@ -4835,8 +4754,7 @@ void Write16F72x(int dim, int d, int d2)
 	}
 	for(i=0;i<0x2009&&i<sizeW;i++) memCODE_W[i]&=0x3FFF;
 	unsigned int start=GetTickCount();
-	bufferU[0]=0;
-	j=1;
+	j=0;
 	bufferU[j++]=SET_PARAMETER;
 	bufferU[j++]=SET_T1T2;
 	bufferU[j++]=1;						//T1=1u
@@ -4866,17 +4784,14 @@ void Write16F72x(int dim, int d, int d2)
 	bufferU[j++]=6000&0xff;
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(3);
-	read();
-	if(saveLog)WriteLogIO();
+	PacketIO(3);
 	for(z=0;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
 	devID=(bufferI[z+1]<<8)+bufferI[z+2];
 	PrintMessage1(strings[S_DevID],devID);	//"DevID: 0x%04X\r\n"
 	PIC16_ID(devID);
 //****************** erase memory ********************
 	PrintMessage(strings[S_StartErase]);	//"Erase ... "
-	j=1;
+	j=0;
 	if(programID||ICDenable){
 		bufferU[j++]=LOAD_CONF;			//counter at 0x2000
 		bufferU[j++]=0xFF;				//fake config
@@ -4894,15 +4809,12 @@ void Write16F72x(int dim, int d, int d2)
 	bufferU[j++]=2500&0xff;
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(18);
-	read();
-	if(saveLog)WriteLogIO();
+	PacketIO(18);
 	PrintMessage(strings[S_Compl]);	//"completed\r\n"
 //****************** write code ********************
 	PrintMessage(strings[S_StartCodeProg]);	//"Write code ... "
 	PrintStatusSetup();
-	for(w=i=k=0,j=1;i<dim;i++){
+	for(w=i=k=0,j=0;i<dim;i++){
 		if(memCODE_W[i]<0x3fff){
 			bufferU[j++]=LOAD_DATA_PROG;
 			bufferU[j++]=memCODE_W[i]>>8;		//MSB
@@ -4917,11 +4829,9 @@ void Write16F72x(int dim, int d, int d2)
 			PrintStatus(strings[S_CodeWriting],i*100/dim,i);	//"Writing: %d%%, add. %03X"
 			bufferU[j++]=FLUSH;
 			for(;j<DIMBUF;j++) bufferU[j]=0x0;
-			write();
-			msDelay(w*2.5+2);
+			PacketIO(w*2.5+2);
 			w=0;
-			read();
-			for(z=1;z<DIMBUF-5;z++){
+			for(z=0;z<DIMBUF-5;z++){
 				if(bufferI[z]==INC_ADDR&&memCODE_W[k]>=0x3fff) k++;
 				else if(bufferI[z]==LOAD_DATA_PROG&&bufferI[z+3]==READ_DATA_PROG){
 					if (memCODE_W[k]!=(bufferI[z+4]<<8)+bufferI[z+5]){
@@ -4939,10 +4849,9 @@ void Write16F72x(int dim, int d, int d2)
 					z+=6;
 				}
 			}
-			j=1;
+			j=0;
 			if(saveLog){
 				fprintf(logfile,strings[S_Log8],i,i,k,k,err);	//"i=%d, k=%d, errors=%d,\n"
-				WriteLogIO();
 			}
 		}
 	}
@@ -5002,9 +4911,7 @@ void Write16F72x(int dim, int d, int d2)
 	bufferU[j++]=FLUSH;
 	}
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(45);
-	read();
+	PacketIO(45);
 	for(i=0,z=0;programID&&i<4;i++){
 		for(;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
 		if (memCODE_W[0x2000+i]!=(bufferI[z+1]<<8)+bufferI[z+2]){
@@ -5040,10 +4947,9 @@ void Write16F72x(int dim, int d, int d2)
 	PrintMessage1(strings[S_ComplErr],err_c);	//"completed, %d errors\r\n"
 	if(saveLog){
 		fprintf(logfile,strings[S_Log9],err);	//"Area config. 	errors=%d \n"
-		WriteLogIO();
 	}
 //****************** exit ********************
-	j=1;
+	j=0;
 	bufferU[j++]=SET_PARAMETER;
 	bufferU[j++]=SET_T3;
 	bufferU[j++]=2000>>8;
@@ -5054,12 +4960,14 @@ void Write16F72x(int dim, int d, int d2)
 	bufferU[j++]=0x0;
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(1);
-	read();
+	PacketIO(2);
 	unsigned int stop=GetTickCount();
-	PrintMessage3(strings[S_EndErr],(stop-start)/1000.0,err,err!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nEnd (%.2f s) %d %s\r\n\r\n"
-	if(saveLog)CloseLogFile();
+	sprintf(str,strings[S_EndErr],(stop-start)/1000.0,err,err!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nEnd (%.2f s) %d %s\r\n\r\n"
+	PrintMessage(str);
+	if(saveLog){
+		fprintf(logfile,str);
+		CloseLogFile();
+	}
 	PrintStatusClear();			//clear status report
 }
 
@@ -5076,25 +4984,29 @@ void Write16F1xxx(int dim,int dim2,int options)
 //		bit0=1 -> vdd before vpp
 //		bit1=1 -> LVP programming
 //		bit2=1 -> Config3@0x8009
-// DevREV@0x8005
-// DevID@0x8006
-// Config1@0x8007
-// Config2@0x8008
-// Config3@0x8009
-// Calib1@0x8009/A
-// Calib2@0x800A/B
-// Calib3@0x800B/C
-// eeprom@0x0
+//		bit3=1 -> Config4@0x800A
+//		bit4=1 -> PIC16F18xxx (calib words @0xE000 + new commands)
+// DevREV@0x8005     DevID@0x8006
+// Config1@0x8007    Config2@0x8008
+// Config3@0x8009    Config4@0x800A
+// Calib1@0x8009/A   Calib2@0x800A/B    Calib3@0x800B/C
+// eeprom@0x0 or 0xF000
 // erase: BULK_ERASE_PROG (1001) +5ms
 // write:LOAD_DATA_PROG (0010) + BEGIN_PROG (1000) + 2.5ms (8 word algorithm)
 // config write time 5ms
 // eeprom:	BULK_ERASE_DATA (1011) + 5ms
 //			LOAD_DATA_DATA (0011) + BEGIN_PROG (1000) + 2.5ms
 // verify after write
+// write (16F18xxx): LOAD_DATA_INC (100010) + BEGIN_PROG (1000) + 2.5ms (32 word algorithm)
 {
 	int err=0;
 	WORD devID=0x3fff,devREV=0x3fff,calib1=0x3fff,calib2=0x3fff,calib3=0x3fff;
 	int k=0,k2=0,z=0,i,j,w;
+	int F18x=options&16;
+	if(F18x&&FWVersion<0xA00){		//only for 16F18xxx
+		PrintMessage1(strings[S_FWver2old],"0.10.0");	//"This firmware is too old. Version %s is required\r\n"
+		return;
+	}
 	if(!CheckV33Regulator()){
 		PrintMessage(strings[S_noV33reg]);	//Can't find 3.3V expansion board
 		return;
@@ -5108,6 +5020,11 @@ void Write16F1xxx(int dim,int dim2,int options)
 		sizeW=0x800A;
 		memCODE_W=(WORD*)realloc(memCODE_W,sizeof(WORD)*sizeW);
 		memCODE_W[0x8009]=0x3FFF;
+	}
+	if((options&8)&&sizeW<0x800B){		//Config4 defaults to 0x3FFF
+		sizeW=0x800B;
+		memCODE_W=(WORD*)realloc(memCODE_W,sizeof(WORD)*sizeW);
+		memCODE_W[0x800A]=0x3FFF;
 	}
 	if(saveLog){
 		OpenLogFile();	//"Log.txt"
@@ -5123,8 +5040,8 @@ void Write16F1xxx(int dim,int dim2,int options)
 	else StartHVReg(-1);			//LVP mode, turn off HV
 	for(i=0;i<0x800C&&i<sizeW;i++) memCODE_W[i]&=0x3FFF;
 	unsigned int start=GetTickCount();
-	bufferU[0]=0;
-	j=1;
+//	bufferU[0]=0;
+	j=0;
 	bufferU[j++]=SET_PARAMETER;
 	bufferU[j++]=SET_T1T2;
 	bufferU[j++]=1;						//T1=1u
@@ -5165,7 +5082,7 @@ void Write16F1xxx(int dim,int dim2,int options)
 	bufferU[j++]=WAIT_T2;
 	bufferU[j++]=WAIT_T2;
 	bufferU[j++]=WAIT_T2;
-	bufferU[j++]=LOAD_CONF;			//counter at 0x2000
+	bufferU[j++]=LOAD_CONF;			//counter at 0x8000
 	bufferU[j++]=0xFF;
 	bufferU[j++]=0xFF;
 	bufferU[j++]=INC_ADDR_N;
@@ -5182,18 +5099,16 @@ void Write16F1xxx(int dim,int dim2,int options)
 	bufferU[j++]=READ_DATA_PROG;	//Calib2
 	bufferU[j++]=INC_ADDR;
 	bufferU[j++]=READ_DATA_PROG;	//Calib3
-	bufferU[j++]=CUST_CMD;
-	bufferU[j++]=0x16;		//Reset address
+//	bufferU[j++]=CUST_CMD;
+//	bufferU[j++]=0x16;		//Reset address
 	bufferU[j++]=SET_PARAMETER;
 	bufferU[j++]=SET_T3;
 	bufferU[j++]=2500>>8;
 	bufferU[j++]=2500&0xff;
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(3);
-	read();
-	if(saveLog)WriteLogIO();
+	PacketIO(5);
+	j=0;
 	for(z=0;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
 	devREV=(bufferI[z+1]<<8)+bufferI[z+2];
 	for(z+=3;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
@@ -5202,42 +5117,98 @@ void Write16F1xxx(int dim,int dim2,int options)
 	if(devREV<0x3FFF) PrintMessage1(strings[S_DevREV],devREV);	//"DevREV: 0x%04X\r\n"
 	PIC16_ID(devID);
 	if(memCODE_W[0x8006]<0x3FFF&&devID!=memCODE_W[0x8006]) PrintMessage(strings[S_DevMismatch]);	//"Warning: the device is different from what specified in source data"
-	for(z+=3;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
-	calib1=(bufferI[z+1]<<8)+bufferI[z+2];
-	if(calib1<0x3fff) PrintMessage2(strings[S_CalibWordX],1,calib1);	//"Calibration word %d: 0x%04X\r\n"
-	for(z+=3;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
-	calib2=(bufferI[z+1]<<8)+bufferI[z+2];
-	if(calib2<0x3fff) PrintMessage2(strings[S_CalibWordX],2,calib2);	//"Calibration word %d: 0x%04X\r\n"
-	for(z+=3;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
-	calib3=(bufferI[z+1]<<8)+bufferI[z+2];
-	if(calib3<0x3fff) PrintMessage2(strings[S_CalibWordX],3,calib3);	//"Calibration word %d: 0x%04X\r\n"
+	if(!F18x){		//16F1xxx
+		for(z+=3;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
+		calib1=(bufferI[z+1]<<8)+bufferI[z+2];
+		if(calib1<0x3fff) PrintMessage2(strings[S_CalibWordX],1,calib1);	//"Calibration word %d: 0x%04X\r\n"
+		for(z+=3;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
+		calib2=(bufferI[z+1]<<8)+bufferI[z+2];
+		if(calib2<0x3fff) PrintMessage2(strings[S_CalibWordX],2,calib2);	//"Calibration word %d: 0x%04X\r\n"
+		for(z+=3;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
+		calib3=(bufferI[z+1]<<8)+bufferI[z+2];
+		if(calib3<0x3fff) PrintMessage2(strings[S_CalibWordX],3,calib3);	//"Calibration word %d: 0x%04X\r\n"
+	}
+	else{		//16F18xxx
+		WORD calib[4]={0x3FFF,0x3FFF,0x3FFF,0x3FFF};
+		bufferU[j++]=LOAD_PC;			//counter at 0xE000
+		bufferU[j++]=0xE0;
+		bufferU[j++]=0x00;
+		for(i=0;i<4;i++) bufferU[j++]=READ_DATA_INC;
+		bufferU[j++]=FLUSH;
+		for(;j<DIMBUF;j++) bufferU[j]=0x0;
+		PacketIO(5);
+		j=0;
+		if(saveLog){
+			fprintf(logfile,"Calibration area @0xE000\n");
+		}
+		for(z=0,i=0;z<DIMBUF-2&&i<4;z++){
+			if(bufferI[z]==READ_DATA_INC){
+				calib[i++]=(bufferI[z+1]<<8)+bufferI[z+2];
+				z+=2;
+			}
+		}
+		if(i!=4){
+			PrintMessage("\r\n");
+			PrintMessage2(strings[S_ConfigErr],4,i);	//"Error reading config area, requested %d words, read %d\r\n"
+		}
+		else{
+			for(i=0;i<4;i++) PrintMessage2(strings[S_CalibWordX],i+1,calib[i]);	//"Calibration word %d: 0x%04X\r\n"
+		}
+	}
 //****************** erase memory ********************
 	PrintMessage(strings[S_StartErase]);	//"Erasing ... "
-	j=1;
+	if(saveLog)	fprintf(logfile,"%s\n",strings[S_StartErase]);
+	int dly=8;
+	j=0;
 	if(programID){
 		bufferU[j++]=LOAD_CONF;			//PC @ 0x8000
 		bufferU[j++]=0xFF;
 		bufferU[j++]=0xFF;
 	}
+	else if(!F18x){
+		bufferU[j++]=CUST_CMD;
+		bufferU[j++]=0x16;		//Reset address
+	}
+	else{	//18F18xxx
+		bufferU[j++]=LOAD_PC;	//counter at 0
+		bufferU[j++]=0x00;
+		bufferU[j++]=0x00;
+	}
 	bufferU[j++]=BULK_ERASE_PROG;
 	bufferU[j++]=WAIT_T3;			// wait 5ms
 	bufferU[j++]=WAIT_T3;
+	if(F18x){		//18F18xxx: EEPROM@0xF000
+		bufferU[j++]=LOAD_PC;			//counter at 0xF000
+		bufferU[j++]=0xF0;
+		bufferU[j++]=0x00;
+	bufferU[j++]=BULK_ERASE_PROG;
+	bufferU[j++]=WAIT_T3;			// wait 5ms
+	bufferU[j++]=WAIT_T3;
+		dly+=6;
+	}
+	if(!F18x){
 	bufferU[j++]=CUST_CMD;
 	bufferU[j++]=0x16;		//Reset address
+	}
+	else{	//18F18xxx
+		bufferU[j++]=LOAD_PC;	//counter at 0
+		bufferU[j++]=0x00;
+		bufferU[j++]=0x00;
+	}
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(8);
-	read();
-	if(saveLog)WriteLogIO();
+	PacketIO(dly);
 	PrintMessage(strings[S_Compl]);	//"completed\r\n"
 //****************** write code ********************
 	PrintMessage(strings[S_StartCodeProg]);	//"Write code ... "
 	PrintStatusSetup();
-	for(;dim>0&&memCODE_W[dim]>=0x3fff;dim--); //skip empty space at end
-	dim+=dim%8;		//grow to 8 word multiple
+	if(saveLog)	fprintf(logfile,"%s\n",strings[S_StartCodeProg]);
+	fflush(logfile);
 	int valid,inc;
-	for(i=k=0,j=1;i<dim;i+=8){
+	for(;dim>0&&memCODE_W[dim]>=0x3fff;dim--); //skip empty space at end
+	if(!F18x){					//16F1xxx
+	dim+=dim%8;		//grow to 8 word multiple
+	for(i=k=0,j=0;i<dim;i+=8){
 		valid=inc=0;
 		for(;i<dim&&!valid;){	//skip empty locations (8 words)
 			valid=0;
@@ -5251,15 +5222,11 @@ void Write16F1xxx(int dim,int dim2,int options)
 				bufferU[j++]=k=inc;
 				inc=0;
 			}
-			if(j>DIMBUF-4||valid){
+			if(j>DIMBUF-4||(valid&&j>1)){
 				bufferU[j++]=FLUSH;
 				for(;j<DIMBUF;j++) bufferU[j]=0x0;
-				write();
-				msDelay(3);
-				msDelay(1*k/2);	//wait for long INC_ADDR_N
-				read();
-				j=1;
-				if(saveLog)	WriteLogIO();
+				PacketIO(3+k/2);
+				j=0;
 			}
 		}
 		if(valid){
@@ -5278,38 +5245,75 @@ void Write16F1xxx(int dim,int dim2,int options)
 			bufferU[j++]=INC_ADDR;
 			bufferU[j++]=FLUSH;
 			for(;j<DIMBUF;j++) bufferU[j]=0x0;
-			write();
-			msDelay(3);
-			read();
-			j=1;
+				PacketIO(3);
+				j=0;
+				if(saveLog){
+					fprintf(logfile,strings[S_Log7],i,i,0,0);	//"i=%d, k=%d 0=%d\n"
+				}
+				PrintStatus(strings[S_CodeWriting],i*100/dim,i);	//"Writing: %d%%, addr. %03X"
+			}
+		}
+	}
+	else{					//16F18xxx 32 word algorithm
+		dim+=dim%32;		//grow to 32 word multiple
+		for(i=k=0,j=0;i<dim;i+=32){
+			for(valid=0;i<dim&&!valid;i+=valid?0:32){	//skip empty locations (32 words)
+				valid=0;
+				for(k=0;k<32;k++) if(memCODE_W[i+k]<0x3fff) valid=1;
+			}
+			bufferU[j++]=LOAD_PC;	//update counter
+			bufferU[j++]=i>>8;
+			bufferU[j++]=i&0xFF;
+			for(k=0;k<32&&i<dim;k++){
+				bufferU[j++]=k<31?LOAD_DATA_INC:LOAD_DATA_PROG;
+				bufferU[j++]=memCODE_W[i+k]>>8;  		//MSB
+				bufferU[j++]=memCODE_W[i+k]&0xff;		//LSB
+				if(j>DIMBUF-4){
+					bufferU[j++]=FLUSH;
+					for(;j<DIMBUF;j++) bufferU[j]=0x0;
+					PacketIO(3);
+					j=0;
+				}
+			}
+			if(i<dim){
+				bufferU[j++]=BEGIN_PROG;			//internally timed, T=2.5ms
+				bufferU[j++]=WAIT_T3;
+				bufferU[j++]=FLUSH;
+				for(;j<DIMBUF;j++) bufferU[j]=0x0;
+				PacketIO(3);
+			j=0;
 			if(saveLog){
 				fprintf(logfile,strings[S_Log7],i,i,0,0);	//"i=%d, k=%d 0=%d\n"
-				WriteLogIO();
 			}
 			PrintStatus(strings[S_CodeWriting],i*100/dim,i);	//"Writing: %d%%, addr. %03X"
 		}
+	}
 	}
 	PrintStatusEnd();
 	PrintMessage(strings[S_Compl]);	//"completed\r\n"
 //****************** verify code ********************
 	PrintMessage(strings[S_CodeV]);	//"Verifying code ... "
 	PrintStatusSetup();
-	if(saveLog)	fprintf(logfile,"VERIFY CODE\n");
-	j=1;
+	if(saveLog)	fprintf(logfile,"%s\n",strings[S_CodeV]);
+	j=0;
+	if(!F18x){
 	bufferU[j++]=CUST_CMD;
 	bufferU[j++]=0x16;		//Reset address
+	}
+	else{	//18F18xxx
+		bufferU[j++]=LOAD_PC;	//counter at 0
+		bufferU[j++]=0x00;
+		bufferU[j++]=0x00;
+	}
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(2);
-	read();
-	if(saveLog)	WriteLogIO();
-	j=1;
+	PacketIO(2);
+	j=0;
 	for(i=k=0;i<dim;i++){
-		if(j==1){				//skip empty locations (only after a write)
+		if(j==0){				//skip empty locations (only after a write)
 			for(valid=0;i<dim&&!valid;){
 				for(k2=0;k2<255&&!valid;k2++) if(memCODE_W[i+k2]<0x3fff) valid=1;
-				if(k2>16){			//increase address to skip empty words, if enough is found
+				if(k2>16){			//increase address to skip empty words, if enough are found
 					bufferU[j++]=INC_ADDR_N;
 					bufferU[j++]=k2;
 					i+=k2;
@@ -5318,24 +5322,18 @@ void Write16F1xxx(int dim,int dim2,int options)
 				if(j>DIMBUF-4||(valid&&j>1)){		//if buffer is full or last skip
 					bufferU[j++]=FLUSH;
 					for(;j<DIMBUF;j++) bufferU[j]=0x0;
-					write();
-					msDelay(3);
-					msDelay(1*j/2);	//wait for long INC_ADDR_N
-					read();
-					j=1;
-					if(saveLog)	WriteLogIO();
+					PacketIO(3+j/2*0.1);
+					j=0;
 				}
 			}
 		}
 		if(memCODE_W[i]<0x3FFF) bufferU[j++]=READ_DATA_PROG;
 		bufferU[j++]=INC_ADDR;
-		if(j>DIMBUF*2/4-2||i==dim-1){		//2B cmd -> 4B data
+		if(j>DIMBUF*2/4-3||i==dim-1){		//2B cmd -> 4B data
 			bufferU[j++]=FLUSH;
 			for(;j<DIMBUF;j++) bufferU[j]=0x0;
-			write();
-			msDelay(5);
-			read();
-			for(z=1;z<DIMBUF-2;z++){
+			PacketIO(5);
+			for(z=0;z<DIMBUF-2;z++){
 				if(bufferI[z]==INC_ADDR) k++;
 				else if(bufferI[z]==READ_DATA_PROG){
 					if(memCODE_W[k]<0x3FFF&&(memCODE_W[k]!=(bufferI[z+1]<<8)+bufferI[z+2])){
@@ -5346,10 +5344,9 @@ void Write16F1xxx(int dim,int dim2,int options)
 			}
 			}
 			PrintStatus(strings[S_CodeV2],i*100/(dim+dim2),i);	//"Verify: %d%%, addr. %04X"
-			j=1;
+			j=0;
 			if(saveLog){
 				fprintf(logfile,strings[S_Log8],i,i,k,k,err);	//"i=%d, k=%d, errors=%d\n"
-				WriteLogIO();
 			}
 			if(err>=max_err) i=dim;
 		}
@@ -5363,11 +5360,12 @@ void Write16F1xxx(int dim,int dim2,int options)
 		PrintMessage1(strings[S_MaxErr],err);	//"Exceeded maximum number of errors (%d), write interrupted\r\n"
 	}
 //****************** write eeprom ********************
-	if(dim2&&err<max_err){
+	if(dim2&&err<max_err&&!F18x){
 		int errEE=0;
 		PrintMessage(strings[S_EEAreaW]);	//"Writing EEPROM ... "
 		PrintStatusSetup();
-		j=1;
+		if(saveLog)	fprintf(logfile,"%s\n",strings[S_EEAreaW]);
+		j=0;
 		bufferU[j++]=SET_PARAMETER;
 		bufferU[j++]=SET_T3;
 		bufferU[j++]=5000>>8;
@@ -5378,11 +5376,8 @@ void Write16F1xxx(int dim,int dim2,int options)
 		bufferU[j++]=0x16;		//Reset address
 		bufferU[j++]=FLUSH;
 		for(;j<DIMBUF;j++) bufferU[j]=0x0;
-		write();
-		msDelay(7);
-		read();
-		j=1;
-		if(saveLog)WriteLogIO();
+		PacketIO(7);
+		j=0;
 		for(w=i=k=0;i<dim2;i++){
 			if(memEE[i]<0xff){
 				bufferU[j++]=LOAD_DATA_DATA;
@@ -5397,11 +5392,9 @@ void Write16F1xxx(int dim,int dim2,int options)
 				PrintStatus(strings[S_CodeWriting],(i+dim)*100/(dim+dim2),i);	//"Writing: %d%%, add. %03X"
 				bufferU[j++]=FLUSH;
 				for(;j<DIMBUF;j++) bufferU[j]=0x0;
-				write();
-				msDelay(w*5+2);
+				PacketIO(w*5+2);
 				w=0;
-				read();
-				for(z=1;z<DIMBUF-4;z++){
+				for(z=0;z<DIMBUF-4;z++){
 					if(bufferI[z]==INC_ADDR&&memEE[k]>=0xff) k++;
 					else if(bufferI[z]==LOAD_DATA_DATA&&bufferI[z+3]==READ_DATA_DATA){
 						if (memEE[k]!=bufferI[z+4]){
@@ -5419,10 +5412,9 @@ void Write16F1xxx(int dim,int dim2,int options)
 						z+=5;
 					}
 				}
-				j=1;
+				j=0;
 				if(saveLog){
 					fprintf(logfile,strings[S_Log8],i,i,k,k,errEE);	//"i=%d, k=%d, errors=%d\n"
-					WriteLogIO();
 				}
 			}
 		}
@@ -5431,9 +5423,77 @@ void Write16F1xxx(int dim,int dim2,int options)
 		PrintMessage1(strings[S_ComplErr],errEE);	//"completed, %d errors\r\n"
 		err+=errEE;
 	}
+	else if(dim2&&err<max_err&&F18x){	//16F18xxx
+		int errEE=0;
+		PrintMessage(strings[S_EEAreaW]);	//"Writing EEPROM ... "
+		PrintStatusSetup();
+		if(saveLog)	fprintf(logfile,"%s\n",strings[S_EEAreaW]);
+		j=0;
+		bufferU[j++]=SET_PARAMETER;
+		bufferU[j++]=SET_T3;
+		bufferU[j++]=5000>>8;
+		bufferU[j++]=5000&0xff;
+		bufferU[j++]=LOAD_PC;	//update counter
+		bufferU[j++]=0xF0;
+		bufferU[j++]=0x00;
+		bufferU[j++]=FLUSH;
+		for(;j<DIMBUF;j++) bufferU[j]=0x0;
+		PacketIO(7);
+		j=0;
+		for(w=i=k=0;i<dim2;i++){
+			if(memEE[i]<0xff){
+				bufferU[j++]=LOAD_DATA_PROG;
+				bufferU[j++]=0;
+				bufferU[j++]=memEE[i];
+				bufferU[j++]=BEGIN_PROG;			//internally timed, T=2.5ms max
+				bufferU[j++]=WAIT_T3;				//Tprogram
+				bufferU[j++]=READ_DATA_PROG;
+				w++;
+			}
+			bufferU[j++]=INC_ADDR;
+			if(j>DIMBUF-12||i==dim2-1){
+				PrintStatus(strings[S_CodeWriting],(i+dim)*100/(dim+dim2),i);	//"Writing: %d%%, add. %03X"
+				bufferU[j++]=FLUSH;
+				for(;j<DIMBUF;j++) bufferU[j]=0x0;
+				PacketIO(w*5+2);
+				w=0;
+				for(z=0;z<DIMBUF-4;z++){
+					if(bufferI[z]==INC_ADDR&&memEE[k]>=0xff) k++;
+					else if(bufferI[z]==LOAD_DATA_PROG&&bufferI[z+3]==READ_DATA_PROG){
+						if (memEE[k]!=bufferI[z+5]){
+							PrintMessage("\r\n");
+							PrintMessage3(strings[S_CodeWError3],k,memEE[k],bufferI[z+5]);	//"Error writing address %4X: written %02X, read %02X\r\n"
+							errEE++;
+							if(max_err&&err+errEE>max_err){
+								PrintMessage1(strings[S_MaxErr],err+errEE);	//"Exceeded maximum number of errors (%d), write interrupted\r\n"
+								PrintMessage(strings[S_IntW]);	//"write interrupted"
+								i=dim2;
+								z=DIMBUF;
+							}
+						}
+						k++;
+						z+=6;
+					}
+				}
+				j=0;
+				if(saveLog){
+					fprintf(logfile,strings[S_Log8],i,i,k,k,errEE);	//"i=%d, k=%d, errors=%d\n"
+				}
+			}
+		}
+		errEE+=i-k;
+		PrintStatusEnd();
+		PrintMessage1(strings[S_ComplErr],errEE);	//"completed, %d errors\r\n"
+		err+=errEE;
+
+	}
+	if(err>=max_err){
+		PrintMessage1(strings[S_MaxErr],err);	//"Exceeded maximum number of errors (%d), write interrupted\r\n"
+	}
 //****************** write ID, CONFIG, CALIB ********************
 	if(max_err&&err<max_err){
 		PrintMessage(strings[S_ConfigAreaW]);	//"Writing CONFIG area ... "
+		if(saveLog)	fprintf(logfile,"%s\n",strings[S_ConfigAreaW]);
 		int err_c=0;
 		bufferU[j++]=SET_PARAMETER;
 		bufferU[j++]=SET_T3;
@@ -5473,7 +5533,7 @@ void Write16F1xxx(int dim,int dim2,int options)
 		bufferU[j++]=WAIT_T3;				//Tprogram 5ms
 		bufferU[j++]=READ_DATA_PROG;
 		bufferU[j++]=INC_ADDR;
-		if(options&4){
+		if(options&0xC){
 			bufferU[j++]=LOAD_DATA_PROG;			//Config word 3
 			bufferU[j++]=memCODE_W[0x8009]>>8;		//MSB
 			bufferU[j++]=memCODE_W[0x8009]&0xff;		//LSB
@@ -5482,12 +5542,19 @@ void Write16F1xxx(int dim,int dim2,int options)
 			bufferU[j++]=READ_DATA_PROG;
 			bufferU[j++]=INC_ADDR;
 		}
+		if(options&8){
+			bufferU[j++]=LOAD_DATA_PROG;			//Config word 4
+			bufferU[j++]=memCODE_W[0x800A]>>8;		//MSB
+			bufferU[j++]=memCODE_W[0x800A]&0xff;		//LSB
+			bufferU[j++]=BEGIN_PROG;			//internally timed
+			bufferU[j++]=WAIT_T3;				//Tprogram 5ms
+			bufferU[j++]=READ_DATA_PROG;
+			bufferU[j++]=INC_ADDR;
+		}
 		bufferU[j++]=FLUSH;
 		for(;j<DIMBUF;j++) bufferU[j]=0x0;
-		write();
-		msDelay(18);
-		if(programID) msDelay(22);
-		read();
+		j=(programID?22:0)+(options&0xC?10:0);
+		PacketIO(18+j);
 		for(i=0,z=0;programID&&i<4;i++){
 			for(;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
 				if (memCODE_W[0x8000+i]!=(bufferI[z+1]<<8)+bufferI[z+2]){
@@ -5509,7 +5576,7 @@ void Write16F1xxx(int dim,int dim2,int options)
 			PrintMessage2(strings[S_ConfigWErr3],memCODE_W[0x8008],(bufferI[z+1]<<8)+bufferI[z+2]);	//"Error writing config area: written %04X, read %04X\r\n"
 			err_c++;
 		}
-		if(options&4){
+		if(options&0xC){
 			for(z+=6;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
 			if(~memCODE_W[0x8009]&((bufferI[z+1]<<8)+bufferI[z+2])){	//error if written 0 and read 1 (~W&R)
 				PrintMessage("\r\n");
@@ -5517,15 +5584,22 @@ void Write16F1xxx(int dim,int dim2,int options)
 				err_c++;
 			}
 		}
+		if(options&8){
+			for(z+=6;z<DIMBUF-2&&bufferI[z]!=READ_DATA_PROG;z++);
+			if(~memCODE_W[0x800A]&((bufferI[z+1]<<8)+bufferI[z+2])){	//error if written 0 and read 1 (~W&R)
+				PrintMessage("\r\n");
+				PrintMessage2(strings[S_ConfigWErr3],memCODE_W[0x800A],(bufferI[z+1]<<8)+bufferI[z+2]);	//"Error writing config area: written %04X, read %04X\r\n"
+				err_c++;
+			}
+		}
 		err+=err_c;
 		PrintMessage1(strings[S_ComplErr],err_c);	//"completed, %d errors\r\n"
 		if(saveLog){
 			fprintf(logfile,strings[S_Log9],err);	//"Config area 	errors=%d \n"
-			WriteLogIO();
 		}
 	}
 //****************** exit ********************
-	j=1;
+	j=0;
 	bufferU[j++]=SET_PARAMETER;
 	bufferU[j++]=SET_T3;
 	bufferU[j++]=2000>>8;
@@ -5539,11 +5613,13 @@ void Write16F1xxx(int dim,int dim2,int options)
 	bufferU[j++]=0x0;
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(1);
-	read();
+	PacketIO(2);
 	unsigned int stop=GetTickCount();
-	PrintMessage3(strings[S_EndErr],(stop-start)/1000.0,err,err!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nEnd (%.2f s) %d %s\r\n\r\n"
-	if(saveLog)CloseLogFile();
+	sprintf(str,strings[S_EndErr],(stop-start)/1000.0,err,err!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nEnd (%.2f s) %d %s\r\n\r\n"
+	PrintMessage(str);
+	if(saveLog){
+		fprintf(logfile,str);
+		CloseLogFile();
+	}
 	PrintStatusClear();			//clear status report
 }

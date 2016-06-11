@@ -1,6 +1,6 @@
 /*
  * deviceRW.c - Read-write calls for various devices
- * Copyright (C) 2010-2014 Alberto Maccioni
+ * Copyright (C) 2010-2016 Alberto Maccioni
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -69,6 +69,7 @@ char* devices[]={
 "16F1823","16F1824","16F1825","16F1826","16F1827","16F1828","16F1829","16F1847",
 "16LF1902","16LF1903","16LF1904","16LF1906","16LF1907",
 "16F1933","16F1934","16F1936","16F1937","16F1938","16F1939","16F1946","16F1947",
+"16F18313","16F18323","16F18324","16F18325","16F18326","16F18344","16F18345","16F18346",
 "18F242","18F248","18F252","18F258","18F442","18F448","18F452","18F458",
 "18F1220","18F1230","18F1320","18F1330","18F13K22","18F13K50","18F14K22","18F14K50",
 "18F2220","18F2221","18F2320","18F23K20","18F23K22","18F2321","18F2331","18F2410",
@@ -303,6 +304,8 @@ struct DEVICES{
 		PIC16,8.5,1,Read16F1xxx,{0x800,0x100,11,0},0x200,Write16F1xxx,{0x800,0x100,0},0},	//2K, 256, vpp, 3.3V
 	{"16F1782",
 		PIC16,8.5,1,Read16F1xxx,{0x800,0x100,19,0},0x200,Write16F1xxx,{0x800,0x100,0},0},	//2K, 256, vpp, 3.3V
+	{"16F18313,16F18323",
+		PIC16,8.5,1,Read16F1xxx,{0x800,0x100,11,0x1C},0x20,Write16F1xxx,{0x800,0x100,0x1C},0},	//2K, 256, vpp, 3.3V, new cmd
 	{"16F73,16F74",
 		PIC16,13.0,0,Read16Fxxx,{0x1000,0,8,1},0x20,Write16F7x,{0x1000,0,-10},0},			//4K, vdd
 	{"16F737,16F747",
@@ -339,6 +342,8 @@ struct DEVICES{
 		PIC16,8.5,1,Read16F1xxx,{0x1000,0x100,11,0},0x200,Write16F1xxx,{0x1000,0x100,0},0},	//4K, 256, vpp, 3.3V
 	{"16F1783,16F1784",
 		PIC16,8.5,1,Read16F1xxx,{0x1000,0x100,19,0},0x200,Write16F1xxx,{0x1000,0x100,0},0},	//4K, 256, vpp, 3.3V
+	{"16F18324,16F18344",
+		PIC16,8.5,1,Read16F1xxx,{0x1000,0x100,11,0x1C},0x20,Write16F1xxx,{0x1000,0x100,0x1C},0},	//4K, 256, vpp, 3.3V, new cmd
 	{"16F76,16F77",
 		PIC16,13.0,0,Read16Fxxx,{0x2000,0,8,1},0x20,Write16F7x,{0x2000,0,-10},0},			//8K, vdd
 	{"16F767,16F777",
@@ -367,6 +372,8 @@ struct DEVICES{
 		PIC16,8.5,1,Read16F1xxx,{0x2000,0x100,11,0},0x200,Write16F1xxx,{0x2000,0x100,0},0},	//8K, 256, vpp, 3.3V
 	{"16F1786,16F1787",
 		PIC16,8.5,1,Read16F1xxx,{0x2000,0x100,19,0},0x200,Write16F1xxx,{0x2000,0x100,0},0},	//8K, 256, vpp, 3.3V
+	{"16F18325,16F18345",
+		PIC16,8.5,1,Read16F1xxx,{0x2000,0x100,11,0x1C},0x20,Write16F1xxx,{0x2000,0x100,0x1C},0},	//8K, 256, vpp, 3.3V, new cmd
 	{"16F1518,16F1519,16F1527",
 		PIC16,8.5,1,Read16F1xxx,{0x4000,0,11,0},0x200,Write16F1xxx,{0x4000,0,0},0},			//16K, vpp, 3.3V
 	{"16F1718,16F1719",
@@ -375,6 +382,8 @@ struct DEVICES{
 		PIC16,8.5,1,Read16F1xxx,{0x4000,0x100,11,0},0x200,Write16F1xxx,{0x4000,0x100,0},0},	//16K, 256, vpp, 3.3V
 	{"16F1788,16F1789",
 		PIC16,8.5,1,Read16F1xxx,{0x4000,0x100,19,0},0x200,Write16F1xxx,{0x4000,0x100,0},0},	//16K, 256, vpp, 3.3V
+	{"16F18326,16F18346",
+		PIC16,8.5,1,Read16F1xxx,{0x4000,0x100,11,0x1C},0x20,Write16F1xxx,{0x4000,0x100,0x1C},0},	//16K, 256, vpp, 3.3V, new cmd
 //-------------PIC18---------------------------------------------------------
 // read options:
 //	bit [3:0]
@@ -744,25 +753,25 @@ struct DEVICES{
 	{"95M02",
 		SPIEE,-1,0,Read25xx,{0x40000},0,Write25xx,{0x40000,256},0},		//256K
 	{"25X05",
-		SPIEE,-1,1,Read25xx,{0x10000},0,Write25xx,{0x10000,0x1000+256},0},	//64K flash 3.3V
+		SPIEE,-1,0,Read25xx,{0x10000},0,Write25xx,{0x10000,0x1000+256},0},	//64K flash 3.3V
 	{"251005,25X10",
-		SPIEE,-1,1,Read25xx,{0x20000},0,Write25xx,{0x20000,0x1000+256},0},	//128K flash 3.3V
+		SPIEE,-1,0,Read25xx,{0x20000},0,Write25xx,{0x20000,0x1000+256},0},	//128K flash 3.3V
 	{"252005,25X20",
-		SPIEE,-1,1,Read25xx,{0x40000},0,Write25xx,{0x40000,0x1000+256},0},	//256K flash 3.3V
+		SPIEE,-1,0,Read25xx,{0x40000},0,Write25xx,{0x40000,0x1000+256},0},	//256K flash 3.3V
 	{"254005,25X40",
-		SPIEE,-1,1,Read25xx,{0x80000},0,Write25xx,{0x80000,0x1000+256},0},	//512K flash 3.3V
+		SPIEE,-1,0,Read25xx,{0x80000},0,Write25xx,{0x80000,0x1000+256},0},	//512K flash 3.3V
 	{"25Q40",
-		SPIEE,-1,1,Read25xx,{0x80000},0,Write25xx,{0x80000,0x3000+256},0},	//512K flash 3.3V STATUS2
+		SPIEE,-1,0,Read25xx,{0x80000},0,Write25xx,{0x80000,0x3000+256},0},	//512K flash 3.3V STATUS2
 	{"258005,25X80",
-		SPIEE,-1,1,Read25xx,{0x100000},0,Write25xx,{0x100000,0x1000+256},0},//1M flash 3.3V
+		SPIEE,-1,0,Read25xx,{0x100000},0,Write25xx,{0x100000,0x1000+256},0},//1M flash 3.3V
 	{"251605,25X16",
-		SPIEE,-1,1,Read25xx,{0x200000},0,Write25xx,{0x200000,0x1000+256},0},//2M flash 3.3V
+		SPIEE,-1,0,Read25xx,{0x200000},0,Write25xx,{0x200000,0x1000+256},0},//2M flash 3.3V
 	{"25X32",
-		SPIEE,-1,1,Read25xx,{0x400000},0,Write25xx,{0x400000,0x1000+256},0},//4M flash 3.3V
+		SPIEE,-1,0,Read25xx,{0x400000},0,Write25xx,{0x400000,0x1000+256},0},//4M flash 3.3V
 	{"25X64",
-		SPIEE,-1,1,Read25xx,{0x800000},0,Write25xx,{0x800000,0x1000+256},0},//8M flash 3.3V
+		SPIEE,-1,0,Read25xx,{0x800000},0,Write25xx,{0x800000,0x1000+256},0},//8M flash 3.3V
 	{"25X128",
-		SPIEE,-1,1,Read25xx,{0x1000000},0,Write25xx,{0x1000000,0x1000+256},0},//16M flash 3.3V
+		SPIEE,-1,0,Read25xx,{0x1000000},0,Write25xx,{0x1000000,0x1000+256},0},//16M flash 3.3V
 //-------------One wire devices---------------------------------------------------------
 	{"DS2430",
 		OWEE,-1,0,ReadOneWireMem,{0x20,1},0,WriteOneWireMem,{0x20,1},0},		//32
@@ -798,7 +807,7 @@ extern	GtkWidget * devCombo;
 void AddDevices(){
 	int i;
 	for(i=0;i<sizeof(devices)/sizeof(char*);i++) gtk_combo_box_append_text(GTK_COMBO_BOX(devCombo),devices[i]);
-		}
+}
 #else
 void AddDevices(char *list){		//make sure list is long enough
 	int i;
@@ -813,7 +822,7 @@ void AddDevices(char *list){		//make sure list is long enough
 		}
 		strcat(list,devices[i]);
 		}
-		}
+}
 #endif
 
 //Make a list of all supported devices (insert \n between types)
@@ -934,7 +943,7 @@ void CheckDevices(){
 		}
 		}
 			PrintMessage(strings[S_nodev_r]); //"Device not supported for reading\r\n");
-		}
+}
 
 
 #ifdef _MSC_VER

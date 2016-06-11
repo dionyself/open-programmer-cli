@@ -1,6 +1,6 @@
 /*
  * fileIO.c - file read and write
- * Copyright (C) 2010 Alberto Maccioni
+ * Copyright (C) 2010-2016 Alberto Maccioni
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,10 +23,10 @@
 
 
 //configure for GUI or command-line
-#ifdef _MSC_VER 
+#ifdef _MSC_VER
 	#define _GUI
 	#include "msvc_common.h"
-#else 
+#else
 	#include "common.h"
 	#include "progP12.h"
 	#include "progP16.h"
@@ -321,7 +321,7 @@ void Save(char* dev,char* savefile)
 		if(strstr(savefile,".bin")||strstr(savefile,".BIN")){
 			#ifdef _WIN32
 			//brain-damaged op. systems need this to avoid messing with some bytes
-			f=freopen(savefile,"wb",f); 
+			f=freopen(savefile,"wb",f);
 			if(!f) return;
 			#endif
 			fwrite(memEE,1,sizeEE,f);
@@ -523,7 +523,7 @@ int Load(char*dev,char*loadfile){
 									}
 									sizeM=input_address+hex_count;
 									if(sizeM>sizeEE) sizeEE=sizeM;
-									
+
 								}
 								break;
 							case 4:		//extended linear address record
@@ -695,7 +695,7 @@ int Load(char*dev,char*loadfile){
 		if(strstr(loadfile,".bin")||strstr(loadfile,".BIN")){
 			#ifdef _WIN32
 			//brain-damaged op. systems need this to avoid messing with some bytes
-			f=freopen(loadfile,"rb",f); 
+			f=freopen(loadfile,"rb",f);
 			if(!f) return -1;
 			#endif
 			fseek(f, 0L, SEEK_END);
@@ -832,7 +832,7 @@ void OpenLogFile()
 {
 	logfile=fopen(LogFileName,"w");
 	if(!logfile) return;
-	fprintf(logfile,_APPNAME " version %s\n",VERSION);
+	fprintf(logfile,_APPNAME " version %s (%s)\n",VERSION,SYSNAME);
 	fprintf(logfile,"Firmware version %d.%d.%d\n",FWVersion>>16,(FWVersion>>8)&0xFF,FWVersion&0xFF);
 	struct tm * timeinfo;
 	time_t rawtime;
@@ -858,16 +858,18 @@ void WriteLogIO()
 #endif
 {
 	int i;
-	fprintf(logfile,"bufferU=[%02X\n",bufferU[0]);
-	for(i=1;i<DIMBUF;i++){
-		fprintf(logfile,"%02X ",bufferU[i]);
+	//fprintf(logfile,"bufferU=[%02X\n",bufferU[0]);
+	fprintf(logfile,"bufferU=[");
+	for(i=0;i<DIMBUF;i++){
 		if(i%32==0) fprintf(logfile,"\n");
+		fprintf(logfile,"%02X ",bufferU[i]);
 	}
 	fprintf(logfile,"]\n");
-	fprintf(logfile,"bufferI=[%02X\n",bufferI[0]);
-	for(i=1;i<DIMBUF;i++){
-		fprintf(logfile,"%02X ",bufferI[i]);
+	//fprintf(logfile,"bufferI=[%02X\n",bufferI[0]);
+	fprintf(logfile,"bufferI=[");
+		for(i=0;i<DIMBUF;i++){
 		if(i%32==0) fprintf(logfile,"\n");
+		fprintf(logfile,"%02X ",bufferI[i]);
 	}
 	fprintf(logfile,"]\n");
 }

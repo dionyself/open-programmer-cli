@@ -1,7 +1,7 @@
 CC = gcc
-CFLAGS = -Wall -Os -s #size
+#CFLAGS = -w -Os -s #size
 #CFLAGS = -w -O3 -s
-#CFLAGS = -w -g		#debug
+CFLAGS = -w -g		#debug
 OBJECTS = 	op.o \
 			progP12.o \
 			progP16.o \

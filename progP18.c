@@ -1,6 +1,6 @@
 /**
  * \file progP18F.c - algorithms to program the PIC18 family of microcontrollers
- * Copyright (C) 2009-2014 Alberto Maccioni
+ * Copyright (C) 2009-2016 Alberto Maccioni
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,8 +21,6 @@
 //This cannot be executed conditionally on MSVC
 //#include "stdafx.h"
 
-
-//configure for GUI or command-line
 #ifdef _MSC_VER 
 	#define _GUI
 	#include "msvc_common.h"
@@ -374,8 +372,7 @@ void Read18Fx(int dim,int dim2,int options){
 	for(j=0;j<8;j++) memID[j]=0xFF;
 	for(j=0;j<14;j++) memCONFIG[j]=0xFF;
 	unsigned int start=GetTickCount();
-	bufferU[0]=0;
-	j=1;
+	j=0;
 	bufferU[j++]=SET_PARAMETER;
 	bufferU[j++]=SET_T1T2;
 	bufferU[j++]=1;						//T1=1u
@@ -442,12 +439,8 @@ void Read18Fx(int dim,int dim2,int options){
 	bufferU[j++]=0xF6;
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(4);
-	if(entry==2) msDelay(7);
-	read();
-	if(saveLog)WriteLogIO();
-	for(z=1;bufferI[z]!=TBLR_INC_N&&z<DIMBUF;z++);
+	PacketIO(entry==2?11:4);
+	for(z=0;bufferI[z]!=TBLR_INC_N&&z<DIMBUF;z++);
 	if(z<DIMBUF-3){
 		PrintMessage2(strings[S_DevID2],bufferI[z+3],bufferI[z+2]);	//"DevID: 0x%02X%02X\r\n"
 		PIC18_ID(bufferI[z+2]+(bufferI[z+3]<<8));
@@ -456,23 +449,19 @@ void Read18Fx(int dim,int dim2,int options){
 	PrintMessage(strings[S_CodeReading1]);		//code read ...
 	PrintStatusSetup();
 	if(saveLog)	fprintf(logfile,"Read code\n");
-	for(i=0,j=1;i<dim;i+=DIMBUF-4){
+	for(i=0,j=0;i<dim;i+=DIMBUF-4){
 		bufferU[j++]=TBLR_INC_N;
 		bufferU[j++]=i<dim-(DIMBUF-4)?DIMBUF-4:dim-i;
 		bufferU[j++]=FLUSH;
 		for(;j<DIMBUF;j++) bufferU[j]=0x0;
-		write();
-		msDelay(2);
-		read();
-		if(bufferI[1]==TBLR_INC_N){
-			for(z=3;z<bufferI[2]+3&&z<DIMBUF;z++) memCODE[k++]=bufferI[z];
-		}
+		PacketIO(2);
+		for(z=0;bufferI[z]!=TBLR_INC_N&&z<DIMBUF;z++);
+		for(j=z+2;(j<z+2+bufferI[z+1])&&j<DIMBUF;j++) memCODE[k++]=bufferI[j];
 		PrintStatus(strings[S_CodeReading2],i*100/(dim+dim2),i);	//"Read: %d%%, addr. %05X"
 		if(RWstop) i=dim;
-		j=1;
+		j=0;
 		if(saveLog){
 			fprintf(logfile,strings[S_Log7],i,i,k,k);	//"i=%d(0x%X), k=%d(0x%X)\n"
-			WriteLogIO();
 		}
 	}
 	PrintStatusEnd();
@@ -513,18 +502,15 @@ void Read18Fx(int dim,int dim2,int options){
 	bufferU[j++]=14;
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(8);
-	read();
-	for(z=1;bufferI[z]!=TBLR_INC_N&&z<DIMBUF-28;z++);
+	PacketIO(8);
+	for(z=0;bufferI[z]!=TBLR_INC_N&&z<DIMBUF-28;z++);
 	if(z<DIMBUF-28){
 		for(i=0;i<8;i++) memID[k2++]=bufferI[z+i+2];
 		for(;i<14+8;i++) memCONFIG[-8+k2++]=bufferI[z+i+8];
 	}
-	j=1;
+	j=0;
 	if(saveLog){
 		fprintf(logfile,strings[S_Log7],i,i,k2,k2);	//"i=%d(0x%X), k=%d(0x%X)\n"
-		WriteLogIO();
 	}
 	if(k2!=22){
 		PrintMessage2(strings[S_ReadConfigErr],22,k2);	//"Error reading config area, requested %d bytes, read %d\r\n"
@@ -569,10 +555,8 @@ void Read18Fx(int dim,int dim2,int options){
 			if(j>DIMBUF-26||i==dim2-1){
 				bufferU[j++]=FLUSH;
 				for(;j<DIMBUF;j++) bufferU[j]=0x0;
-				write();
-				msDelay(10);
-				read();
-				for(z=1;z<DIMBUF-1;z++){
+				PacketIO(10);
+				for(z=0;z<DIMBUF-1;z++){
 					if(bufferI[z]==SHIFT_TABLAT){
 						memEE[k2++]=bufferI[z+1];
 						z+=8;
@@ -580,10 +564,9 @@ void Read18Fx(int dim,int dim2,int options){
 				}
 				PrintStatus(strings[S_CodeReading],(i+dim)*100/(dim+dim2),i);	//"Read: %d%%, addr. %03X"
 				if(RWstop) i=dim2;
-				j=1;
+				j=0;
 				if(saveLog){
 					fprintf(logfile,strings[S_Log7],i,i,k2,k2);	//"i=%d(0x%X), k=%d(0x%X)\n"
-					WriteLogIO();
 				}
 			}
 		}
@@ -604,9 +587,7 @@ void Read18Fx(int dim,int dim2,int options){
 	bufferU[j++]=0x0;
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(1);
-	read();
+	PacketIO(1);
 	unsigned int stop=GetTickCount();
 	PrintStatusClear();
 //****************** visualize ********************
@@ -622,8 +603,12 @@ void Read18Fx(int dim,int dim2,int options){
 	if(dim2){
 		DisplayEE();	//visualize
 	}
-	PrintMessage1(strings[S_End],(stop-start)/1000.0);	//"\r\nEnd (%.2f s)\r\n"
-	if(saveLog) CloseLogFile();
+	sprintf(str,strings[S_End],(stop-start)/1000.0);	//"\r\nEnd (%.2f s)\r\n"
+	PrintMessage(str);
+	if(saveLog){
+		fprintf(logfile,str);
+		CloseLogFile();
+	}
 }
 
 #ifdef _MSC_VER
@@ -697,8 +682,7 @@ void Write18Fx(int dim,int dim2,int wbuf,int eraseW1,int eraseW2,int options)
 		return;
 	}
 	unsigned int start=GetTickCount();
-	bufferU[0]=0;
-	j=1;
+	j=0;
 	bufferU[j++]=SET_PARAMETER;
 	bufferU[j++]=SET_T1T2;
 	bufferU[j++]=1;						//T1=1u
@@ -755,17 +739,13 @@ void Write18Fx(int dim,int dim2,int wbuf,int eraseW1,int eraseW2,int options)
 	bufferU[j++]=5100&0xff;
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(3);
-	if(entry==2) msDelay(7);
-	read();
-	if(saveLog)WriteLogIO();
-	for(z=1;bufferI[z]!=TBLR_INC_N&&z<DIMBUF;z++);
+	PacketIO(entry==2?10:3);
+	for(z=0;bufferI[z]!=TBLR_INC_N&&z<DIMBUF;z++);
 	if(z<DIMBUF-3){
 		PrintMessage2(strings[S_DevID2],bufferI[z+3],bufferI[z+2]);	//"DevID: 0x%02X%02X\r\n"
 		PIC18_ID(bufferI[z+2]+(bufferI[z+3]<<8));
 	}
-	j=1;
+	j=0;
 //****************** erase memory ********************
 	PrintMessage(strings[S_StartErase]);	//"Erase ... "
 	if(optWrite!=3){	//chip erase
@@ -808,12 +788,8 @@ void Write18Fx(int dim,int dim2,int wbuf,int eraseW1,int eraseW2,int options)
 	bufferU[j++]=0x00;
 		bufferU[j++]=FLUSH;
 		for(;j<DIMBUF;j++) bufferU[j]=0x0;
-		write();
-	if(optWrite==0) msDelay(16);	//bulk erase delay
-	else msDelay(550);
-		read();
-		j=1;
-		if(saveLog)WriteLogIO();
+		PacketIO(optWrite==0?16:550);	//bulk erase delay
+		j=0;
 	}
 	else{	//separate block erase
 		bufferU[j++]=CORE_INS;
@@ -860,13 +836,10 @@ void Write18Fx(int dim,int dim2,int wbuf,int eraseW1,int eraseW2,int options)
 		bufferU[j++]=0x00;
 		bufferU[j++]=FLUSH;
 		for(;j<DIMBUF;j++) bufferU[j]=0x0;
-		write();
-		msDelay(7);	//block erase delay
-		read();
-		j=1;
+		PacketIO(7);	//block erase delay
+		j=0;
 		if(saveLog){
 			fprintf(logfile,"ERASE BLOCK0\n");
-			WriteLogIO();
 		}
 		bufferU[j++]=CORE_INS;
 		bufferU[j++]=0x0E;			//MOVLW 4
@@ -903,13 +876,10 @@ void Write18Fx(int dim,int dim2,int wbuf,int eraseW1,int eraseW2,int options)
 		bufferU[j++]=0x00;
 		bufferU[j++]=FLUSH;
 		for(;j<DIMBUF;j++) bufferU[j]=0x0;
-		write();
-		msDelay(7);	//block erase delay
-		read();
-		j=1;
+		PacketIO(7);	//block erase delay
+		j=0;
 		if(saveLog){
 			fprintf(logfile,"ERASE BLOCK1\n");
-			WriteLogIO();
 		}
 		bufferU[j++]=CORE_INS;
 		bufferU[j++]=0x0E;			//MOVLW 4
@@ -946,13 +916,10 @@ void Write18Fx(int dim,int dim2,int wbuf,int eraseW1,int eraseW2,int options)
 		bufferU[j++]=0x00;
 		bufferU[j++]=FLUSH;
 		for(;j<DIMBUF;j++) bufferU[j]=0x0;
-		write();
-		msDelay(7);	//block erase delay
-		read();
-		j=1;
+		PacketIO(7);	//block erase delay
+		j=0;
 		if(saveLog){
 			fprintf(logfile,"ERASE BLOCK2\n");
-			WriteLogIO();
 		}
 		bufferU[j++]=CORE_INS;
 		bufferU[j++]=0x0E;			//MOVLW 4
@@ -989,13 +956,10 @@ void Write18Fx(int dim,int dim2,int wbuf,int eraseW1,int eraseW2,int options)
 		bufferU[j++]=0x00;
 		bufferU[j++]=FLUSH;
 		for(;j<DIMBUF;j++) bufferU[j]=0x0;
-		write();
-		msDelay(7);	//block erase delay
-		read();
-		j=1;
+		PacketIO(7);	//block erase delay
+		j=0;
 		if(saveLog){
 			fprintf(logfile,"ERASE BLOCK3\n");
-			WriteLogIO();
 		}
 		bufferU[j++]=CORE_INS;
 		bufferU[j++]=0x0E;			//MOVLW 4
@@ -1032,13 +996,10 @@ void Write18Fx(int dim,int dim2,int wbuf,int eraseW1,int eraseW2,int options)
 		bufferU[j++]=0x00;
 		bufferU[j++]=FLUSH;
 		for(;j<DIMBUF;j++) bufferU[j]=0x0;
-		write();
-		msDelay(7);	//block erase delay
-		read();
-		j=1;
+		PacketIO(7);	//block erase delay
+		j=0;
 		if(saveLog){
 			fprintf(logfile,"ERASE BOOT BLOCK\n");
-			WriteLogIO();
 		}
 		bufferU[j++]=CORE_INS;
 		bufferU[j++]=0x0E;			//MOVLW 4
@@ -1075,13 +1036,10 @@ void Write18Fx(int dim,int dim2,int wbuf,int eraseW1,int eraseW2,int options)
 		bufferU[j++]=0x00;
 		bufferU[j++]=FLUSH;
 		for(;j<DIMBUF;j++) bufferU[j]=0x0;
-		write();
-		msDelay(7);	//block erase delay
-		read();
-		j=1;
+		PacketIO(7);	//block erase delay
+		j=0;
 		if(saveLog){
 			fprintf(logfile,"ERASE CONFIG\n");
-			WriteLogIO();
 		}
 		if(programID){
 			bufferU[j++]=CORE_INS;
@@ -1116,13 +1074,10 @@ void Write18Fx(int dim,int dim2,int wbuf,int eraseW1,int eraseW2,int options)
 			bufferU[j++]=0x00;
 			bufferU[j++]=FLUSH;
 			for(;j<DIMBUF;j++) bufferU[j]=0x0;
-			write();
-			msDelay(7);	//row erase delay
-			read();
-			j=1;
+			PacketIO(7);	//row erase delay
+			j=0;
 			if(saveLog){
 				fprintf(logfile,"ERASE ID\n");
-				WriteLogIO();
 			}
 		}
 	}
@@ -1148,11 +1103,8 @@ void Write18Fx(int dim,int dim2,int wbuf,int eraseW1,int eraseW2,int options)
 	bufferU[j++]=0xF6;			//TBLPTRL
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(1);
-	read();
-	j=1;
-	if(saveLog)WriteLogIO();
+	PacketIO(1);
+	j=0;
 //****************** write code ********************
 	PrintMessage(strings[S_StartCodeProg]);	//"code write ... "
 	PrintStatusSetup();
@@ -1164,7 +1116,7 @@ void Write18Fx(int dim,int dim2,int wbuf,int eraseW1,int eraseW2,int options)
 		fprintf(logfile,"WRITE CODE\ndim=%d(0x%X)\n",dim,dim);	//
 	}
 	int valid,i0;
-	j=1;
+	j=0;
 	for(i=k=0;i<dim;){		//write xx instruction words
 		if(k==0){				//skip row if empty
 			i0=i;
@@ -1193,11 +1145,8 @@ void Write18Fx(int dim,int dim2,int wbuf,int eraseW1,int eraseW2,int options)
 				bufferU[j++]=0xF6;
 				bufferU[j++]=FLUSH;
 				for(;j<DIMBUF;j++) bufferU[j]=0x0;
-				write();
-				msDelay(2);
-				read();
-				j=1;
-				if(saveLog) WriteLogIO();
+				PacketIO(2);
+				j=0;
 			}
 		}
 		if(DIMBUF-4-j<wbuf-2-k)	ww=(DIMBUF-4-j)/2;	//split data for a total of wbuf-2
@@ -1214,11 +1163,8 @@ void Write18Fx(int dim,int dim2,int wbuf,int eraseW1,int eraseW2,int options)
 			if(j>DIMBUF-8){
 				bufferU[j++]=FLUSH;
 				for(;j<DIMBUF;j++) bufferU[j]=0x0;
-				write();
-				msDelay(3);
-				read();
-				j=1;
-				if(saveLog) WriteLogIO();
+				PacketIO(3);
+				j=0;
 			}
 			bufferU[j++]=TBLW_PROG_INC;
 			bufferU[j++]=memCODE[i+1];
@@ -1240,16 +1186,12 @@ void Write18Fx(int dim,int dim2,int wbuf,int eraseW1,int eraseW2,int options)
 		}
 		bufferU[j++]=FLUSH;
 		for(;j<DIMBUF;j++) bufferU[j]=0x0;
-		write();
-		msDelay(2);
-		if(k==0) msDelay(wdly);
-		read();
-		j=1;
+		PacketIO(k==0?wdly:2);
+		j=0;
 		PrintStatus(strings[S_CodeWriting2],i*100/(dim+dim2),i/2);	//"Write: %d%%,addr. %04X"
 		if(RWstop) i=dim;
 		if(saveLog){
 			fprintf(logfile,strings[S_Log7],i,i,k,k);	//"i=%d, k=%d 0=%d\n"
-			WriteLogIO();
 		}
 	}
 	PrintStatusEnd();
@@ -1289,13 +1231,10 @@ void Write18Fx(int dim,int dim2,int wbuf,int eraseW1,int eraseW2,int options)
 		bufferU[j++]=1000&0xFF;
 		bufferU[j++]=FLUSH;
 		for(;j<DIMBUF;j++) bufferU[j]=0x0;
-		write();
-		msDelay(5);
-		read();
-		j=1;
+		PacketIO(5);
+		j=0;
 		if(saveLog){
 			fprintf(logfile,strings[S_Log7],i,i,0,0);	//"i=%d, k=%d 0=%d\n"
-			WriteLogIO();
 		}
 		PrintMessage(strings[S_Compl]);	//"completed\r\n"
 	}
@@ -1375,17 +1314,14 @@ void Write18Fx(int dim,int dim2,int wbuf,int eraseW1,int eraseW2,int options)
 				bufferU[j++]=SHIFT_TABLAT;
 				bufferU[j++]=FLUSH;
 				for(;j<DIMBUF;j++) bufferU[j]=0x0;
-				write();
-				msDelay(8);
-				read();
+				PacketIO(8);
 				PrintStatus(strings[S_CodeWriting],(i+dim)*100/(dim+dim2),i);	//"Scrittura: %d%%, ind. %03X"
 				if(RWstop) i=dim2;
-				j=1;
+				j=0;
 				for(z=DIMBUF-1;z&&bufferI[z]!=SHIFT_TABLAT;z--);
 				if(z&&memEE[i]!=bufferI[z+1]) errEE++;
 				if(saveLog){
 					fprintf(logfile,strings[S_Log8],i,i,k,k,errEE);	//"i=%d, k=%d, errors=%d\n"
-					WriteLogIO();
 				}
 			}
 		}
@@ -1414,14 +1350,11 @@ void Write18Fx(int dim,int dim2,int wbuf,int eraseW1,int eraseW2,int options)
 	bufferU[j++]=0xF6;			//CLRF TBLPTRL
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(2);
-	read();
+	PacketIO(2);
 	if(saveLog){
-		WriteLogIO();
 		fprintf(logfile,"\n\n");
 	}
-	for(i=0,j=1,k=0;i<dim;i+=DIMBUF-4){
+	for(i=0,j=0,k=0;i<dim;i+=DIMBUF-4){
 		i0=i;
 		for(valid=0;!valid&&i<dim;i+=valid?0:DIMBUF-4){		//skip verification if 0xFF
 			for(k2=0;k2<DIMBUF-4&&!valid&&i+k2<dim;k2++) if(memCODE[i+k2]<0xFF) valid=1;
@@ -1448,19 +1381,14 @@ void Write18Fx(int dim,int dim2,int wbuf,int eraseW1,int eraseW2,int options)
 			bufferU[j++]=0xF6;
 			bufferU[j++]=FLUSH;
 			for(;j<DIMBUF;j++) bufferU[j]=0x0;
-			write();
-			msDelay(2);
-			read();
-			j=1;
-			if(saveLog) WriteLogIO();
+			PacketIO(2);
+			j=0;
 		}
 		bufferU[j++]=TBLR_INC_N;
 		bufferU[j++]=i<dim-(DIMBUF-4)?DIMBUF-4:dim-i;
 		bufferU[j++]=FLUSH;
 		for(;j<DIMBUF;j++) bufferU[j]=0x0;
-		write();
-		msDelay(2);
-		read();
+		PacketIO(2);
 		if(bufferI[1]==TBLR_INC_N){
 			for(z=0;z<bufferI[2]&&z<DIMBUF;z++){
 				if(memCODE[i+z]!=bufferI[z+3]){
@@ -1472,10 +1400,9 @@ void Write18Fx(int dim,int dim2,int wbuf,int eraseW1,int eraseW2,int options)
 		}
 		PrintStatus(strings[S_CodeV2],i*100/(dim+dim2),i);	//"Verifica: %d%%, ind. %04X"
 		if(RWstop) i=dim;
-		j=1;
+		j=0;
 		if(saveLog){
 			fprintf(logfile,strings[S_Log8],i,i,k,k,err);	//"i=%d, k=%d, errors=%d\n"
-			WriteLogIO();
 		}
 		if(err>=max_err) break;
 	}
@@ -1507,9 +1434,7 @@ void Write18Fx(int dim,int dim2,int wbuf,int eraseW1,int eraseW2,int options)
 		bufferU[j++]=8;
 		bufferU[j++]=FLUSH;
 		for(;j<DIMBUF;j++) bufferU[j]=0x0;
-		write();
-		msDelay(2);
-		read();
+		PacketIO(2);
 		for(z=0;bufferI[z]!=TBLR_INC_N&&z<DIMBUF;z++);
 		for(i=0;i<8;i++) if(memID[i]!=0xFF&&memID[i]!=bufferI[z+i+2]) errID++;
 		PrintMessage1(strings[S_ComplErr],errID);	//"completed: %d errors\r\n"
@@ -1517,10 +1442,9 @@ void Write18Fx(int dim,int dim2,int wbuf,int eraseW1,int eraseW2,int options)
 		if(err>=max_err){
 			PrintMessage1(strings[S_MaxErr],err);	//"Exceeded maximum number of errors (%d), write interrupted\r\n"
 		}
-		j=1;
+		j=0;
 		if(saveLog){
 			fprintf(logfile,strings[S_Log8],i,i,0,0,err);	//"i=%d, k=%d, errors=%d\n"
-			WriteLogIO();
 		}
 	}
 //****************** write CONFIG ********************
@@ -1569,13 +1493,10 @@ void Write18Fx(int dim,int dim2,int wbuf,int eraseW1,int eraseW2,int options)
 			bufferU[j++]=0xF6;			//TBLPTRL
 			bufferU[j++]=FLUSH;
 			for(;j<DIMBUF;j++) bufferU[j]=0x0;
-			write();
-			msDelay(12);
-			read();
-			j=1;
+			PacketIO(12);
+			j=0;
 			if(saveLog){
 				fprintf(logfile,strings[S_Log7],i,i,0,0);	//"i=%d, k=%d\n"
-				WriteLogIO();
 			}
 		}
 		PrintMessage(strings[S_Compl]);	//"completed\r\n"
@@ -1598,10 +1519,8 @@ void Write18Fx(int dim,int dim2,int wbuf,int eraseW1,int eraseW2,int options)
 		bufferU[j++]=14;
 		bufferU[j++]=FLUSH;
 		for(;j<DIMBUF;j++) bufferU[j]=0x0;
-		write();
-		msDelay(2);
-		read();
-		for(z=1;bufferI[z]!=TBLR_INC_N&&z<DIMBUF-16;z++);
+		PacketIO(2);
+		for(z=0;bufferI[z]!=TBLR_INC_N&&z<DIMBUF-16;z++);
 		if(z<DIMBUF-16){
 			for(i=0;i<14;i++) if(~memCONFIG[i]&bufferI[z+i+2]) errC++;	//error if written 0 and read 1 (~W&R)
 		}
@@ -1610,10 +1529,9 @@ void Write18Fx(int dim,int dim2,int wbuf,int eraseW1,int eraseW2,int options)
 		if(err>=max_err){
 			PrintMessage1(strings[S_MaxErr],err);	//"Exceeded maximum number of errors (%d), write interrupted\r\n"
 		}
-		j=1;
+		j=0;
 		if(saveLog){
 			fprintf(logfile,strings[S_Log8],i,i,0,0,err);	//"i=%d, k=%d, errors=%d\n"
-			WriteLogIO();
 		}
 	}
 	bufferU[j++]=SET_PARAMETER;
@@ -1628,11 +1546,13 @@ void Write18Fx(int dim,int dim2,int wbuf,int eraseW1,int eraseW2,int options)
 	bufferU[j++]=0x0;
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(1);
-	read();
+	PacketIO(1);
 	unsigned int stop=GetTickCount();
-	PrintStatusClear();
-	PrintMessage3(strings[S_EndErr],(stop-start)/1000.0,err,err!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nEnd (%.2f s) %d %s\r\n\r\n"
-	if(saveLog) CloseLogFile();
+	sprintf(str,strings[S_EndErr],(stop-start)/1000.0,err,err!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nEnd (%.2f s) %d %s\r\n\r\n"
+	PrintMessage(str);
+	if(saveLog){
+		fprintf(logfile,str);
+		CloseLogFile();
+	}
+	PrintStatusClear();			//clear status report
 }

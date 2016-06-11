@@ -1,6 +1,6 @@
 /**
  * \file progP24F.c - algorithms to program the PIC24 family of microcontrollers
- * Copyright (C) 2009-2014 Alberto Maccioni
+ * Copyright (C) 2009-2016 Alberto Maccioni
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -547,8 +547,7 @@ void Read24Fx(int dim,int dim2,int options,int appIDaddr,int executiveArea){
 	}
 	else StartHVReg(-1);		//LVP: current limited to (5-0.7-3.6)/10k = 50uA
 	unsigned int start=GetTickCount();
-	bufferU[0]=0;
-	j=1;
+	j=0;
 	bufferU[j++]=SET_PARAMETER;
 	bufferU[j++]=SET_T3;
 	bufferU[j++]=10000>>8;
@@ -627,11 +626,8 @@ void Read24Fx(int dim,int dim2,int options,int appIDaddr,int executiveArea){
 	bufferU[j++]=ICSP_NOP;
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(55);
-	read();
-	if(saveLog)WriteLogIO();
-	j=1;
+	PacketIO(55);
+	j=0;
 	//Read DeviceID @0xFF0000, DevRev @0xFF0002
 	bufferU[j++]=SIX_N;
 	bufferU[j++]=4;
@@ -671,13 +667,10 @@ void Read24Fx(int dim,int dim2,int options,int appIDaddr,int executiveArea){
 	bufferU[j++]=ICSP_NOP;
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(2);
-	read();
-	if(saveLog)WriteLogIO();
-	j=1;
+	PacketIO(2);
+	j=0;
 	int w0=0,w1=0;
-	for(z=1;bufferI[z]!=REGOUT&&z<DIMBUF;z++);
+	for(z=0;bufferI[z]!=REGOUT&&z<DIMBUF;z++);
 	if(z<DIMBUF-2) w0=(bufferI[z+1]<<8)+bufferI[z+2];
 	for(z+=3;bufferI[z]!=REGOUT&&z<DIMBUF;z++);
 	if(z<DIMBUF-2) w1=(bufferI[z+1]<<8)+bufferI[z+2];
@@ -736,12 +729,9 @@ void Read24Fx(int dim,int dim2,int options,int appIDaddr,int executiveArea){
 	bufferU[j++]=ICSP_NOP;
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(2);
-	read();
-	if(saveLog)WriteLogIO();
-	j=1;
-	for(z=1;bufferI[z]!=REGOUT&&z<DIMBUF;z++);
+	PacketIO(2);
+	j=0;
+	for(z=0;bufferI[z]!=REGOUT&&z<DIMBUF;z++);
 	if(z<DIMBUF-2) w0=(bufferI[z+1]<<8)+bufferI[z+2];
 	PrintMessage2("ApplicationID @ 0x80%04X:  0x%04X\r\n",appIDaddr,w0);
 //****************** read code ********************
@@ -773,11 +763,8 @@ void Read24Fx(int dim,int dim2,int options,int appIDaddr,int executiveArea){
 			bufferU[j++]=ICSP_NOP;
 			bufferU[j++]=FLUSH;
 			for(;j<DIMBUF;j++) bufferU[j]=0x0;
-			write();
-			msDelay(2);
-			read();
-			j=1;
-			if(saveLog)WriteLogIO();
+			PacketIO(2);
+			j=0;
 			High=i>>17;
 		}
 		bufferU[j++]=SIX_LONG;				//GOTO 0x200
@@ -848,10 +835,8 @@ void Read24Fx(int dim,int dim2,int options,int appIDaddr,int executiveArea){
 
 		bufferU[j++]=FLUSH;
 		for(;j<DIMBUF;j++) bufferU[j]=0x0;
-		write();
-		msDelay(3);
-		read();
-		for(z=1;bufferI[z]!=REGOUT&&z<DIMBUF;z++);
+		PacketIO(3);
+		for(z=0;bufferI[z]!=REGOUT&&z<DIMBUF;z++);
 		if(z<DIMBUF-2){
 			memCODE[k+1]=bufferI[z+1];	//M0
 			memCODE[k]=bufferI[z+2];	//L0
@@ -900,10 +885,9 @@ void Read24Fx(int dim,int dim2,int options,int appIDaddr,int executiveArea){
 			k+=8;
 		}
 		PrintStatus(strings[S_CodeReading2],i*100/dim,i/2);	//"Read: %d%%, addr. %05X"
-		j=1;
+		j=0;
 		if(saveLog){
 			fprintf(logfile,strings[S_Log7],i,i,k,k);	//"i=%d(0x%X), k=%d(0x%X)\n"
-			WriteLogIO();
 		}
 	}
 	PrintStatusEnd();
@@ -983,16 +967,13 @@ void Read24Fx(int dim,int dim2,int options,int appIDaddr,int executiveArea){
 		bufferU[j++]=REGOUT;
 		bufferU[j++]=FLUSH;
 		for(;j<DIMBUF;j++) bufferU[j]=0x0;
-		write();
-		msDelay(3);
-		read();
-		j=1;
+		PacketIO(3);
+		j=0;
 		if(saveLog){
 			fprintf(logfile,strings[S_Log7],0xF80000,0xF80000,0,0);	//"i=%d(0x%X), k=%d(0x%X)\n"
-			WriteLogIO();
 		}
 		//save 0xF800000 to 0xF80010
-		for(i=0,z=1;i<9;i++){
+		for(i=0,z=0;i<9;i++){
 			for(;bufferI[z]!=REGOUT&&z<DIMBUF;z++);
 			memCONFIG[i*4]=bufferI[z+2];	//Low byte
 			memCONFIG[i*4+1]=bufferI[z+1];	//High byte
@@ -1015,16 +996,13 @@ void Read24Fx(int dim,int dim2,int options,int appIDaddr,int executiveArea){
 		bufferU[j++]=REGOUT;
 		bufferU[j++]=FLUSH;
 		for(;j<DIMBUF;j++) bufferU[j]=0x0;
-		write();
-		msDelay(3);
-		read();
-		j=1;
+		PacketIO(3);
+		j=0;
 		if(saveLog){
 			fprintf(logfile,strings[S_Log7],0xF80000,0xF80000,0,0);	//"i=%d(0x%X), k=%d(0x%X)\n"
-			WriteLogIO();
 		}
 		//save 0xF800012 to 0xF80016
-		for(i=9,z=1;i<12;i++){
+		for(i=9,z=0;i<12;i++){
 			for(;bufferI[z]!=REGOUT&&z<DIMBUF;z++);
 			memCONFIG[i*4]=bufferI[z+2];	//Low byte
 			memCONFIG[i*4+1]=bufferI[z+1];	//High byte
@@ -1069,11 +1047,9 @@ void Read24Fx(int dim,int dim2,int options,int appIDaddr,int executiveArea){
 			if(j>DIMBUF-6||i==dim2-2){
 				bufferU[j++]=FLUSH;
 				for(;j<DIMBUF;j++) bufferU[j]=0x0;
-				write();
-				msDelay(3);
-				read();
-				j=1;
-				for(z=1;z<DIMBUF-2;z++){
+				PacketIO(3);
+				j=0;
+				for(z=0;z<DIMBUF-2;z++){
 					if(bufferI[z]==REGOUT){
 						memEE[EEbaseAddr+k2++]=bufferI[z+2];
 						memEE[EEbaseAddr+k2++]=bufferI[z+1];
@@ -1084,7 +1060,6 @@ void Read24Fx(int dim,int dim2,int options,int appIDaddr,int executiveArea){
 				PrintStatus(strings[S_CodeReading],(i+dim)*100/(dim+dim2),i);	//"Read: %d%%, addr. %03X"
 				if(saveLog){
 					fprintf(logfile,strings[S_Log7],i,i,k2,k2);	//"i=%d(0x%X), k=%d(0x%X)\n"
-					WriteLogIO();
 				}
 			}
 		}
@@ -1097,7 +1072,7 @@ void Read24Fx(int dim,int dim2,int options,int appIDaddr,int executiveArea){
 	}
 //****************** read executive area ********************
 	if(executiveArea){
-		j=1;
+		j=0;
 		PrintMessage(strings[S_Read_EXE_A]);		//read executive area ...
 		PrintStatusSetup();
 		if(saveLog)	fprintf(logfile,"\nExecutive area:\n");
@@ -1126,11 +1101,8 @@ void Read24Fx(int dim,int dim2,int options,int appIDaddr,int executiveArea){
 		bufferU[j++]=0x00;
 		bufferU[j++]=FLUSH;
 		for(;j<DIMBUF;j++) bufferU[j]=0x0;
-		write();
-		msDelay(2);
-		read();
-		if(saveLog)WriteLogIO();
-		j=1;
+		PacketIO(2);
+		j=0;
 		for(i=0,k=0;i<executiveArea;i+=16){
 			bufferU[j++]=SIX_LONG;				//TBLRDL [W6],[W7]
 			bufferU[j++]=0xBA;
@@ -1176,11 +1148,9 @@ void Read24Fx(int dim,int dim2,int options,int appIDaddr,int executiveArea){
 			bufferU[j++]=0x00;
 			bufferU[j++]=FLUSH;
 			for(;j<DIMBUF;j++) bufferU[j]=0x0;
-			write();
-			msDelay(3);
-			read();
-			j=1;
-			for(z=1;bufferI[z]!=REGOUT&&z<DIMBUF;z++);
+			PacketIO(3);
+			j=0;
+			for(z=0;bufferI[z]!=REGOUT&&z<DIMBUF;z++);
 			if(z<DIMBUF-2){
 				memExec[k+1]=bufferI[z+1];	//M0
 				memExec[k]=bufferI[z+2];	//L0
@@ -1214,7 +1184,6 @@ void Read24Fx(int dim,int dim2,int options,int appIDaddr,int executiveArea){
 			PrintStatus(strings[S_CodeReading2],i*100/executiveArea,0x800000+i/2);	//"Read: %d%%, addr. %05X"
 			if(saveLog){
 				fprintf(logfile,strings[S_Log7],i,i,k,k);	//"i=%d(0x%X), k=%d(0x%X)\n"
-				WriteLogIO();
 			}
 		}
 		PrintStatusEnd();
@@ -1236,10 +1205,7 @@ void Read24Fx(int dim,int dim2,int options,int appIDaddr,int executiveArea){
 	bufferU[j++]=0x0;
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(2);
-	read();
-	if(saveLog)	WriteLogIO();
+	PacketIO(2);
 	unsigned int stop=GetTickCount();
 	PrintStatusClear();
 //****************** visualize ********************
@@ -1320,8 +1286,12 @@ void Read24Fx(int dim,int dim2,int options,int appIDaddr,int executiveArea){
 		else PrintMessage(aux);
 		free(aux);
 	}
-	PrintMessage1(strings[S_End],(stop-start)/1000.0);	//"\r\nEnd (%.2f s)\r\n"
-	if(saveLog) CloseLogFile();
+	sprintf(str,strings[S_End],(stop-start)/1000.0);	//"\r\nEnd (%.2f s)\r\n"
+	PrintMessage(str);
+	if(saveLog){
+		fprintf(logfile,str);
+		CloseLogFile();
+	}
 }
 
 #ifdef _MSC_VER
@@ -1366,8 +1336,7 @@ void Read24Ex(int dim,int dim2,int options,int appIDaddr,int executiveArea){
 	memset(memCODE,0xFF,dim);
 	StartHVReg(-1);		//LVP: current limited to (5-0.7-3.6)/10k = 50uA
 	unsigned int start=GetTickCount();
-	bufferU[0]=0;
-	j=1;
+	j=0;
 	bufferU[j++]=SET_PARAMETER;
 	bufferU[j++]=SET_T3;
 	bufferU[j++]=2000>>8;
@@ -1433,11 +1402,8 @@ void Read24Ex(int dim,int dim2,int options,int appIDaddr,int executiveArea){
 	bufferU[j++]=ICSP_NOP;
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(65);
-	read();
-	if(saveLog)WriteLogIO();
-	j=1;
+	PacketIO(65);
+	j=0;
 	//Read DeviceID @0xFF0000, DevRev @0xFF0002
 	bufferU[j++]=SIX_N;
 	bufferU[j++]=4;
@@ -1470,13 +1436,10 @@ void Read24Ex(int dim,int dim2,int options,int appIDaddr,int executiveArea){
 	bufferU[j++]=0x00;
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(2);
-	read();
-	if(saveLog)WriteLogIO();
-	j=1;
+	PacketIO(2);
+	j=0;
 	int w0=0,w1=0;
-	for(z=1;bufferI[z]!=REGOUT&&z<DIMBUF;z++);
+	for(z=0;bufferI[z]!=REGOUT&&z<DIMBUF;z++);
 	if(z<DIMBUF-2) w0=(bufferI[z+1]<<8)+bufferI[z+2];
 	for(z+=3;bufferI[z]!=REGOUT&&z<DIMBUF;z++);
 	if(z<DIMBUF-2) w1=(bufferI[z+1]<<8)+bufferI[z+2];
@@ -1524,12 +1487,9 @@ void Read24Ex(int dim,int dim2,int options,int appIDaddr,int executiveArea){
 		bufferU[j++]=ICSP_NOP;
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(2);
-	read();
-	if(saveLog)WriteLogIO();
-		j=1;
-		for(z=1;bufferI[z]!=REGOUT&&z<DIMBUF;z++);
+	PacketIO(2);
+	j=0;
+	for(z=0;bufferI[z]!=REGOUT&&z<DIMBUF;z++);
 	if(z<DIMBUF-2) w0=(bufferI[z+1]<<8)+bufferI[z+2];
 	PrintMessage2("ApplicationID @ 0x80%04X:  0x%04X\r\n",appIDaddr,w0);
 //****************** read code ********************
@@ -1556,11 +1516,8 @@ void Read24Ex(int dim,int dim2,int options,int appIDaddr,int executiveArea){
 			bufferU[j++]=ICSP_NOP;
 			bufferU[j++]=FLUSH;
 			for(;j<DIMBUF;j++) bufferU[j]=0x0;
-			write();
-			msDelay(2);
-			read();
-			j=1;
-			if(saveLog)WriteLogIO();
+			PacketIO(2);
+			j=0;
 			High=i>>17;
 		}
 		bufferU[j++]=SIX_LONG5;				//GOTO 0x200
@@ -1628,12 +1585,10 @@ void Read24Ex(int dim,int dim2,int options,int appIDaddr,int executiveArea){
 		bufferU[j++]=0xB6;
 			bufferU[j++]=REGOUT;
 		}
-				bufferU[j++]=FLUSH;
-				for(;j<DIMBUF;j++) bufferU[j]=0x0;
-				write();
-		msDelay(4);
-				read();
-		for(z=1;bufferI[z]!=REGOUT&&z<DIMBUF;z++);
+		bufferU[j++]=FLUSH;
+		for(;j<DIMBUF;j++) bufferU[j]=0x0;
+		PacketIO(4);
+		for(z=0;bufferI[z]!=REGOUT&&z<DIMBUF;z++);
 		if(z<DIMBUF-2){
 			memCODE[k+1]=bufferI[z+1];	//M0
 			memCODE[k]=bufferI[z+2];	//L0
@@ -1684,10 +1639,9 @@ void Read24Ex(int dim,int dim2,int options,int appIDaddr,int executiveArea){
 		}
 		PrintStatus(strings[S_CodeReading2],i*100/dim,i/2);	//"Read: %d%%, addr. %05X"
 		if(RWstop) i=dim;
-		j=1;
+		j=0;
 		if(saveLog){
 			fprintf(logfile,strings[S_Log7],i,i,k,k);	//"i=%d(0x%X), k=%d(0x%X)\n"
-			WriteLogIO();
 		}
 	}
 	PrintStatusEnd();
@@ -1698,7 +1652,7 @@ void Read24Ex(int dim,int dim2,int options,int appIDaddr,int executiveArea){
 	else PrintMessage(strings[S_Compl]);
 //****************** read executive area ********************
 	if(executiveArea){
-		j=1;
+		j=0;
 		PrintMessage(strings[S_Read_EXE_A]);		//read executive area ...
 	PrintStatusSetup();
 		if(saveLog)	fprintf(logfile,"\nExecutive area:\n");
@@ -1717,18 +1671,15 @@ void Read24Ex(int dim,int dim2,int options,int appIDaddr,int executiveArea){
 		bufferU[j++]=0xF8;
 		bufferU[j++]=0x87;
 		bufferU[j++]=0x04;				//GOTO 0x200
-			bufferU[j++]=0x02;
-			bufferU[j++]=0x00;
-			bufferU[j++]=ICSP_NOP;
+		bufferU[j++]=0x02;
+		bufferU[j++]=0x00;
 		bufferU[j++]=ICSP_NOP;
 		bufferU[j++]=ICSP_NOP;
-			bufferU[j++]=FLUSH;
-			for(;j<DIMBUF;j++) bufferU[j]=0x0;
-			write();
-			msDelay(2);
-			read();
-		if(saveLog)WriteLogIO();
-			j=1;
+		bufferU[j++]=ICSP_NOP;
+		bufferU[j++]=FLUSH;
+		for(;j<DIMBUF;j++) bufferU[j]=0x0;
+		PacketIO(2);
+		j=0;
 		for(i=0,k=0;i<executiveArea;i+=16){
 			bufferU[j++]=SIX_LONG5;				//TBLRDL [W6],[W7]
 		bufferU[j++]=0xBA;
@@ -1775,11 +1726,9 @@ void Read24Ex(int dim,int dim2,int options,int appIDaddr,int executiveArea){
 			bufferU[j++]=ICSP_NOP;
 		bufferU[j++]=FLUSH;
 		for(;j<DIMBUF;j++) bufferU[j]=0x0;
-		write();
-		msDelay(3);
-		read();
-			j=1;
-		for(z=1;bufferI[z]!=REGOUT&&z<DIMBUF;z++);
+			PacketIO(3);
+			j=0;
+			for(z=0;bufferI[z]!=REGOUT&&z<DIMBUF;z++);
 		if(z<DIMBUF-2){
 				memExec[k+1]=bufferI[z+1];	//M0
 				memExec[k]=bufferI[z+2];	//L0
@@ -1814,7 +1763,6 @@ void Read24Ex(int dim,int dim2,int options,int appIDaddr,int executiveArea){
 			if(RWstop) i=dim;
 		if(saveLog){
 				fprintf(logfile,strings[S_Log7],i,i,k,k);	//"i=%d(0x%X), k=%d(0x%X)\n"
-			WriteLogIO();
 		}
 	}
 	PrintStatusEnd();
@@ -1826,7 +1774,7 @@ void Read24Ex(int dim,int dim2,int options,int appIDaddr,int executiveArea){
 	}
 	PrintMessage("\r\n");
 //****************** read user ID ********************
-	j=1;
+	j=0;
 	if(saveLog)	fprintf(logfile,"\nUser ID:\n");
 	bufferU[j++]=SIX_N;
 	bufferU[j++]=0x45;				//append 1 NOP
@@ -1850,11 +1798,8 @@ void Read24Ex(int dim,int dim2,int options,int appIDaddr,int executiveArea){
 			bufferU[j++]=ICSP_NOP;
 			bufferU[j++]=FLUSH;
 			for(;j<DIMBUF;j++) bufferU[j]=0x0;
-			write();
-	msDelay(2);
-			read();
-			if(saveLog)WriteLogIO();
-			j=1;
+	PacketIO(2);
+	j=0;
 	bufferU[j++]=SIX_LONG5;				//TBLRDL [W6],[W7]
 	bufferU[j++]=0xBA;
 	bufferU[j++]=0x0B;
@@ -1899,12 +1844,10 @@ void Read24Ex(int dim,int dim2,int options,int appIDaddr,int executiveArea){
 	bufferU[j++]=0x00;
 			bufferU[j++]=FLUSH;
 			for(;j<DIMBUF;j++) bufferU[j]=0x0;
-			write();
-	msDelay(3);
-			read();
-			j=1;
+	PacketIO(3);
+	j=0;
 	k=0;
-	for(z=1;bufferI[z]!=REGOUT&&z<DIMBUF;z++);
+	for(z=0;bufferI[z]!=REGOUT&&z<DIMBUF;z++);
 	if(z<DIMBUF-2){
 		UID[k+1]=bufferI[z+1];	//M0
 		UID[k]=bufferI[z+2];	//L0
@@ -1935,9 +1878,6 @@ void Read24Ex(int dim,int dim2,int options,int appIDaddr,int executiveArea){
 		UID[k+13]=bufferI[z+1];	//M3
 		UID[k+12]=bufferI[z+2];	//L3
 	}
-	if(saveLog){
-		WriteLogIO();
-	}
 	PrintMessage("\r\n");
 //****************** exit ********************
 	bufferU[j++]=SET_PARAMETER;
@@ -1950,10 +1890,7 @@ void Read24Ex(int dim,int dim2,int options,int appIDaddr,int executiveArea){
 	bufferU[j++]=0x0;
 			bufferU[j++]=FLUSH;
 			for(;j<DIMBUF;j++) bufferU[j]=0x0;
-			write();
-	msDelay(2);
-			read();
-			if(saveLog)WriteLogIO();
+	PacketIO(2);
 	unsigned int stop=GetTickCount();
 	PrintStatusClear();
 //****************** visualize ********************
@@ -1990,8 +1927,12 @@ void Read24Ex(int dim,int dim2,int options,int appIDaddr,int executiveArea){
 	for(i=0;i<4;i++){
 		if(UID[i*4]!=0xFF||UID[i*4+1]!=0xFF) PrintMessage2("UserID%d=%04X",i,(UID[i*4]<<8)+UID[i*4+1]);
 	}
-	PrintMessage1(strings[S_End],(stop-start)/1000.0);	//"\r\nEnd (%.2f s)\r\n"
-	if(saveLog) CloseLogFile();
+	sprintf(str,strings[S_End],(stop-start)/1000.0);	//"\r\nEnd (%.2f s)\r\n"
+	PrintMessage(str);
+	if(saveLog){
+		fprintf(logfile,str);
+		CloseLogFile();
+	}
 }
 
 
@@ -2130,8 +2071,7 @@ void Write24Fx(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 			}
 		}
 	unsigned int start=GetTickCount();
-	bufferU[0]=0;
-	j=1;
+	j=0;
 	bufferU[j++]=SET_PARAMETER;
 	bufferU[j++]=SET_T3;
 	bufferU[j++]=2000>>8;
@@ -2209,11 +2149,8 @@ void Write24Fx(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 		bufferU[j++]=ICSP_NOP;
 				bufferU[j++]=FLUSH;
 				for(;j<DIMBUF;j++) bufferU[j]=0x0;
-				write();
-	msDelay(37);
-				read();
-	if(saveLog)WriteLogIO();
-				j=1;
+	PacketIO(37);
+	j=0;
 	//Read DeviceID @0xFF0000, DevRev @0xFF0002
 		bufferU[j++]=SIX_N;
 	bufferU[j++]=4;
@@ -2253,13 +2190,10 @@ void Write24Fx(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 	bufferU[j++]=ICSP_NOP;
 		bufferU[j++]=FLUSH;
 		for(;j<DIMBUF;j++) bufferU[j]=0x0;
-		write();
-	msDelay(2);
-		read();
-	if(saveLog)WriteLogIO();
-		j=1;
+	PacketIO(2);
+	j=0;
 	int w0=0,w1=0;
-	for(z=1;bufferI[z]!=REGOUT&&z<DIMBUF;z++);
+	for(z=0;bufferI[z]!=REGOUT&&z<DIMBUF;z++);
 	if(z<DIMBUF-2) w0=(bufferI[z+1]<<8)+bufferI[z+2];
 	for(z+=3;bufferI[z]!=REGOUT&&z<DIMBUF;z++);
 	if(z<DIMBUF-2) w1=(bufferI[z+1]<<8)+bufferI[z+2];
@@ -2301,12 +2235,9 @@ void Write24Fx(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 	bufferU[j++]=2000&0xff;
 		bufferU[j++]=FLUSH;
 		for(;j<DIMBUF;j++) bufferU[j]=0x0;
-		write();
-	msDelay(2);
-		read();
-		j=1;
-	if(saveLog)WriteLogIO();
-	for(z=1;bufferI[z]!=REGOUT&&z<DIMBUF;z++);
+	PacketIO(2);
+	j=0;
+	for(z=0;bufferI[z]!=REGOUT&&z<DIMBUF;z++);
 	if(z<DIMBUF-2) w0=(bufferI[z+1]<<8)+bufferI[z+2];
 	PrintMessage2("ApplicationID @ 0x80%04X:  0x%04X\r\n",appIDaddr,w0);
 //****************** erase memory ********************
@@ -2372,11 +2303,9 @@ void Write24Fx(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 		if(erase==3){				//200 ms timing
 			bufferU[j++]=FLUSH;
 			for(;j<DIMBUF;j++) bufferU[j]=0x0;
-			write();
+			PacketIO(20);
 			msDelay(200);
-			read();
-			j=1;
-			if(saveLog)WriteLogIO();
+			j=0;
 		}
 			bufferU[j++]=ICSP_NOP;
 			bufferU[j++]=ICSP_NOP;
@@ -2409,15 +2338,11 @@ void Write24Fx(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 	}
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(7);
-	read();
-	j=1;
-	if(saveLog)WriteLogIO();
-	for(z=1;bufferI[z]!=REGOUT&&z<DIMBUF;z++);
+	PacketIO(7);
+	j=0;
+	for(z=0;bufferI[z]!=REGOUT&&z<DIMBUF;z++);
 	w0=bufferI[z+1]&0x80;
 	//Wait for erase completion (max 1s)
-	for(i=0;erase<2&&i<100&&w0;i++){
 	bufferU[j++]=SIX;				//MOV NVMCON,W2
 	bufferU[j++]=0x80;
 	bufferU[j++]=0x3B;
@@ -2430,15 +2355,16 @@ void Write24Fx(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 	bufferU[j++]=REGOUT;
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-		write();
-		msDelay(10);
-		read();
-		j=1;
-		if(saveLog)WriteLogIO();
-		for(z=1;bufferI[z]!=REGOUT&&z<DIMBUF;z++);
+	j=0;
+	for(i=0;erase<2&&i<100&&w0;i++){
+		PacketIO(5);
+		for(z=0;bufferI[z]!=REGOUT&&z<DIMBUF;z++);
 		w0=bufferI[z+1]&0x80;
+		msDelay(10);
 	}
+	if(saveLog)	fprintf(logfile,"\nErase time: %dms\n",i*12);
 //****************** prepare write ********************
+	msDelay(10);
 	bufferU[j++]=SIX_N;
 	bufferU[j++]=5;
 	bufferU[j++]=0x24;				//MOV XXXX,W10
@@ -2465,11 +2391,8 @@ void Write24Fx(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 	bufferU[j++]=ICSP_NOP;
 			bufferU[j++]=FLUSH;
 			for(;j<DIMBUF;j++) bufferU[j]=0x0;
-			write();
-	msDelay(2);
-			read();
-			j=1;
-	if(saveLog)WriteLogIO();
+	PacketIO(5);
+	j=0;
 	PrintMessage(strings[S_Compl]);	//"completed\r\n"
 //****************** write code ********************
 	PrintMessage(strings[S_StartCodeProg]);	//"Write code ... "
@@ -2507,11 +2430,8 @@ void Write24Fx(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 				bufferU[j++]=ICSP_NOP;
 				bufferU[j++]=FLUSH;
 				for(;j<DIMBUF;j++) bufferU[j]=0x0;
-				write();
-				msDelay(2);
-				read();
-				j=1;
-				if(saveLog)WriteLogIO();
+				PacketIO(2);
+				j=0;
 				High=i>>17;
 		}
 			bufferU[j++]=SIX_N;
@@ -2572,13 +2492,10 @@ void Write24Fx(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 				if(erase>1){				//30Fx, unlock and external timing
 					bufferU[j++]=FLUSH;
 					for(;j<DIMBUF;j++) bufferU[j]=0x0;
-					write();
-					msDelay(3);
-					read();
-					j=1;
+					PacketIO(3);
+					j=0;
 					if(saveLog){
 						fprintf(logfile,strings[S_Log7],i,i,k,k);	//"i=%d, k=%d 0=%d\n"
-						WriteLogIO();
 					}
 				bufferU[j++]=SIX_N;
 				bufferU[j++]=6;
@@ -2633,15 +2550,12 @@ void Write24Fx(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 			}
 			bufferU[j++]=FLUSH;
 			for(;j<DIMBUF;j++) bufferU[j]=0x0;
-			write();
-			msDelay(3);
-			read();
-			j=1;
+			PacketIO(3);
+			j=0;
 			PrintStatus(strings[S_CodeWriting2],i*100/(dim+dim2),i/2);	//"Write: %d%%,addr. %04X"
 			if(RWstop) i=dim;
 			if(saveLog){
 				fprintf(logfile,strings[S_Log7],i/2,i/2,k,k);	//"i=%d, k=%d 0=%d\n"
-				WriteLogIO();
 			}
 		}
 	PrintStatusEnd();
@@ -2682,11 +2596,8 @@ void Write24Fx(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 			bufferU[j++]=ICSP_NOP;
 			bufferU[j++]=FLUSH;
 			for(;j<DIMBUF;j++) bufferU[j]=0x0;
-			write();
-			msDelay(2);
-			read();
-			j=1;
-			if(saveLog)WriteLogIO();
+			PacketIO(2);
+			j=0;
 			High=i>>17;
 		}
 		bufferU[j++]=SIX;				//MOV i/2,W6
@@ -2742,12 +2653,10 @@ void Write24Fx(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 		bufferU[j++]=0x00;
 		bufferU[j++]=FLUSH;
 		for(;j<DIMBUF;j++) bufferU[j]=0x0;
-		write();
-		msDelay(3);
-		read();
+		PacketIO(3);
 		PrintStatus(strings[S_CodeV2],i*100/(dim+dim2),i/2);	//"Verify: %d%%, addr. %04X"
 		if(RWstop) i=dim;
-		for(z=1;bufferI[z]!=REGOUT&&z<DIMBUF;z++);
+		for(z=0;bufferI[z]!=REGOUT&&z<DIMBUF;z++);
 		if(z<DIMBUF-2){
 			r0=(bufferI[z+1]<<8)+bufferI[z+2];
 		}
@@ -2782,10 +2691,9 @@ void Write24Fx(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 		CheckData(w2,r2,i/2+4,&err);
 		CheckData(w3,r3,i/2+6,&err);
 		PrintStatus(strings[S_CodeV2],i*100/dim,i/2);	//"Verify: %d%%, addr. %05X"
-		j=1;
+		j=0;
 		if(saveLog){
 			fprintf(logfile,strings[S_Log8],i/2,i/2,k,k,err);	//"i=%d, k=%d, errori=%d\n"
-			WriteLogIO();
 		}
 		if(err>=max_err) break;
 	}
@@ -2860,11 +2768,8 @@ void Write24Fx(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 			bufferU[j++]=ICSP_NOP;
 			bufferU[j++]=FLUSH;
 			for(;j<DIMBUF;j++) bufferU[j]=0x0;
-			write();
-			msDelay(9);
-			read();
-			j=1;
-			if(saveLog)WriteLogIO();
+			PacketIO(9);
+			j=0;
 		}
 		else if(eewrite==2){		//separate erase
 			bufferU[j++]=SIX_N;
@@ -2931,11 +2836,8 @@ void Write24Fx(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 			bufferU[j++]=0x61;
 			bufferU[j++]=FLUSH;
 			for(;j<DIMBUF;j++) bufferU[j]=0x0;
-			write();
-			msDelay(6);
-			read();
-			j=1;
-			if(saveLog)WriteLogIO();
+			PacketIO(6);
+			j=0;
 			bufferU[j++]=SIX_N;
 			bufferU[j++]=6;
 			bufferU[j++]=0x24;				//MOV 4066,W10
@@ -2969,11 +2871,8 @@ void Write24Fx(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 			bufferU[j++]=0x61;
 			bufferU[j++]=FLUSH;
 			for(;j<DIMBUF;j++) bufferU[j]=0x0;
-			write();
-			msDelay(4);
-			read();
-			j=1;
-			if(saveLog)WriteLogIO();
+			PacketIO(4);
+			j=0;
 		}
 		else if(eewrite==1){		//30Fxx
 			bufferU[j++]=SIX;				//MOV 0x7F,W0
@@ -2992,11 +2891,8 @@ void Write24Fx(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 			}
 			bufferU[j++]=FLUSH;
 			for(;j<DIMBUF;j++) bufferU[j]=0x0;
-			write();
-			msDelay(1);
-			read();
-			j=1;
-			if(saveLog)WriteLogIO();
+			PacketIO(1);
+			j=0;
 		}
 		//Write EEPROM
 		for(k2=0,i=0x1000-dim2;i<0x1000;i+=2){	//write 1 word (2 bytes)
@@ -3055,15 +2951,12 @@ void Write24Fx(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 				}
 				bufferU[j++]=FLUSH;
 				for(;j<DIMBUF;j++) bufferU[j]=0x0;
-				write();
-				msDelay(wait+2);		//write delay
-				read();
-				j=1;
+				PacketIO(wait+2);
+				j=0;
 				PrintStatus(strings[S_CodeWriting],(i-0x1000+dim2)*100/(dim2),i);	//"Scrittura: %d%%, ind. %03X"
 				if(RWstop) i=dim;
 				if(saveLog){
 					fprintf(logfile,strings[S_Log7],i,i,k,k);	//"i=%d, k=%d 0=%d\n"
-					WriteLogIO();
 				}
 			}
 		}
@@ -3092,10 +2985,8 @@ void Write24Fx(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 			if(j>DIMBUF-7||i==dim2-4){
 				bufferU[j++]=FLUSH;
 				for(;j<DIMBUF;j++) bufferU[j]=0x0;
-				write();
-				msDelay(3);
-				read();
-				for(z=1;z<DIMBUF-2;z++){
+				PacketIO(3);
+				for(z=0;z<DIMBUF-2;z++){
 					if(bufferI[z]==REGOUT){
 						CheckData(memEE[k2],bufferI[z+2],i,&errE);
 						CheckData(memEE[k2+1],bufferI[z+1],i+1,&errE);
@@ -3105,10 +2996,9 @@ void Write24Fx(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 				}
 				PrintStatus(strings[S_CodeReading],(i-EEbaseAddr)*100/(dim2),i);	//"Read: %d%%, addr. %03X"
 				if(RWstop) i=EEbaseAddr+dim2;
-				j=1;
+				j=0;
 				if(saveLog){
 					fprintf(logfile,strings[S_Log7],i,i,k2,k2);	//"i=%d(0x%X), k=%d(0x%X)\n"
-					WriteLogIO();
 				}
 			}
 		}
@@ -3119,7 +3009,7 @@ void Write24Fx(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 	}
 //****************** write CONFIG ********************
 	int written, read;
-	j=1;
+	j=0;
 	if(config>2&&config<5&&err<max_err){	//config area @ 0xF80000
 		PrintMessage(strings[S_ConfigW]);	//"Write CONFIG ..."
 		if(saveLog)	fprintf(logfile,"\nWRITE CONFIG:\n");
@@ -3175,13 +3065,10 @@ void Write24Fx(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 			//}
 			bufferU[j++]=FLUSH;
 			for(;j<DIMBUF;j++) bufferU[j]=0x0;
-			write();
-			msDelay(27);
-			read();
-			j=1;
+			PacketIO(27);
+			j=0;
 			if(saveLog){
 				fprintf(logfile,strings[S_Log7],i,i,0,0);	//"i=%d(0x%X), k=%d(0x%X)\n"
-				WriteLogIO();
 			}
 		}
 		//Verify write
@@ -3242,15 +3129,12 @@ void Write24Fx(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 		bufferU[j++]=REGOUT;
 		bufferU[j++]=FLUSH;
 		for(;j<DIMBUF;j++) bufferU[j]=0x0;
-		write();
-		msDelay(3);
-		read();
-		j=1;
+		PacketIO(3);
+		j=0;
 		if(saveLog){
 			fprintf(logfile,strings[S_Log7],0xF80000,0xF80000,0,0);	//"i=%d(0x%X), k=%d(0x%X)\n"
-			WriteLogIO();
 		}
-		for(i=0,z=1;i<9;i++){
+		for(i=0,z=0;i<9;i++){
 			for(;bufferI[z]!=REGOUT&&z<DIMBUF;z++);
 			written=memCONFIG[i*4];
 			read=bufferI[z+2];								//Low byte
@@ -3274,15 +3158,12 @@ void Write24Fx(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 		bufferU[j++]=REGOUT;
 		bufferU[j++]=FLUSH;
 		for(;j<DIMBUF;j++) bufferU[j]=0x0;
-		write();
-		msDelay(3);
-		read();
-		j=1;
+		PacketIO(3);
+		j=0;
 		if(saveLog){
 			fprintf(logfile,strings[S_Log7],0xF80000,0xF80000,0,0);	//"i=%d(0x%X), k=%d(0x%X)\n"
-			WriteLogIO();
 		}
-		for(z=1;i<12;i++){
+		for(z=0;i<12;i++){
 			for(;bufferI[z]!=REGOUT&&z<DIMBUF;z++);
 			written=memCONFIG[i*4];
 			read=bufferI[z+2];								//Low byte
@@ -3362,13 +3243,10 @@ void Write24Fx(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 			bufferU[j++]=0x61;
 			bufferU[j++]=FLUSH;
 			for(;j<DIMBUF;j++) bufferU[j]=0x0;
-			write();
-			msDelay(3);
-			read();
-			j=1;
+			PacketIO(3);
+			j=0;
 			if(saveLog){
 				fprintf(logfile,strings[S_Log7],i,i,0,0);	//"i=%d(0x%X), k=%d(0x%X)\n"
-				WriteLogIO();
 			}
 		}
 		bufferU[j++]=SIX;
@@ -3422,13 +3300,10 @@ void Write24Fx(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 			}
 			bufferU[j++]=FLUSH;
 			for(;j<DIMBUF;j++) bufferU[j]=0x0;
-			write();
-			msDelay(3);
-			read();
-			j=1;
+			PacketIO(3);
+			j=0;
 			if(saveLog){
 				fprintf(logfile,strings[S_Log7],i,i,0,0);	//"i=%d(0x%X), k=%d(0x%X)\n"
-				WriteLogIO();
 			}
 		}
 		//Verify write
@@ -3479,15 +3354,12 @@ void Write24Fx(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 		bufferU[j++]=REGOUT;
 		bufferU[j++]=FLUSH;
 		for(;j<DIMBUF;j++) bufferU[j]=0x0;
-		write();
-		msDelay(3);
-		read();
-		j=1;
+		PacketIO(3);
+		j=0;
 		if(saveLog){
 			fprintf(logfile,strings[S_Log7],0xF80000,0xF80000,0,0);	//"i=%d(0x%X), k=%d(0x%X)\n"
-			WriteLogIO();
 		}
-		for(i=0,z=1;i<7;i++){
+		for(i=0,z=0;i<7;i++){
 			for(;bufferI[z]!=REGOUT&&z<DIMBUF;z++);
 			written=memCONFIG[i*4+1]+(memCONFIG[i*4]<<8);
 			read=bufferI[z+1]+(bufferI[z+2]<<8);
@@ -3505,15 +3377,16 @@ void Write24Fx(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 	bufferU[j++]=0x0;
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(2);
-	read();
-	if(saveLog)WriteLogIO();
-	j=1;
+	PacketIO(2);
+	j=0;
 	unsigned int stop=GetTickCount();
-	PrintStatusClear();
-	PrintMessage3(strings[S_EndErr],(stop-start)/1000.0,err,err!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nEnd (%.2f s) %d %s\r\n\r\n"
-	if(saveLog) CloseLogFile();
+	sprintf(str,strings[S_EndErr],(stop-start)/1000.0,err,err!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nEnd (%.2f s) %d %s\r\n\r\n"
+	PrintMessage(str);
+	if(saveLog){
+		fprintf(logfile,str);
+		CloseLogFile();
+	}
+	PrintStatusClear();			//clear status report
 }
 
 #ifdef _MSC_VER
@@ -3558,8 +3431,7 @@ void Write24Ex(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 	//last 10 program words
 	for(i=0;i<10;i++) PrintMessage3("CONFIG%d(0x%05X): 0x%02X\r\n",i,(dim-40+i*4)/2,memCODE[dim-40+i*4]);
 	unsigned int start=GetTickCount();
-	bufferU[0]=0;
-	j=1;
+	j=0;
 	bufferU[j++]=SET_PARAMETER;
 	bufferU[j++]=SET_T3;
 	bufferU[j++]=2000>>8;
@@ -3625,11 +3497,8 @@ void Write24Ex(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 	bufferU[j++]=ICSP_NOP;
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(65);
-	read();
-	if(saveLog)WriteLogIO();
-	j=1;
+	PacketIO(65);
+	j=0;
 	//Read DeviceID @0xFF0000, DevRev @0xFF0002
 	bufferU[j++]=SIX_N;
 	bufferU[j++]=4;
@@ -3662,13 +3531,10 @@ void Write24Ex(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 	bufferU[j++]=0x00;
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(2);
-	read();
-	if(saveLog)WriteLogIO();
-	j=1;
+	PacketIO(2);
+	j=0;
 	int w0=0,w1=0;
-	for(z=1;bufferI[z]!=REGOUT&&z<DIMBUF;z++);
+	for(z=0;bufferI[z]!=REGOUT&&z<DIMBUF;z++);
 	if(z<DIMBUF-2) w0=(bufferI[z+1]<<8)+bufferI[z+2];
 	for(z+=3;bufferI[z]!=REGOUT&&z<DIMBUF;z++);
 	if(z<DIMBUF-2) w1=(bufferI[z+1]<<8)+bufferI[z+2];
@@ -3705,12 +3571,9 @@ void Write24Ex(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 	bufferU[j++]=2000&0xff;
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(2);
-	read();
-	j=1;
-	if(saveLog)WriteLogIO();
-	for(z=1;bufferI[z]!=REGOUT&&z<DIMBUF;z++);
+	PacketIO(2);
+	j=0;
+	for(z=0;bufferI[z]!=REGOUT&&z<DIMBUF;z++);
 	if(z<DIMBUF-2) w0=(bufferI[z+1]<<8)+bufferI[z+2];
 	PrintMessage2("ApplicationID @ 0x80%04X:  0x%04X\r\n",appIDaddr,w0);
 //****************** erase memory ********************
@@ -3770,12 +3633,9 @@ void Write24Ex(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 	bufferU[j++]=REGOUT;
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(4);
-	read();
-	j=1;
-	if(saveLog)WriteLogIO();
-	for(z=1;bufferI[z]!=REGOUT&&z<DIMBUF;z++);
+	PacketIO(4);
+	j=0;
+	for(z=0;bufferI[z]!=REGOUT&&z<DIMBUF;z++);
 	w0=bufferI[z+1]&0x80;
 	w0=1;
 	//Wait for erase completion (max 500m)
@@ -3792,14 +3652,12 @@ void Write24Ex(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 	bufferU[j++]=REGOUT;
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	j=1;
+	j=0;
 	for(i=0;i<50&&w0;i++){
-		write();
-		msDelay(10);
-		read();
-		if(saveLog)WriteLogIO();
-		for(z=1;bufferI[z]!=REGOUT&&z<DIMBUF;z++);
+		PacketIO(5);
+		for(z=0;bufferI[z]!=REGOUT&&z<DIMBUF;z++);
 		w0=bufferI[z+1]&0x80;
+		msDelay(10);
 	}
 	if(saveLog)	fprintf(logfile,"ERASE TIME: %d ms\n",i*10);
 	msDelay(70);/*erase time seems always too low*/
@@ -3830,11 +3688,8 @@ void Write24Ex(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 	bufferU[j++]=0x4A;
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(2);
-	read();
-	j=1;
-	if(saveLog)WriteLogIO();
+	PacketIO(2);
+	j=0;
 	PrintMessage(strings[S_Compl]);	//"completed\r\n"
 //****************** write code ********************
 	PrintMessage(strings[S_StartCodeProg]);	//"Write code ... "
@@ -3913,15 +3768,12 @@ void Write24Ex(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 		bufferU[j++]=0x29;
 		bufferU[j++]=FLUSH;
 		for(;j<DIMBUF;j++) bufferU[j]=0x0;
-		write();
-		msDelay(2);
-		read();
-		j=1;
+		PacketIO(2);
+		j=0;
 		PrintStatus(strings[S_CodeWriting2],i*100/(dim+dim2),i/2);	//"Write: %d%%,addr. %04X"
 		if(RWstop) i=dim;
 		if(saveLog){
 			fprintf(logfile,strings[S_Log7],i/2,i/2,k,k);	//"i=%d, k=%d 0=%d\n"
-			WriteLogIO();
 		}
 		//GOTO 0x200 is necessary to correctly write (???)
 		bufferU[j++]=ICSP_NOP;
@@ -3947,11 +3799,8 @@ void Write24Ex(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 		bufferU[j++]=ICSP_NOP;
 		bufferU[j++]=FLUSH;
 		for(;j<DIMBUF;j++) bufferU[j]=0x0;
-		j=1;
-		write();
-		msDelay(2);
-		read();
-		if(saveLog)WriteLogIO();
+		j=0;
+		PacketIO(2);
 	}
 	PrintStatusEnd();
 	PrintMessage(strings[S_Compl]);	//"completed\r\n"
@@ -3986,11 +3835,8 @@ void Write24Ex(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 			bufferU[j++]=ICSP_NOP;
 			bufferU[j++]=FLUSH;
 			for(;j<DIMBUF;j++) bufferU[j]=0x0;
-			write();
-			msDelay(2);
-			read();
-			j=1;
-			if(saveLog)WriteLogIO();
+			PacketIO(2);
+			j=0;
 			High=i>>17;
 		}
 		bufferU[j++]=SIX;				//MOV i/2,W6
@@ -4046,12 +3892,10 @@ void Write24Ex(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 		bufferU[j++]=0x00;
 		bufferU[j++]=FLUSH;
 		for(;j<DIMBUF;j++) bufferU[j]=0x0;
-		write();
-		msDelay(4);
-		read();
+		PacketIO(4);
 		PrintStatus(strings[S_CodeV2],i*100/(dim+dim2),i/2);	//"Verify: %d%%, addr. %04X"
 		if(RWstop) i=dim;
-		for(z=1;bufferI[z]!=REGOUT&&z<DIMBUF;z++);
+		for(z=0;bufferI[z]!=REGOUT&&z<DIMBUF;z++);
 		if(z<DIMBUF-2){
 			r0=(bufferI[z+1]<<8)+bufferI[z+2];
 		}
@@ -4086,10 +3930,9 @@ void Write24Ex(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 		CheckData(w2,r2,i/2+4,&err);
 		CheckData(w3,r3,i/2+6,&err);
 		PrintStatus(strings[S_CodeV2],i*100/dim,i/2);	//"Verify: %d%%, addr. %05X"
-		j=1;
+		j=0;
 		if(saveLog){
 			fprintf(logfile,strings[S_Log8],i/2,i/2,k,k,err);	//"i=%d, k=%d, errori=%d\n"
-			WriteLogIO();
 		}
 		if(err>=max_err) break;
 	}
@@ -4105,13 +3948,14 @@ void Write24Ex(int dim,int dim2,int options,int appIDaddr,int rowSize, double wa
 	bufferU[j++]=0x0;
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(2);
-	read();
-	if(saveLog)WriteLogIO();
-	j=1;
+	PacketIO(2);
+	j=0;
 	unsigned int stop=GetTickCount();
-	PrintStatusClear();
-	PrintMessage3(strings[S_EndErr],(stop-start)/1000.0,err,err!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nEnd (%.2f s) %d %s\r\n\r\n"
-	if(saveLog) CloseLogFile();
+	sprintf(str,strings[S_EndErr],(stop-start)/1000.0,err,err!=1?strings[S_ErrPlur]:strings[S_ErrSing]);	//"\r\nEnd (%.2f s) %d %s\r\n\r\n"
+	PrintMessage(str);
+	if(saveLog){
+		fprintf(logfile,str);
+		CloseLogFile();
+	}
+	PrintStatusClear();			//clear status report
 }

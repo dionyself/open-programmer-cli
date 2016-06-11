@@ -65,7 +65,7 @@
 // 2 = 300/400 kbps (SPI/I2C)
 // 3 = 500/800 kbps (SPI/I2C)
 {
-	int j=1;
+	int j=0;
 	if(N<0) N=0;
 	if(N>60) N=60;
 	if(mode<0) mode=0;
@@ -76,7 +76,6 @@
 		OpenLogFile();	//"Log.txt"
 		fprintf(logfile,"I2C-SPI receive\tmode=%d\tspeed=%d\n",mode,speed);
 	}
-	bufferU[0]=0;
 	bufferU[j++]=VREG_DIS;		//Disable HV reg
 	bufferU[j++]=EN_VPP_VCC;	//VDD
 	bufferU[j++]=0x1;
@@ -96,11 +95,8 @@
 	}
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(1);
-	read();
-	if(saveLog)WriteLogIO();
-	j=1;
+	PacketIO(2);
+	j=0;
 	if(mode==0){					//I2C read
 		bufferU[j++]=I2C_READ;
 		bufferU[j++]=N>(DIMBUF-4)?DIMBUF-4:N;
@@ -123,11 +119,8 @@
 	}
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(10);
-	read();
+	PacketIO(10);
 	if(saveLog){
-		WriteLogIO();
 		CloseLogFile();
 	}
 	if(bufferI[1]==I2C_READ||bufferI[1]==I2C_READ2||bufferI[1]==SPI_READ){
@@ -178,7 +171,7 @@
 // 2 = 300/400 kbps (SPI/I2C)
 // 3 = 500/800 kbps (SPI/I2C)
 {
-	int i,j=1;
+	int i,j=0;
 	if(N<0) N=0;
 	if(N>57) N=57;
 	if(mode<0) mode=0;
@@ -189,7 +182,6 @@
 		OpenLogFile();	//"Log.txt"
 		fprintf(logfile,"I2C-SPI send\tmode=%d\tspeed=%d\n",mode,speed);
 	}
-	bufferU[0]=0;
 	bufferU[j++]=VREG_DIS;		//Disable HV reg
 	bufferU[j++]=EN_VPP_VCC;	//VDD
 	bufferU[j++]=0x1;
@@ -209,11 +201,8 @@
 	}
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(1);
-	read();
-	if(saveLog)WriteLogIO();
-	j=1;
+	PacketIO(2);
+	j=0;
 	if(mode==0){					//I2C write
 		bufferU[j++]=I2C_WRITE;
 		bufferU[j++]=N>(DIMBUF-5)?DIMBUF-5:N;
@@ -239,11 +228,8 @@
 	}
 	bufferU[j++]=FLUSH;
 	for(;j<DIMBUF;j++) bufferU[j]=0x0;
-	write();
-	msDelay(20);
-	read();
+	PacketIO(20);
 	if(saveLog){
-		WriteLogIO();
 		CloseLogFile();
 	}
 	if(bufferI[1]==I2C_WRITE||bufferI[1]==SPI_WRITE){

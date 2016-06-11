@@ -1,4 +1,4 @@
-// programmer instructions v0.9.0
+// programmer instructions v0.10.0
 #define NOP 				0x00
 #define PROG_RST 			0x01	//		->10B
 #define PROG_ID 			0x02	//		->6B
@@ -77,9 +77,16 @@
 #define READ_AC				0x47	//      ->1B
 #define AT_HV_RTX			0x48	//+1+NB ->1B
 #define SIX_LONG5			0x49	//+3B
+#define LOAD_PC  			0x50	//+2B		011101
+#define LOAD_DATA_INC		0x51	//2B		100010
+#define READ_DATA_INC		0x52	//2B		100100
+#define JTAG_SET_MODE		0x53	//1B
+#define JTAG_SEND_CMD		0x54	//1B
+#define JTAG_XFER_DATA		0x55	//4B -> 4B
+#define JTAG_XFER_F_DATA	0x56	//4B -> 4B
 // special ins.
 #define SPI_TEST			0xEF	//+2B	->2B
 #define READ_RAM			0xF0	//+2B	->3B
 #define WRITE_RAM			0xF1	//+3B	->3B
 #define LOOP				0xF2
-#define MAX_INS 			0x49	//last instruction
+#define MAX_INS 			0x56	//last instruction
