@@ -1,3 +1,10 @@
+This repo is a fork of the original project https://sourceforge.net/projects/openprogrammer/,
+for more details about it i recommend to visit http://openprog.altervista.org/OP_eng.html.
+
+Thanks to the original creators of this great project:
+  Alberto Maccioni, Anselmo, Sandro, Alessandro, Ken, Luigi and  Mihaly.
+
+
 OP: control program for open programmer, 
 an USB programmer for PIC and ATMEL micros, I2C/SPI/MicroWire memories, and other I2C/SPI devices.
 Website: http://openprog.altervista.org
